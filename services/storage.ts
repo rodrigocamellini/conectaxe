@@ -17,7 +17,11 @@ export const storage = {
     }
   },
   set: <T,>(key: string, value: T): void => {
-    localStorage.setItem(key, JSON.stringify(value));
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error saving storage key "${key}":`, error);
+    }
   },
   clear: (key: string): void => {
     localStorage.removeItem(key);

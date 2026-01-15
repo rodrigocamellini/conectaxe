@@ -1,7 +1,7 @@
 
 import { User, SystemConfig, FixedExpense, StaffPermissions, RoleDefinition, SpiritualEntity, IDCardConfig, MenuItemConfig } from './types';
 
-export const DEFAULT_LOGO_URL = "https://i.ibb.co/VWVm0Qz/Design-sem-nome-20.png";
+export const DEFAULT_LOGO_URL = "/images/logo.png";
 
 // Fix: Export BRAZILIAN_STATES to resolve import error in DeveloperPortal.tsx and ensure consistency across components
 export const BRAZILIAN_STATES = [
@@ -116,24 +116,24 @@ export const INITIAL_USERS: User[] = [
 ];
 
 export const INITIAL_ENTITIES: SpiritualEntity[] = [
-  { id: 'p1', name: 'Oxalá', type: 'pai_cabeca' },
-  { id: 'p2', name: 'Ogum', type: 'pai_cabeca' },
-  { id: 'p3', name: 'Oxóssi', type: 'pai_cabeca' },
-  { id: 'p4', name: 'Xangô', type: 'pai_cabeca' },
-  { id: 'p5', name: 'Obaluaiê', type: 'pai_cabeca' },
-  { id: 'p6', name: 'Omulu', type: 'pai_cabeca' },
-  { id: 'm1', name: 'Iemanjá', type: 'mae_cabeca' },
-  { id: 'm2', name: 'Iansã', type: 'mae_cabeca' },
-  { id: 'm3', name: 'Oxum', type: 'mae_cabeca' },
-  { id: 'm4', name: 'Nanã Boruque', type: 'mae_cabeca' },
-  { id: 'g1', name: 'Preto Velho(a)', type: 'guia_frente' },
-  { id: 'g2', name: 'Caboclo(a)', type: 'guia_frente' },
-  { id: 'g3', name: 'Baiano(a)', type: 'guia_frente' },
-  { id: 'g4', name: 'Boiadeiro(a)', type: 'guia_frente' },
-  { id: 'g5', name: 'Malandro(a)', type: 'guia_frente' },
-  { id: 'g6', name: 'Cigano(a)', type: 'guia_frente' },
-  { id: 'g7', name: 'Exu', type: 'guia_frente' },
-  { id: 'g8', name: 'Pomba gira', type: 'guia_frente' },
+  { id: 'p1', name: 'Oxalá', type: 'pai_cabeca', imageUrl: '/images/entities/oxala.png' },
+  { id: 'p2', name: 'Ogum', type: 'pai_cabeca', imageUrl: '/images/entities/ogum.png' },
+  { id: 'p3', name: 'Oxóssi', type: 'pai_cabeca', imageUrl: '/images/entities/oxossi.png' },
+  { id: 'p4', name: 'Xangô', type: 'pai_cabeca', imageUrl: '/images/entities/xango.png' },
+  { id: 'p5', name: 'Obaluaiê', type: 'pai_cabeca', imageUrl: '/images/entities/obaluaie.png' },
+  { id: 'p6', name: 'Omulu', type: 'pai_cabeca', imageUrl: '/images/entities/omulu.png' },
+  { id: 'm1', name: 'Iemanjá', type: 'mae_cabeca', imageUrl: '/images/entities/iemanja.png' },
+  { id: 'm2', name: 'Iansã', type: 'mae_cabeca', imageUrl: '/images/entities/iansa.png' },
+  { id: 'm3', name: 'Oxum', type: 'mae_cabeca', imageUrl: '/images/entities/oxum.png' },
+  { id: 'm4', name: 'Nanã Boruque', type: 'mae_cabeca', imageUrl: '/images/entities/nana_boruque.png' },
+  { id: 'g1', name: 'Preto Velho(a)', type: 'guia_frente', imageUrl: '/images/entities/preto_velho.png' },
+  { id: 'g2', name: 'Caboclo(a)', type: 'guia_frente', imageUrl: '/images/entities/caboclo.png' },
+  { id: 'g3', name: 'Baiano(a)', type: 'guia_frente', imageUrl: '/images/entities/baiano.png' },
+  { id: 'g4', name: 'Boiadeiro(a)', type: 'guia_frente', imageUrl: '/images/entities/boiadeiro.png' },
+  { id: 'g5', name: 'Malandro(a)', type: 'guia_frente', imageUrl: '/images/entities/malandro.png' },
+  { id: 'g6', name: 'Cigano(a)', type: 'guia_frente', imageUrl: '/images/entities/cigano.png' },
+  { id: 'g7', name: 'Exu', type: 'guia_frente', imageUrl: '/images/entities/exu.png' },
+  { id: 'g8', name: 'Pomba gira', type: 'guia_frente', imageUrl: '/images/entities/pomba_gira.png' },
   { id: 'c1', name: 'Pai de Santo / Mão de Santo', type: 'cargo' },
   { id: 'c2', name: 'Pai Pequeno / Mãe Pequena', type: 'cargo' },
   { id: 'c3', name: 'Médium de Trabalho', type: 'cargo' },
@@ -144,6 +144,13 @@ export const INITIAL_ENTITIES: SpiritualEntity[] = [
   { id: 'f2', name: 'Cambone', type: 'funcao' },
   { id: 'f3', name: 'Consulente', type: 'funcao' },
 ];
+
+export const DEFAULT_ENTITY_IMAGES = INITIAL_ENTITIES.reduce<Record<string, string>>((acc, entity) => {
+  if (entity.imageUrl) {
+    acc[entity.id] = entity.imageUrl;
+  }
+  return acc;
+}, {});
 
 export const MEMBER_STATUS_LABELS = {
   ativo: 'Ativo',

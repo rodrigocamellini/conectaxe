@@ -145,7 +145,7 @@ export const Layout: React.FC<LayoutProps> = ({
               if (!isAllowed(item.id)) return null;
               const hasSub = item.subItems && item.subItems.length > 0;
               const isExpanded = expandedGroupId === item.id;
-              const isActive = activeTab === item.id || (item.subItems?.some(s => s.id === activeTab));
+              const isActive = hasSub ? isExpanded : activeTab === item.id;
               const itemColor = item.color || (isActive ? config.accentColor : config.sidebarTextColor);
 
               return (

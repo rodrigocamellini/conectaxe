@@ -1,0 +1,32 @@
+Esta pasta armazena as imagens padrão do sistema.
+
+1. LOGO DO SISTEMA:
+   - Nome do arquivo: logo.png
+   - Local: conectaxe/public/images/logo.png
+   - Substitua este arquivo pelo seu logo.
+
+2. IMAGENS DAS ENTIDADES:
+   - Local: conectaxe/public/images/entities/
+   - Nome dos arquivos: devem corresponder ao "slug" (nome simplificado) da entidade.
+   
+   Exemplos:
+   - Oxalá -> oxala.png
+   - Ogum -> ogum.png
+   - Oxóssi -> oxossi.png
+   - Xangô -> xango.png
+   - Obaluaiê -> obaluaie.png
+   - Omulu -> omulu.png
+   - Iemanjá -> iemanja.png
+   - Iansã -> iansa.png
+   - Oxum -> oxum.png
+   - Nanã Boruque -> nana_boruque.png
+   - Preto Velho(a) -> preto_velho.png
+   - Caboclo(a) -> caboclo.png
+   - Baiano(a) -> baiano.png
+   - Boiadeiro(a) -> boiadeiro.png
+   - Malandro(a) -> malandro.png
+   - Cigano(a) -> cigano.png
+   - Exu -> exu.png
+   - Pomba gira -> pomba_gira.png
+
+   Basta colar seus arquivos .png (ou .jpg, mas o código espera .png por padrão, verifique a configuração) nestas pastas com estes nomes.

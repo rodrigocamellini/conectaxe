@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder } from './types';
-import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES } from './constants';
+import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -57,7 +57,20 @@ const App: React.FC = () => {
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
   
   const [members, setMembers] = useState<Member[]>(() => storage.get<Member[]>(STORAGE_KEYS.MEMBERS) || []);
-  const [entities, setEntities] = useState<SpiritualEntity[]>(() => storage.get<SpiritualEntity[]>(STORAGE_KEYS.ENTITIES) || INITIAL_ENTITIES);
+  const [entities, setEntities] = useState<SpiritualEntity[]>(() => {
+    const saved = storage.get<SpiritualEntity[]>(STORAGE_KEYS.ENTITIES);
+    const base = saved && saved.length > 0 ? saved : INITIAL_ENTITIES;
+    return base.map(entity => {
+      if (entity.imageUrl) {
+        return entity;
+      }
+      const defaultImage = DEFAULT_ENTITY_IMAGES[entity.id];
+      if (defaultImage) {
+        return { ...entity, imageUrl: defaultImage };
+      }
+      return entity;
+    });
+  });
   const [events, setEvents] = useState<CalendarEvent[]>(() => storage.get<CalendarEvent[]>('terreiro_events') || []);
   const [courses, setCourses] = useState<Course[]>(() => storage.get<Course[]>('terreiro_courses') || []);
   const [enrollments, setEnrollments] = useState<Enrollment[]>(() => storage.get<Enrollment[]>('terreiro_enrollments') || []);
