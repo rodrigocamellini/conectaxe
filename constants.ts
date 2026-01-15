@@ -2,11 +2,24 @@
 import { User, SystemConfig, FixedExpense, StaffPermissions, RoleDefinition, SpiritualEntity, IDCardConfig, MenuItemConfig } from './types';
 
 export const DEFAULT_LOGO_URL = "/images/logo.png";
+export const MASTER_LOGO_URL = "/images/logo_sistema.png";
 
 // Fix: Export BRAZILIAN_STATES to resolve import error in DeveloperPortal.tsx and ensure consistency across components
 export const BRAZILIAN_STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
   "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+];
+
+export const SCHOOLING_LEVELS = [
+  "Fundamental Incompleto",
+  "Fundamental Completo",
+  "Médio Incompleto",
+  "Médio Completo",
+  "Superior Incompleto",
+  "Superior Completo",
+  "Pós-graduação",
+  "Mestrado",
+  "Doutorado"
 ];
 
 export const SAAS_PLANS = [
@@ -134,12 +147,15 @@ export const INITIAL_ENTITIES: SpiritualEntity[] = [
   { id: 'g6', name: 'Cigano(a)', type: 'guia_frente', imageUrl: '/images/entities/cigano.png' },
   { id: 'g7', name: 'Exu', type: 'guia_frente', imageUrl: '/images/entities/exu.png' },
   { id: 'g8', name: 'Pomba gira', type: 'guia_frente', imageUrl: '/images/entities/pomba_gira.png' },
-  { id: 'c1', name: 'Pai de Santo / Mão de Santo', type: 'cargo' },
-  { id: 'c2', name: 'Pai Pequeno / Mãe Pequena', type: 'cargo' },
-  { id: 'c3', name: 'Médium de Trabalho', type: 'cargo' },
-  { id: 'c4', name: 'Médium em Desenvolvimento', type: 'cargo' },
-  { id: 'c5', name: 'Ogan', type: 'cargo' },
-  { id: 'c6', name: 'Cambone', type: 'cargo' },
+  { id: 'c1', name: 'Pai de Santo', type: 'cargo' },
+  { id: 'c2', name: 'Mãe de Santo', type: 'cargo' },
+  { id: 'c3', name: 'Pai Pequeno', type: 'cargo' },
+  { id: 'c4', name: 'Mãe Pequena', type: 'cargo' },
+  { id: 'c5', name: 'Médium de Trabalho', type: 'cargo' },
+  { id: 'c6', name: 'Médium em Desenvolvimento', type: 'cargo' },
+  { id: 'c7', name: 'Ogan', type: 'cargo' },
+  { id: 'c8', name: 'Líder dos Cambones', type: 'cargo' },
+  { id: 'c9', name: 'Cambone', type: 'cargo' },
   { id: 'f1', name: 'Médium', type: 'funcao' },
   { id: 'f2', name: 'Cambone', type: 'funcao' },
   { id: 'f3', name: 'Consulente', type: 'funcao' },

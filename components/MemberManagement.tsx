@@ -1,17 +1,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Member, SpiritualEntity, ModulePermission, SystemConfig, PaymentStatus } from '../types';
+import { Member, SpiritualEntity, ModulePermission, SystemConfig, PaymentStatus, User } from '../types';
 import { Plus, Search, Filter, Camera, Pencil, Trash2, Upload, CheckSquare, Square, Printer, X, UserCircle, FileText, Mail, MapPin, Phone, Contact, Calendar, Sparkles, Award, Minus, Info, GraduationCap, Briefcase, Baby, BookOpen, MessageSquare, DollarSign, Wallet, Check, Clock, Globe, ShieldCheck } from 'lucide-react';
 import { format, differenceInYears, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 // Fix: Import BRAZILIAN_STATES from constants to avoid duplication and fix scope issues
-import { DEFAULT_LOGO_URL, BRAZILIAN_STATES } from '../constants';
+import { DEFAULT_LOGO_URL, BRAZILIAN_STATES, SCHOOLING_LEVELS } from '../constants';
 
 interface MemberManagementProps {
   members: Member[];
   entities: SpiritualEntity[];
   permissions: ModulePermission;
   config: SystemConfig;
+  currentUser: User;
   onAddMember: (member: Partial<Member>) => void;
   onUpdateMember: (id: string, member: Partial<Member>) => void;
   onDeleteMember: (id: string) => void;
@@ -37,6 +38,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   entities,
   permissions,
   config,
+  currentUser,
   onAddMember,
   onUpdateMember,
   onDeleteMember
@@ -50,14 +52,18 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const [viewProfileTab, setViewProfileTab] = useState<'perfil' | 'financeiro'>('perfil');
   const [financeYear, setFinanceYear] = useState(new Date().getFullYear());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   
   const [formData, setFormData] = useState<Partial<Member>>({
     name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
-    address: '', bairro: '', cidade: '', estado: 'SP', birthDate: '',
+    address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '',
     status: 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '',
     cargoId: '', photo: '', houseRoles: [], 
     nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
-    spouseName: '', education: '', profession: '', hasChildren: false,
+    spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
     childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
     observations: '', isMedium: false, isCambone: false, isConsulente: false
   });
@@ -66,11 +72,11 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     setEditingId(null);
     setFormData({
       name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
-      address: '', bairro: '', cidade: '', estado: 'SP', birthDate: '', 
+      address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '', 
       status: 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '', 
       cargoId: '', photo: '', houseRoles: [],
       nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
-      spouseName: '', education: '', profession: '', hasChildren: false,
+      spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
       childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
       observations: '', isMedium: false, isCambone: false, isConsulente: false
     });
@@ -90,9 +96,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   };
 
   const handleDelete = (member: Member) => {
-    if (window.confirm(`ATENÇÃO: Deseja realmente excluir permanentemente o membro "${member.name}"? Esta ação não pode ser desfeita.`)) {
-      onDeleteMember(member.id);
-    }
+    setMemberToDelete(member);
+    setDeletePassword('');
+    setDeleteError('');
+    setShowDeleteModal(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +121,28 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       onAddMember(formData);
     }
     setShowEditModal(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!memberToDelete) return;
+    if (!permissions.delete) {
+      setDeleteError('Você não tem permissão para excluir membros.');
+      return;
+    }
+    const userPassword = currentUser.password || '';
+    if (!deletePassword) {
+      setDeleteError('Informe sua senha para confirmar.');
+      return;
+    }
+    if (deletePassword !== userPassword) {
+      setDeleteError('Senha incorreta. Tente novamente.');
+      return;
+    }
+    onDeleteMember(memberToDelete.id);
+    setShowDeleteModal(false);
+    setMemberToDelete(null);
+    setDeletePassword('');
+    setDeleteError('');
   };
 
   const toggleHouseRole = (roleId: string) => {
@@ -291,10 +320,79 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                   </div>
                   <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+                    
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nascimento</label><input type="date" required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} /></div>
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CPF</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cpf} onChange={e => setFormData({...formData, cpf: e.target.value})} /></div>
+                    
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">RG</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.rg} onChange={e => setFormData({...formData, rg: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nacionalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} /></div>
+
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Naturalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Escolaridade</label>
+                      <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.education} onChange={e => setFormData({...formData, education: e.target.value})}>
+                        <option value="">Selecione...</option>
+                        {SCHOOLING_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
+                      </select>
+                    </div>
+
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Profissão</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.profession} onChange={e => setFormData({...formData, profession: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Situação de Trabalho</label>
+                      <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.isWorking ? 'working' : 'not_working'} onChange={e => setFormData({...formData, isWorking: e.target.value === 'working'})}>
+                        <option value="working">Trabalhando</option>
+                        <option value="not_working">Desempregado</option>
+                      </select>
+                    </div>
+
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado Civil</label><select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.maritalStatus} onChange={e => setFormData({...formData, maritalStatus: e.target.value as any})}>{MARITAL_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+                    {(formData.maritalStatus === 'casado' || formData.maritalStatus === 'uniao_estavel') && (
+                      <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cônjuge</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.spouseName} onChange={e => setFormData({...formData, spouseName: e.target.value})} /></div>
+                    )}
+
+                    <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center gap-2">
+                         <input type="checkbox" id="hasChildren" checked={formData.hasChildren} onChange={e => setFormData({...formData, hasChildren: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                         <label htmlFor="hasChildren" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">Tem Filhos?</label>
+                      </div>
+                      {formData.hasChildren && (
+                        <div className="space-y-3 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
+                           <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome dos Filhos</label>
+                           {formData.childrenNames?.map((child, idx) => (
+                             <div key={idx} className="flex gap-2">
+                               <input 
+                                 value={child} 
+                                 onChange={e => {
+                                   const newChildren = [...(formData.childrenNames || [])];
+                                   newChildren[idx] = e.target.value;
+                                   setFormData({...formData, childrenNames: newChildren});
+                                 }}
+                                 placeholder="Nome do Filho(a)"
+                                 className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                               />
+                               <button type="button" onClick={() => {
+                                  const newChildren = formData.childrenNames?.filter((_, i) => i !== idx);
+                                  setFormData({...formData, childrenNames: newChildren});
+                               }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                             </div>
+                           ))}
+                           <button type="button" onClick={() => setFormData({...formData, childrenNames: [...(formData.childrenNames || []), '']})} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                             <Plus size={14} /> Adicionar Filho
+                           </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center gap-2">
+                         <input type="checkbox" id="isBaptized" checked={formData.isBaptized} onChange={e => setFormData({...formData, isBaptized: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                         <label htmlFor="isBaptized" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">É Batizado?</label>
+                      </div>
+                      {formData.isBaptized && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
+                           <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Terreiro de Batismo</label><input className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismLocation} onChange={e => setFormData({...formData, baptismLocation: e.target.value})} /></div>
+                           <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Batismo</label><input type="date" className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismDate} onChange={e => setFormData({...formData, baptismDate: e.target.value})} /></div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -303,6 +401,15 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail</label><input type="email" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone Principal</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone de Emergência</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.emergencyPhone} onChange={e => setFormData({...formData, emergencyPhone: e.target.value})} /></div>
+                  
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CEP</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="00000-000" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label>
+                    <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})}>
+                      {BRAZILIAN_STATES.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                    </select>
+                  </div>
+
                   <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Endereço Completo</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} /></div>
                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bairro</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.bairro} onChange={e => setFormData({...formData, bairro: e.target.value})} /></div>
                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cidade} onChange={e => setFormData({...formData, cidade: e.target.value})} /></div>
@@ -384,6 +491,56 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
         </div>
       )}
 
+      {showDeleteModal && memberToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-center gap-3">
+              <div className="p-2 bg-red-50 text-red-600 rounded-xl"><ShieldCheck size={20} /></div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-gray-800">Confirmar Exclusão</h3>
+                <p className="text-[11px] text-gray-500 font-medium">Digite sua senha para excluir o membro selecionado.</p>
+              </div>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                Você está prestes a excluir permanentemente o membro{" "}
+                <span className="font-bold text-gray-900">{memberToDelete.name}</span>. 
+                Esta ação não poderá ser desfeita.
+              </p>
+              <div>
+                <label className="block text-[11px] font-black text-gray-500 uppercase mb-1">Senha do Usuário</label>
+                <input
+                  type="password"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm"
+                  value={deletePassword}
+                  onChange={e => { setDeletePassword(e.target.value); setDeleteError(''); }}
+                  placeholder="Digite sua senha para confirmar"
+                />
+                {deleteError && (
+                  <p className="mt-2 text-[11px] text-red-600 font-medium">{deleteError}</p>
+                )}
+              </div>
+            </div>
+            <div className="px-6 pb-5 pt-3 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowDeleteModal(false); setMemberToDelete(null); setDeletePassword(''); setDeleteError(''); }}
+                className="px-6 py-2.5 border border-gray-300 rounded-2xl text-xs font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-8 py-2.5 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-md hover:bg-red-700 transition-all"
+              >
+                Confirmar Exclusão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedMemberForView && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-5xl w-full overflow-hidden animate-in zoom-in duration-300 border border-white/20">
@@ -422,10 +579,58 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                        <div className="flex items-center gap-3 border-b border-gray-100 pb-4"><div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><Calendar size={20} /></div><h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Informações Pessoais</h4></div>
                        <div className="grid grid-cols-2 gap-8">
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Nascimento</p><p className="font-bold text-gray-800">{formatSafeDate(selectedMemberForView.birthDate, "dd/MM/yyyy")} <span className="text-indigo-500">({calculateAge(selectedMemberForView.birthDate)} anos)</span></p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Profissão</p><p className="font-bold text-gray-800">{selectedMemberForView.profession || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">RG</p><p className="font-bold text-gray-800">{selectedMemberForView.rg || '---'}</p></div>
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">CPF</p><p className="font-bold text-gray-800">{selectedMemberForView.cpf || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Endereço</p><p className="font-bold text-gray-800">{selectedMemberForView.address || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Nacionalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.nationality || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Naturalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.birthPlace || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Escolaridade</p><p className="font-bold text-gray-800">{selectedMemberForView.education || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Profissão</p><p className="font-bold text-gray-800">{selectedMemberForView.profession || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Situação de Trabalho</p><p className="font-bold text-gray-800">{selectedMemberForView.isWorking ? 'Trabalhando' : 'Desempregado'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Estado Civil</p><p className="font-bold text-gray-800">{MARITAL_STATUS_OPTIONS.find(o => o.value === selectedMemberForView.maritalStatus)?.label || selectedMemberForView.maritalStatus || '---'}</p></div>
+                          {(selectedMemberForView.maritalStatus === 'casado' || selectedMemberForView.maritalStatus === 'uniao_estavel') && (
+                            <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cônjuge</p><p className="font-bold text-gray-800">{selectedMemberForView.spouseName || '---'}</p></div>
+                          )}
                        </div>
+
+                       <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mt-8"><div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><Contact size={20} /></div><h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Contato e Endereço</h4></div>
+                       <div className="grid grid-cols-2 gap-8">
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">E-mail</p><p className="font-bold text-gray-800 break-all">{selectedMemberForView.email || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Telefone</p><p className="font-bold text-gray-800">{selectedMemberForView.phone || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Telefone Emergência</p><p className="font-bold text-gray-800">{selectedMemberForView.emergencyPhone || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">CEP</p><p className="font-bold text-gray-800">{selectedMemberForView.cep || '---'}</p></div>
+                          <div className="col-span-2"><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Endereço</p><p className="font-bold text-gray-800">{selectedMemberForView.address || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Bairro</p><p className="font-bold text-gray-800">{selectedMemberForView.bairro || '---'}</p></div>
+                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cidade/UF</p><p className="font-bold text-gray-800">{selectedMemberForView.cidade} - {selectedMemberForView.estado}</p></div>
+                       </div>
+
+                       {(selectedMemberForView.hasChildren || selectedMemberForView.isBaptized) && (
+                         <>
+                           <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mt-8"><div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><Baby size={20} /></div><h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Família e Batismo</h4></div>
+                           <div className="grid grid-cols-2 gap-8">
+                              {selectedMemberForView.hasChildren && (
+                                <div className="col-span-2">
+                                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Filhos</p>
+                                  {selectedMemberForView.childrenNames && selectedMemberForView.childrenNames.length > 0 ? (
+                                    <ul className="list-disc list-inside font-bold text-gray-800">
+                                      {selectedMemberForView.childrenNames.map((child, idx) => (
+                                        <li key={idx}>{child}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="font-bold text-gray-800">Sim</p>
+                                  )}
+                                </div>
+                              )}
+                              {selectedMemberForView.isBaptized && (
+                                <>
+                                  <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Batizado</p><p className="font-bold text-gray-800">Sim</p></div>
+                                  <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Data Batismo</p><p className="font-bold text-gray-800">{formatSafeDate(selectedMemberForView.baptismDate, "dd/MM/yyyy")}</p></div>
+                                  <div className="col-span-2"><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Terreiro de Batismo</p><p className="font-bold text-gray-800">{selectedMemberForView.baptismLocation || '---'}</p></div>
+                                </>
+                              )}
+                           </div>
+                         </>
+                       )}
                     </div>
                     <div className="bg-indigo-900 rounded-[2rem] p-8 text-white space-y-4 shadow-xl">
                        <p className="text-xs font-black uppercase text-white/50 tracking-widest text-center border-b border-white/10 pb-4">Funções Espirituais</p>

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig } from '../types';
-import { DEFAULT_LOGO_URL } from '../constants';
+import { DEFAULT_LOGO_URL, MASTER_LOGO_URL } from '../constants';
 import { RoleIconComponent } from './UserManagement';
 
 interface LayoutProps {
@@ -90,9 +90,9 @@ export const Layout: React.FC<LayoutProps> = ({
   const masterSettings = useMemo(() => {
     const saved = localStorage.getItem('saas_master_credentials');
     return saved ? JSON.parse(saved) : { 
-      sidebarTitle: 'Master Engine', 
-      brandLogo: 'https://i.ibb.co/Shield-Check.png', 
-      systemTitle: 'SaaS Master Engine' 
+      sidebarTitle: 'Sistema de Gestão de Terreiros', 
+      brandLogo: MASTER_LOGO_URL, 
+      systemTitle: 'ConectAxé Painel de Desenvolvedor' 
     };
   }, []);
 
@@ -109,11 +109,17 @@ export const Layout: React.FC<LayoutProps> = ({
 
       <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
         <div className="p-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-white/20 shadow-xl ${isAtDeveloperPortal ? 'bg-indigo-600/20' : 'bg-white/10 backdrop-blur-md'}`}>
-               <img src={isAtDeveloperPortal ? masterSettings.brandLogo : (config.logoUrl || DEFAULT_LOGO_URL)} className="w-full h-full object-contain p-1" />
-            </div>
-            <span className="truncate text-[11px] font-black uppercase tracking-widest" style={{ color: config.sidebarTextColor }}>{isAtDeveloperPortal ? masterSettings.sidebarTitle : config.systemName}</span>
+          <div className={`flex items-center gap-3 ${isAtDeveloperPortal ? 'justify-center w-full' : ''}`}>
+            {isAtDeveloperPortal ? (
+              <img src={masterSettings.brandLogo || MASTER_LOGO_URL} className="w-48 h-auto object-contain" />
+            ) : (
+              <>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-white/20 shadow-xl bg-white/10 backdrop-blur-md">
+                  <img src={config.logoUrl || DEFAULT_LOGO_URL} className="w-full h-full object-contain p-1" />
+                </div>
+                <span className="truncate text-[11px] font-black uppercase tracking-widest" style={{ color: config.sidebarTextColor }}>{config.systemName}</span>
+              </>
+            )}
           </div>
           <button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}><X size={20} /></button>
         </div>
@@ -196,7 +202,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <header className={`h-16 border-b flex items-center justify-between px-6 shrink-0 transition-colors z-30 ${isAtDeveloperPortal ? 'bg-slate-950 border-slate-800 text-white shadow-lg' : 'bg-white border-gray-100'}`}>
           <div className="flex items-center gap-4">
             <button className="md:hidden p-2 bg-gray-100 rounded-lg" onClick={() => setIsMobileMenuOpen(true)}><Menu size={20} /></button>
-            <h2 className={`text-sm font-black uppercase tracking-tight ${isAtDeveloperPortal ? 'text-indigo-400' : 'text-gray-800'}`}>
+            <h2 className={`text-sm font-black tracking-tight ${isAtDeveloperPortal ? 'text-indigo-400 font-black' : 'text-gray-800 font-black'}`}>
                 {isAtDeveloperPortal ? (masterSettings.systemTitle || 'Operações Globais') : (config.menuConfig?.find(i => i.id === activeTab || i.subItems?.some(s => s.id === activeTab))?.label || 'Sistema')}
             </h2>
           </div>

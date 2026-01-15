@@ -55,12 +55,14 @@ import {
   Archive,
   Download,
   FileJson,
-  RefreshCcw
+  RefreshCcw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
-import { SAAS_PLANS, BRAZILIAN_STATES } from '../constants';
+import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
 
 interface DeveloperPortalProps {
   onLogout: () => void;
@@ -122,6 +124,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     const saved = localStorage.getItem('saas_master_snapshots');
     return saved ? JSON.parse(saved) : [];
   });
+  const [showMasterPassword, setShowMasterPassword] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState<StoredSnapshot | null>(null);
   const [restorePassword, setRestorePassword] = useState('');
 
@@ -138,9 +141,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       whatsapp: '', 
       pixKey: '', 
       bankDetails: '',
-      sidebarTitle: 'Master Engine',
-      systemTitle: 'SaaS Master Engine',
-      brandLogo: 'https://i.ibb.co/Shield-Check.png',
+      sidebarTitle: 'Sistema de Gestão de Terreiros',
+      systemTitle: 'ConectAxé Painel de Desenvolvedor',
+      brandLogo: MASTER_LOGO_URL,
       backupFrequency: 'disabled'
     };
   });
@@ -435,8 +438,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                                <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={masterCreds.systemTitle} onChange={e => setMasterCreds({...masterCreds, systemTitle: e.target.value})} placeholder="Ex: SaaS Master Engine" />
                             </div>
                             <div>
-                               <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título da Sidebar (Menu)</label>
-                               <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={masterCreds.sidebarTitle} onChange={e => setMasterCreds({...masterCreds, sidebarTitle: e.target.value})} placeholder="Ex: Master Console" />
+                               <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título do Sistema (Login)</label>
+                               <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={masterCreds.sidebarTitle} onChange={e => setMasterCreds({...masterCreds, sidebarTitle: e.target.value})} placeholder="Ex: Conectaxe" />
                             </div>
                          </div>
                       </div>
@@ -454,7 +457,21 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                            </div>
                            <div>
                               <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Senha de Mestre</label>
-                              <input type="password" className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500" value={masterCreds.password} onChange={e => setMasterCreds({...masterCreds, password: e.target.value})} />
+                              <div className="relative">
+                                <input 
+                                  type={showMasterPassword ? 'text' : 'password'} 
+                                  className="w-full p-4 pr-12 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500" 
+                                  value={masterCreds.password} 
+                                  onChange={e => setMasterCreds({...masterCreds, password: e.target.value})} 
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowMasterPassword(!showMasterPassword)}
+                                  className="absolute inset-y-0 right-4 flex items-center text-slate-500 hover:text-amber-400"
+                                >
+                                  {showMasterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                              </div>
                            </div>
                         </div>
                       </div>

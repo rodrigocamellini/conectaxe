@@ -382,11 +382,13 @@ export interface Member {
   spouseName?: string;
   education?: string;
   profession?: string;
+  isWorking?: boolean;
   hasChildren?: boolean;
   childrenNames?: string[];
   isBaptized?: boolean;
   baptismDate?: string;
   baptismLocation?: string;
+  cep?: string;
   observations?: string;
   houseRoles?: string[];
   paiCabecaId?: string;

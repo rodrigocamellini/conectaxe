@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder } from './types';
-import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES } from './constants';
+import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, MASTER_LOGO_URL } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -59,7 +59,26 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>(() => storage.get<Member[]>(STORAGE_KEYS.MEMBERS) || []);
   const [entities, setEntities] = useState<SpiritualEntity[]>(() => {
     const saved = storage.get<SpiritualEntity[]>(STORAGE_KEYS.ENTITIES);
-    const base = saved && saved.length > 0 ? saved : INITIAL_ENTITIES;
+    const legacyCargoNames = ['Pai de Santo / Mão de Santo', 'Pai Pequeno / Mãe Pequena'];
+    const hasLegacyCargos = (saved || []).some(
+      e => e.type === 'cargo' && legacyCargoNames.includes(e.name)
+    );
+
+    const canonicalCargos = INITIAL_ENTITIES.filter(e => e.type === 'cargo');
+
+    let base: SpiritualEntity[];
+
+    if (saved && saved.length > 0) {
+      if (hasLegacyCargos) {
+        const nonCargo = saved.filter(e => e.type !== 'cargo');
+        base = [...nonCargo, ...canonicalCargos];
+      } else {
+        base = saved;
+      }
+    } else {
+      base = INITIAL_ENTITIES;
+    }
+
     return base.map(entity => {
       if (entity.imageUrl) {
         return entity;
@@ -116,6 +135,15 @@ const App: React.FC = () => {
     if (!auth.isAuthenticated || auth.isMasterMode) return null;
     return clients.find(c => c.adminEmail.toLowerCase() === auth.user?.email.toLowerCase());
   }, [clients, auth]);
+
+  const masterSettings = useMemo(() => {
+    const saved = localStorage.getItem('saas_master_credentials');
+    return saved ? JSON.parse(saved) : { 
+      sidebarTitle: 'Sistema de Gestão de Terreiros', 
+      brandLogo: MASTER_LOGO_URL, 
+      systemTitle: 'ConectAxé Painel de Desenvolvedor' 
+    };
+  }, []);
 
   const userPermissions = useMemo(() => {
     if (!auth.user) return null;
@@ -254,7 +282,7 @@ const App: React.FC = () => {
            <CanteenManagement activeTab={activeTab} setActiveTab={setActiveTab} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={(order) => { setCanteenOrders([order, ...canteenOrders]); const updatedItems = canteenItems.map(item => { const soldItem = order.items.find(si => si.itemId === item.id); if(soldItem) return {...item, stock: Math.max(0, item.stock - soldItem.quantity)}; return item; }); setCanteenItems(updatedItems); }} />
         )}
 
-        {activeTab === 'members' && <MemberManagement members={members} entities={entities} permissions={userPermissions!} config={systemConfig} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); setMembers([{ ...m, id: newId, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} />}
+        {activeTab === 'members' && <MemberManagement members={members} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} />}
         {activeTab === 'mediums' && <MediumManagement members={members} entities={entities} config={systemConfig} onUpdateMemberSpiritualInfo={(mid, eids, enms) => setMembers(members.map(m => m.id === mid ? { ...m, assignedEntities: eids, entityNames: enms } : m))} />}
         {activeTab === 'idcards' && <IDCardManagement members={members} entities={entities} logs={idCardLogs} config={systemConfig} onUpdateLogs={setIdCardLogs} onUpdateConfig={setSystemConfig} currentUser={auth.user!} />}
         {activeTab === 'attendance' && <AttendanceManagement members={members} attendanceRecords={attendanceRecords} config={systemConfig} onUpdateAttendance={setAttendanceRecords} />}
@@ -301,9 +329,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-900">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="p-10 text-white text-center bg-indigo-900" style={{ backgroundColor: systemConfig.primaryColor }}>
-            <img src={systemConfig.logoUrl || DEFAULT_LOGO_URL} className="w-20 h-20 mx-auto mb-4 object-contain p-2 bg-white/10 rounded-2xl" />
-            <h1 className="text-2xl font-black uppercase tracking-widest">{systemConfig.systemName}</h1>
+        <div className="p-10 text-white text-center bg-indigo-900 flex flex-col items-center" style={{ backgroundColor: systemConfig.primaryColor }}>
+            <img src={masterSettings.brandLogo || MASTER_LOGO_URL} className="w-64 h-auto mx-auto mb-6 object-contain" />
+            <h1 className="text-sm font-black tracking-widest whitespace-nowrap">{masterSettings.sidebarTitle}</h1>
         </div>
         <form onSubmit={handleLogin} className="p-10 space-y-4">
             <input type="email" required className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-sm" placeholder="E-mail" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
