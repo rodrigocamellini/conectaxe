@@ -1,0 +1,7 @@
+{
+  "name": "Gestão de Terreiro MVP",
+  "description": "A comprehensive management system for Umbanda Terreiros, featuring member control, spiritual entity categorization, and inventory management with visual alerts.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
