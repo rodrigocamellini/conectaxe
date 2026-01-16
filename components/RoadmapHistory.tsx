@@ -107,8 +107,26 @@ export const RoadmapHistory: React.FC<NotificationsCenterProps> = ({ roadmap, br
                               {format(new Date(note.date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                            </div>
                         </div>
-                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${note.status === 'released' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                           {note.status === 'released' ? 'Implementado' : 'Planejado'}
+                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                          note.status === 'released'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : note.status === 'planned'
+                            ? 'bg-amber-100 text-amber-700'
+                            : note.status === 'fixed'
+                            ? 'bg-sky-100 text-sky-700'
+                            : note.status === 'updated'
+                            ? 'bg-indigo-100 text-indigo-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                           {note.status === 'released'
+                             ? 'Implementado'
+                             : note.status === 'planned'
+                             ? 'Planejado'
+                             : note.status === 'fixed'
+                             ? 'Corrigido'
+                             : note.status === 'updated'
+                             ? 'Atualizado'
+                             : 'Melhoria'}
                         </div>
                      </div>
                      

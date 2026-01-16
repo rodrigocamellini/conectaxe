@@ -145,6 +145,15 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const safeRoadmap = useMemo<ReleaseNote[]>(() => {
+    if (!Array.isArray(roadmap)) return [];
+    return roadmap.filter((item): item is ReleaseNote => {
+      if (!item || typeof item !== 'object') return false;
+      const anyItem = item as any;
+      return typeof anyItem.id === 'string' && typeof anyItem.title === 'string';
+    });
+  }, [roadmap]);
+
   const userPermissions = useMemo(() => {
     if (!auth.user) return null;
     if (auth.user.role === 'admin' || auth.isMasterMode) return { view: true, add: true, edit: true, delete: true };
@@ -169,14 +178,14 @@ const App: React.FC = () => {
     storage.set('saas_master_clients', clients);
     storage.set('saas_master_plans', plans);
     storage.set('saas_global_broadcasts', broadcasts);
-    storage.set('saas_global_roadmap', roadmap);
+    storage.set('saas_global_roadmap', safeRoadmap);
     storage.set('saas_global_coupons', coupons);
     storage.set('saas_master_audit_logs', auditLogs);
     storage.set('terreiro_canteen_items', canteenItems);
     storage.set('terreiro_canteen_orders', canteenOrders);
     storage.set(STORAGE_KEYS.AUTH, auth);
     storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
-  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, roadmap, coupons, auditLogs, canteenItems, canteenOrders]);
+  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -273,7 +282,7 @@ const App: React.FC = () => {
   if (auth.isAuthenticated) {
     return (
       <Layout user={auth.user!} config={systemConfig} onLogout={() => setAuth({ user: null, isAuthenticated: false })} activeTab={activeTab} setActiveTab={setActiveTab} isMasterMode={auth.isMasterMode}>
-        {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={roadmap} broadcasts={broadcasts} />}
+        {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={safeRoadmap} broadcasts={broadcasts} />}
         {activeTab === 'agenda' && <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />}
         {activeTab === 'ead' && <EadPlatform user={auth.user!} members={members} courses={courses} enrollments={enrollments} config={systemConfig} onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} />}
         {activeTab === 'course-mgmt' && <CourseManagement courses={courses} members={members} enrollments={enrollments} config={systemConfig} onAddCourse={c => { const newId = `CR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`; setCourses([{ ...c, id: newId, createdAt: new Date().toISOString() } as Course, ...courses]); }} onUpdateCourse={(id, data) => setCourses(courses.map(c => c.id === id ? { ...c, ...data } : c))} onDeleteCourse={id => setCourses(courses.filter(c => c.id !== id))} onUpdateConfig={setSystemConfig} />}
@@ -303,11 +312,11 @@ const App: React.FC = () => {
         {activeTab === 'saas-manager' && <SaaSManager config={systemConfig} onUpdateConfig={setSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />}
         {activeTab === 'indicacoes' && <AffiliateSystem config={systemConfig} referrals={referrals.filter(r => r.referrerId === (systemConfig.license?.affiliateLink?.split('ref=')[1] || ''))} />}
         {activeTab === 'support-client' && <TicketSystem user={auth.user!} config={systemConfig} tickets={tickets} onUpdateTickets={setTickets} />}
-        {activeTab === 'news-announcements' && <RoadmapHistory roadmap={roadmap} broadcasts={broadcasts} clientId={currentClient?.id || auth.user?.id || 'default'} />}
+        {activeTab === 'news-announcements' && <RoadmapHistory roadmap={safeRoadmap} broadcasts={broadcasts} clientId={currentClient?.id || auth.user?.id || 'default'} />}
         {activeTab === 'master-menu' && <MenuManager config={systemConfig} onUpdateConfig={setSystemConfig} />}
         
         {auth.isMasterMode && ['developer-portal', 'master-payments', 'system-maintenance', 'master-backups', 'tickets', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit'].includes(activeTab) && (
-          <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={roadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} />
+          <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={safeRoadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} />
         )}
       </Layout>
     );
@@ -334,9 +343,15 @@ const App: React.FC = () => {
             <h1 className="text-sm font-black tracking-widest whitespace-nowrap">{masterSettings.sidebarTitle}</h1>
         </div>
         <form onSubmit={handleLogin} className="p-10 space-y-4">
-            <input type="email" required className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-sm" placeholder="E-mail" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
-            <input type="password" required className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-sm" placeholder="Senha" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} />
-            <button type="submit" className="w-full py-5 bg-indigo-900 text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest" style={{ backgroundColor: systemConfig.primaryColor }}>Entrar no Painel</button>
+            {loginError && (
+              <div className="bg-red-50 text-red-500 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold animate-pulse">
+                <AlertCircle size={16} />
+                {loginError}
+              </div>
+            )}
+            <input type="email" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all" placeholder="E-mail" value={loginEmail} onChange={e => { setLoginEmail(e.target.value); setLoginError(''); }} />
+            <input type="password" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all" placeholder="Senha" value={loginPassword} onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }} />
+            <button type="submit" className="w-full py-5 bg-indigo-900 text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95" style={{ backgroundColor: systemConfig.primaryColor }}>Entrar no Painel</button>
             <button type="button" onClick={() => setShowEcosystemConcept(true)} className="w-full py-3 mt-4 bg-slate-50 text-slate-400 border border-slate-100 rounded-2xl font-black text-[9px] uppercase hover:bg-slate-100 transition-all flex items-center justify-center gap-2"><Layers size={14} /> Ver Conceito SaaS</button>
         </form>
       </div>

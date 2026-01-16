@@ -52,6 +52,7 @@ import {
   Clock,
   Gift,
   ShieldAlert,
+  Sparkles,
   Archive,
   Download,
   FileJson,
@@ -235,6 +236,17 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
     setSnapshots([newSnapshot, ...snapshots]);
     alert(`Snapshot ${type} criado com sucesso! Tamanho: ${size}`);
+  };
+
+  const formatRoadmapDate = (value?: string) => {
+    try {
+      if (!value) return '--/--/----';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return '--/--/----';
+      return format(d, 'dd/MM/yyyy');
+    } catch {
+      return '--/--/----';
+    }
   };
 
   const downloadSnapshot = (snap: StoredSnapshot) => {
@@ -472,6 +484,15 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                                   {showMasterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                               </div>
+                           </div>
+                           <div>
+                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">WhatsApp de Suporte (DDI+DDD+Número)</label>
+                              <input 
+                                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500" 
+                                value={masterCreds.whatsapp || ''} 
+                                onChange={e => setMasterCreds({...masterCreds, whatsapp: e.target.value})} 
+                                placeholder="5511999999999" 
+                              />
                            </div>
                         </div>
                       </div>
@@ -738,6 +759,179 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                                   <Megaphone size={40} className="text-slate-800 opacity-20" />
                                   <p className="text-slate-700 font-black uppercase text-[10px] tracking-widest">Nenhuma transmissão registrada</p>
                                </td>
+                            </tr>
+                          )}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* ABA: ROADMAP (TIMELINE DO SISTEMA) */}
+      {activeTab === 'roadmap' && (
+        <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+           <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-5"><MapIcon size={140} className="text-emerald-400" /></div>
+              <div className="flex items-center gap-4 relative z-10">
+                 <div className="p-4 bg-emerald-500 rounded-3xl text-slate-900 shadow-xl shadow-emerald-500/20"><Sparkles size={32} fill="currentColor" /></div>
+                 <div>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Timeline do Sistema</h2>
+                    <p className="text-slate-500 font-medium">Gerencie as atualizações, novidades e correções exibidas na timeline dos usuários.</p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Form de Criação */}
+              <div className="lg:col-span-4 bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl h-fit space-y-6">
+                 <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Plus size={14} /> Nova Atualização</h3>
+                 <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const version = (form.elements.namedItem('version') as HTMLInputElement).value;
+                    const title = (form.elements.namedItem('title') as HTMLInputElement).value;
+                    const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
+                    const status = (form.elements.namedItem('status') as HTMLSelectElement).value as ReleaseNote['status'];
+
+                    if (!version || !title || !content) return;
+
+                    const newNote: ReleaseNote = {
+                       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+                       version,
+                       date: new Date().toISOString(),
+                       title,
+                       content,
+                       status
+                    };
+
+                    onUpdateRoadmap([...roadmap, newNote]);
+                    form.reset();
+                    alert('Item adicionado à timeline com sucesso!');
+                 }} className="space-y-4">
+                    <div>
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Versão</label>
+                       <input 
+                         name="version"
+                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                         placeholder="Ex: 1.0.0"
+                         required
+                       />
+                    </div>
+                    <div>
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título da Atualização</label>
+                       <input 
+                         name="title"
+                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                         placeholder="Ex: Novo Painel Financeiro"
+                         required
+                       />
+                    </div>
+                    <div>
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Descrição Detalhada</label>
+                       <textarea 
+                        name="content"
+                        className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-medium text-xs outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-32" 
+                        placeholder="Descreva o que mudou no sistema..."
+                        required
+                       />
+                    </div>
+                    <div>
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Status</label>
+                       <div className="relative">
+                          <select 
+                            name="status"
+                            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold text-xs outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
+                          >
+                             <option value="released">🚀 Lançado (Disponível)</option>
+                             <option value="planned">📅 Planejado (Em breve)</option>
+                             <option value="fixed">🛠️ Corrigido (Bug corrigido)</option>
+                             <option value="updated">⬆️ Atualizado (Atualização geral)</option>
+                             <option value="improvement">✨ Melhoria (Ajuste ou refinamento)</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><ChevronDown size={18} /></div>
+                       </div>
+                    </div>
+                    <button 
+                      type="submit"
+                      className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                       <Save size={16} /> Publicar na Timeline
+                    </button>
+                 </form>
+              </div>
+
+              {/* Lista de Roadmap */}
+              <div className="lg:col-span-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden">
+                 <div className="p-6 bg-slate-950/50 border-b border-slate-800 flex justify-between items-center">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Histórico de Versões</h3>
+                    <span className="text-[9px] font-black bg-slate-800 text-slate-500 px-3 py-1 rounded-full uppercase">{roadmap.length} REGISTROS</span>
+                 </div>
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                       <thead>
+                          <tr className="bg-slate-950/80 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
+                             <th className="px-8 py-4">Versão / Data</th>
+                             <th className="px-8 py-4">Título / Conteúdo</th>
+                             <th className="px-8 py-4 text-center">Status</th>
+                             <th className="px-8 py-4 text-right">Ação</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-800">
+                          {roadmap.length > 0 ? [...roadmap].sort((a, b) => {
+                            const dateA = typeof a.date === 'string' ? a.date : '';
+                            const dateB = typeof b.date === 'string' ? b.date : '';
+                            return dateB.localeCompare(dateA);
+                          }).map(item => (
+                            <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
+                               <td className="px-8 py-4 whitespace-nowrap">
+                                  <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-black">{item.version}</span>
+                                  <p className="text-[9px] text-slate-500 font-bold mt-1.5 uppercase">{formatRoadmapDate(item.date)}</p>
+                               </td>
+                               <td className="px-8 py-4">
+                                  <p className="text-white text-xs font-black uppercase mb-1">{item.title}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium line-clamp-2">{item.content}</p>
+                               </td>
+                               <td className="px-8 py-4 text-center">
+                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
+                                    item.status === 'released'
+                                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                      : item.status === 'planned'
+                                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                      : item.status === 'fixed'
+                                      ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                                      : item.status === 'updated'
+                                      ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                      : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                  }`}>
+                                     {item.status === 'released'
+                                       ? 'Lançado'
+                                       : item.status === 'planned'
+                                       ? 'Planejado'
+                                       : item.status === 'fixed'
+                                       ? 'Corrigido'
+                                       : item.status === 'updated'
+                                       ? 'Atualizado'
+                                       : 'Melhoria'}
+                                  </span>
+                               </td>
+                               <td className="px-8 py-4 text-right">
+                                  <button 
+                                    onClick={() => {
+                                      if(confirm('Remover este item da timeline permanentemente?')) {
+                                        onUpdateRoadmap(roadmap.filter(r => r.id !== item.id));
+                                      }
+                                    }} 
+                                    className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                                  >
+                                     <Trash2 size={18} />
+                                  </button>
+                               </td>
+                            </tr>
+                          )) : (
+                            <tr>
+                               <td colSpan={4} className="p-12 text-center text-slate-700 font-black uppercase text-[10px] tracking-widest">Nenhuma atualização registrada</td>
                             </tr>
                           )}
                        </tbody>

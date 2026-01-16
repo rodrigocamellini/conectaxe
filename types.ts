@@ -112,7 +112,7 @@ export interface ReleaseNote {
   date: string;
   title: string;
   content: string;
-  status: 'planned' | 'released';
+  status: 'planned' | 'released' | 'fixed' | 'updated' | 'improvement';
 }
 
 export interface PredefinedResponse {

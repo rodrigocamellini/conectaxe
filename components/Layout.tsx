@@ -22,10 +22,11 @@ import {
   ClipboardList,
   LayoutGrid,
   CreditCard,
-  Code
+  Code,
+  AlertCircle
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig } from '../types';
+import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
 import { DEFAULT_LOGO_URL, MASTER_LOGO_URL } from '../constants';
 import { RoleIconComponent } from './UserManagement';
 
@@ -44,6 +45,122 @@ const DynamicIcon = ({ name, size = 16, className = "", color }: { name: string,
   return <IconComp size={size} className={className} style={color ? { color } : {}} />;
 };
 
+const WhatsAppIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id="waGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#25D366" />
+        <stop offset="100%" stopColor="#128C7E" />
+      </linearGradient>
+    </defs>
+    <circle cx="16" cy="16" r="16" fill="url(#waGradient)" />
+    <path
+      d="M16 7.5c-4.69 0-8.5 3.72-8.5 8.31 0 1.46.39 2.88 1.14 4.14l-1.2 4.37 4.49-1.18c1.22.67 2.6 1.03 4.07 1.03 4.69 0 8.5-3.72 8.5-8.31S20.69 7.5 16 7.5zm0 14.44c-1.29 0-2.55-.33-3.66-.95l-.26-.15-2.66.7.71-2.58-.17-.27a6.34 6.34 0 0 1-1-3.43c0-3.5 2.89-6.36 6.44-6.36s6.44 2.85 6.44 6.36c0 3.5-2.89 6.36-6.44 6.36zm3.53-4.75c-.19-.09-1.11-.53-1.28-.59-.17-.06-.29-.09-.41.09-.12.18-.48.59-.59.71-.11.12-.22.13-.41.04-.19-.09-.8-.31-1.52-.99-.56-.53-.94-1.18-1.05-1.38-.11-.19-.01-.3.08-.39.08-.08.19-.22.29-.33.1-.11.13-.18.19-.3.06-.12.03-.22-.02-.31-.05-.09-.41-.98-.56-1.34-.15-.36-.3-.31-.41-.31h-.35c-.12 0-.31.04-.47.22-.16.18-.61.59-.61 1.44 0 .85.63 1.67.72 1.79.09.12 1.24 2.01 3.01 2.75.42.18.74.29.99.37.42.13.8.11 1.1.07.34-.05 1.11-.45 1.27-.88.16-.43.16-.8.11-.88-.05-.08-.17-.12-.36-.21z"
+      fill="#FFFFFF"
+    />
+  </svg>
+);
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  activeTab: string;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('Error rendering tab', this.props.activeTab, error, info);
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (prevProps.activeTab !== this.props.activeTab && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="bg-white rounded-3xl border border-red-200 shadow-xl p-8 flex flex-col items-center text-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center text-red-500 mb-2">
+              <AlertCircle size={28} />
+            </div>
+            <h2 className="text-sm md:text-base font-black text-red-600 uppercase tracking-widest">
+              Erro ao carregar esta aba
+            </h2>
+            <p className="text-xs md:text-sm text-slate-600 font-medium">
+              Ocorreu um erro ao renderizar a aba selecionada. Você pode tentar novamente ou recarregar o sistema.
+            </p>
+            {this.state.error?.message && (
+              <div className="w-full text-left mt-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Detalhes técnicos
+                </p>
+                <pre className="text-xs text-slate-700 bg-slate-50 border border-slate-100 rounded-2xl p-4 overflow-x-auto max-h-40 whitespace-pre-wrap break-words">
+                  {this.state.error.message}
+                </pre>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+              <button
+                type="button"
+                onClick={this.handleRetry}
+                className="px-5 py-3 rounded-2xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest"
+              >
+                Tentar novamente
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-5 py-3 rounded-2xl border border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-700 bg-white"
+              >
+                Recarregar sistema
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const compareVersions = (a: string, b: string) => {
+  const pa = a.split('.').map(n => parseInt(n || '0', 10));
+  const pb = b.split('.').map(n => parseInt(n || '0', 10));
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const va = pa[i] ?? 0;
+    const vb = pb[i] ?? 0;
+    if (va > vb) return 1;
+    if (va < vb) return -1;
+  }
+  return 0;
+};
+
 export const Layout: React.FC<LayoutProps> = ({ 
   user, 
   config,
@@ -56,6 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const [showSystemInfo, setShowSystemInfo] = useState(false);
 
   const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
   const isRodrigo = user?.email?.toLowerCase().includes('rodrigo');
@@ -87,12 +205,31 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   }, [activeTab, config.license]);
 
-  const masterSettings = useMemo(() => {
+  const latestVersion = useMemo(() => {
+    try {
+      const roadmap: ReleaseNote[] = JSON.parse(localStorage.getItem('saas_global_roadmap') || '[]');
+      if (!roadmap.length) return '1.0.0';
+      const released = roadmap.filter(r => r.status !== 'planned');
+      const source = released.length ? released : roadmap;
+      const sorted = [...source].sort((a, b) => compareVersions(a.version || '0.0.0', b.version || '0.0.0'));
+      return sorted[sorted.length - 1].version || '1.0.0';
+    } catch {
+      return '1.0.0';
+    }
+  }, []);
+
+  const masterSettings = useMemo<MasterCredentials>(() => {
     const saved = localStorage.getItem('saas_master_credentials');
     return saved ? JSON.parse(saved) : { 
-      sidebarTitle: 'Sistema de Gestão de Terreiros', 
-      brandLogo: MASTER_LOGO_URL, 
-      systemTitle: 'ConectAxé Painel de Desenvolvedor' 
+      email: 'rodrigo@dev.com',
+      password: 'master',
+      whatsapp: '',
+      pixKey: '',
+      bankDetails: '',
+      sidebarTitle: 'Sistema de Gestão de Terreiros',
+      systemTitle: 'ConectAxé Painel de Desenvolvedor',
+      brandLogo: MASTER_LOGO_URL,
+      backupFrequency: 'disabled'
     };
   }, []);
 
@@ -134,15 +271,15 @@ export const Layout: React.FC<LayoutProps> = ({
           {isAtDeveloperPortal ? (
             <div className="space-y-2">
               <button onClick={() => setActiveTab('developer-portal')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'developer-portal' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><LayoutGrid size={18} /><span>Terreiros Ativos</span></button>
-              <button onClick={() => setActiveTab('tickets')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'tickets' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><Ticket size={18} /><span>Tickets Suporte</span></button>
-              <button onClick={() => setActiveTab('master-menu')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-menu' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><Menu size={18} /><span>Config. Menu</span></button>
+              <button onClick={() => setActiveTab('tickets')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'tickets' ? 'bg-rose-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-rose-400'}`}><Ticket size={18} /><span>Tickets Suporte</span></button>
+              <button onClick={() => setActiveTab('master-menu')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-menu' ? 'bg-sky-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-sky-400'}`}><Menu size={18} /><span>Config. Menu</span></button>
               <button onClick={() => setActiveTab('master-broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-broadcast' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-amber-400'}`}><Zap size={18} /><span>Broadcast</span></button>
               <button onClick={() => setActiveTab('master-payments')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-payments' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-emerald-400'}`}><DollarSign size={18} /><span>Faturamento</span></button>
               <button onClick={() => setActiveTab('system-maintenance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'system-maintenance' ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-orange-400'}`}><Wrench size={18} /><span>Manutenção</span></button>
               <button onClick={() => setActiveTab('master-backups')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-backups' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><Database size={18} /><span>Snapshots</span></button>
-              <button onClick={() => setActiveTab('master-audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-audit' ? 'bg-slate-800 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-slate-500'}`}><History size={18} /><span>Auditoria</span></button>
-              <button onClick={() => setActiveTab('master-coupons')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-coupons' ? 'bg-slate-800 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-slate-500'}`}><Tag size={18} /><span>Cupons</span></button>
-              <button onClick={() => setActiveTab('master-roadmap')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-roadmap' ? 'bg-slate-800 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-slate-500'}`}><ClipboardList size={18} /><span>Roadmap</span></button>
+              <button onClick={() => setActiveTab('master-audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-audit' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-amber-400'}`}><History size={18} /><span>Auditoria</span></button>
+              <button onClick={() => setActiveTab('master-coupons')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-coupons' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-emerald-400'}`}><Tag size={18} /><span>Cupons</span></button>
+              <button onClick={() => setActiveTab('master-roadmap')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-roadmap' ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-purple-400'}`}><ClipboardList size={18} /><span>Roadmap</span></button>
               
               <button onClick={() => setActiveTab('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 mt-8 rounded-xl transition-all bg-white/5 text-slate-400 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest"><ArrowLeftCircle size={18} /><span>Sair da Master</span></button>
             </div>
@@ -206,9 +343,108 @@ export const Layout: React.FC<LayoutProps> = ({
                 {isAtDeveloperPortal ? (masterSettings.systemTitle || 'Operações Globais') : (config.menuConfig?.find(i => i.id === activeTab || i.subItems?.some(s => s.id === activeTab))?.label || 'Sistema')}
             </h2>
           </div>
+          {!isAtDeveloperPortal && activeTab === 'dashboard' && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('support-client')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-indigo-700 transition-colors"
+              >
+                <Ticket size={16} />
+                <span>Ticket</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('news-announcements')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-[10px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-100 hover:border-indigo-200 transition-colors"
+              >
+                <Info size={14} />
+                <span>Info</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSystemInfo(true)}
+                className="p-2 rounded-full border border-gray-200 bg-white text-gray-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-colors"
+                title="Informações do Sistema"
+              >
+                <Info size={18} />
+              </button>
+            </div>
+          )}
         </header>
+        {showSystemInfo && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-40 p-4">
+            <div className="bg-slate-950 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden text-white">
+              <div className="p-6 bg-indigo-600 text-white flex items-center justify-between" style={{ backgroundColor: config.primaryColor }}>
+                <div className="flex items-center gap-3 mx-auto">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Info size={18} />
+                  </div>
+                  <p className="text-sm font-black uppercase tracking-widest">Informações do Sistema</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSystemInfo(false)}
+                  className="p-2 rounded-full hover:bg-black/10 transition-colors"
+                  aria-label="Fechar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 text-sm bg-slate-950">
+                <div className="flex justify-center mb-4">
+                  <img src={masterSettings.brandLogo || MASTER_LOGO_URL} className="max-w-[11rem] h-auto object-contain" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do Sistema</p>
+                  <p className="font-bold text-white">ConectaAxé - Sistema de Gestão de Terreiros</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do Desenvolvedor</p>
+                  <p className="font-bold text-white">Rodrigo Ricciardi Camellini</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Versão do Sistema</p>
+                  <p className="font-bold text-white">{latestVersion}</p>
+                </div>
+                <div className="pt-4 border-t border-slate-800">
+                  {(() => {
+                    const raw = masterSettings.whatsapp || '';
+                    const cleaned = raw.replace(/\D/g, '');
+                    if (!cleaned || cleaned.length < 10) {
+                      return (
+                        <button
+                          type="button"
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest cursor-not-allowed"
+                          disabled
+                        >
+                          <WhatsAppIcon size={16} />
+                          <span>WhatsApp de suporte não configurado</span>
+                        </button>
+                      );
+                    }
+                    return (
+                      <a
+                        href={`https://wa.me/${cleaned}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors"
+                        style={{ backgroundColor: '#25D366' }}
+                      >
+                        <WhatsAppIcon size={18} />
+                        <span>Falar com suporte via WhatsApp</span>
+                      </a>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${isAtDeveloperPortal ? 'bg-slate-950' : 'bg-gray-50/50'}`}>
-          <div className="w-full max-w-7xl mx-auto">{children}</div>
+          <ErrorBoundary activeTab={activeTab}>
+            <div className="w-full max-w-7xl mx-auto">{children}</div>
+          </ErrorBoundary>
         </div>
       </main>
     </div>
