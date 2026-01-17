@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot } from '../types';
+import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus } from '../types';
 import { 
   Users, 
   DollarSign, 
@@ -68,8 +68,8 @@ import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
 interface DeveloperPortalProps {
   onLogout: () => void;
   onEnterClientSystem: (client: SaaSClient) => void;
-  referrals: any[];
-  onUpdateReferral: any;
+  referrals: Referral[];
+  onUpdateReferral: (id: string, status: ReferralStatus) => void;
   clients: SaaSClient[];
   onUpdateClients: (clients: SaaSClient[]) => void;
   plans: SaaSPlan[];
@@ -97,10 +97,16 @@ const MONTHS_SHORT = [
 ];
 
 export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({ 
+  onLogout,
   onEnterClientSystem,
+  referrals = [],
+  onUpdateReferral,
   clients = [],
   onUpdateClients,
+  plans = [],
+  onUpdatePlans,
   externalTab,
+  onTabChange,
   maintConfig,
   onUpdateMaintenance,
   tickets = [],
@@ -122,8 +128,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
   // Estados para Snapshots (Backups)
   const [snapshots, setSnapshots] = useState<StoredSnapshot[]>(() => {
-    const saved = localStorage.getItem('saas_master_snapshots');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('saas_master_snapshots');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   });
   const [showMasterPassword, setShowMasterPassword] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState<StoredSnapshot | null>(null);
@@ -234,8 +246,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
   // Gestão de Credenciais e Identidade Master
   const [masterCreds, setMasterCreds] = useState<MasterCredentials>(() => {
-    const saved = localStorage.getItem('saas_master_credentials');
-    return saved ? JSON.parse(saved) : { 
+    const fallback: MasterCredentials = {
       email: 'rodrigo@dev.com', 
       password: 'master', 
       whatsapp: '', 
@@ -246,6 +257,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       brandLogo: MASTER_LOGO_URL,
       backupFrequency: 'disabled'
     };
+    try {
+      const saved = localStorage.getItem('saas_master_credentials');
+      if (!saved) return fallback;
+      const parsed = JSON.parse(saved);
+      return { ...fallback, ...parsed };
+    } catch {
+      return fallback;
+    }
   });
 
   useEffect(() => {
@@ -262,6 +281,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     if (externalTab) {
       const tabMap: Record<string, string> = {
         'master-payments': 'payments',
+        'master-affiliates': 'affiliates',
         'system-maintenance': 'maintenance',
         'master-backups': 'backups',
         'master-audit': 'audit',
@@ -444,6 +464,21 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     frozen: clients.filter(c => c.status === 'frozen').length,
     totalMRR: clients.reduce((acc, c) => acc + (c.monthlyValue || 0), 0)
   };
+
+  const [affiliateFilter, setAffiliateFilter] = useState<'all' | 'aguardando' | 'aprovada' | 'reprovada'>('all');
+
+  const affiliateStats = {
+    total: referrals.filter(r => r && r.id).length,
+    approved: referrals.filter(r => r && r.status === 'aprovada').length,
+    pending: referrals.filter(r => r && r.status === 'aguardando').length,
+    rejected: referrals.filter(r => r && r.status === 'reprovada').length
+  };
+
+  const filteredReferrals = referrals.filter(r => {
+    if (!r || !r.id) return false;
+    if (affiliateFilter === 'all') return true;
+    return r.status === affiliateFilter;
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -930,6 +965,133 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                  )}
               </div>
            </div>
+        </div>
+      )}
+
+      {activeTab === 'affiliates' && (
+        <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+          <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-5"><Gift size={140} className="text-emerald-400" /></div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-4 bg-emerald-500 rounded-3xl text-slate-900 shadow-xl shadow-emerald-500/20"><UserIcon size={32} /></div>
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Programa de Afiliados</h2>
+                <p className="text-slate-500 font-medium">Monitore e aprove as indicações realizadas pelos terreiros da rede.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total de Indicações</p>
+              <div className="flex items-center justify-between">
+                <h4 className="text-3xl font-black text-white">{affiliateStats.total}</h4>
+                <Users size={24} className="text-emerald-400" />
+              </div>
+            </div>
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+              <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Aprovadas</p>
+              <div className="flex items-center justify-between">
+                <h4 className="text-3xl font-black text-white">{affiliateStats.approved}</h4>
+                <CheckCircle2 size={24} className="text-emerald-500" />
+              </div>
+            </div>
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+              <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1">Aguardando</p>
+              <div className="flex items-center justify-between">
+                <h4 className="text-3xl font-black text-white">{affiliateStats.pending}</h4>
+                <Clock size={24} className="text-amber-400" />
+              </div>
+            </div>
+            <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+              <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Reprovadas</p>
+              <div className="flex items-center justify-between">
+                <h4 className="text-3xl font-black text-white">{affiliateStats.rejected}</h4>
+                <ShieldAlert size={24} className="text-red-500" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden">
+            <div className="p-6 bg-slate-950/50 border-b border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400"><UserIcon size={18} /></div>
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest">Fila de Indicações</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gerencie o status das indicações recebidas</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setAffiliateFilter('all')} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${affiliateFilter === 'all' ? 'bg-slate-800 text-white border-slate-700' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Todas</button>
+                <button onClick={() => setAffiliateFilter('aguardando')} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${affiliateFilter === 'aguardando' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Aguardando</button>
+                <button onClick={() => setAffiliateFilter('aprovada')} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${affiliateFilter === 'aprovada' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Aprovadas</button>
+                <button onClick={() => setAffiliateFilter('reprovada')} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${affiliateFilter === 'reprovada' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>Reprovadas</button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-950/80 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
+                    <th className="px-8 py-4">Data / Hora</th>
+                    <th className="px-8 py-4">Terreiro / Lead</th>
+                    <th className="px-8 py-4">Origem</th>
+                    <th className="px-8 py-4 text-center">Status</th>
+                    <th className="px-8 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {filteredReferrals.length > 0 ? [...filteredReferrals].reverse().map(r => (
+                    <tr key={r.id} className="hover:bg-slate-800/30 transition-colors group">
+                      <td className="px-8 py-4 text-xs font-mono text-slate-400">{format(new Date(r.createdAt), 'dd/MM/yyyy HH:mm')}</td>
+                      <td className="px-8 py-4">
+                        <p className="text-sm font-black text-white uppercase tracking-tight">{r.targetName}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">ID Referência: {r.referrerId}</p>
+                      </td>
+                      <td className="px-8 py-4 text-xs text-slate-400 font-medium">
+                        {r.location || 'Não informado'}
+                      </td>
+                      <td className="px-8 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${
+                          r.status === 'aprovada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                          r.status === 'reprovada' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
+                          'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {r.status === 'aprovada' && <CheckCircle2 size={12} />}
+                          {r.status === 'reprovada' && <X size={12} />}
+                          {r.status === 'aguardando' && <Clock size={12} />}
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-4 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            onClick={() => onUpdateReferral(r.id, 'aprovada')}
+                            className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-40"
+                            disabled={r.status === 'aprovada'}
+                          >
+                            Aprovar
+                          </button>
+                          <button
+                            onClick={() => onUpdateReferral(r.id, 'reprovada')}
+                            className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-40"
+                            disabled={r.status === 'reprovada'}
+                          >
+                            Reprovar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={5} className="px-8 py-32 text-center text-slate-600 font-black uppercase text-[10px] tracking-widest">
+                        Nenhuma indicação registrada até o momento
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

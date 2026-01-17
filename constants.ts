@@ -119,7 +119,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
       { id: 'restore-system', label: 'Restaurar Sistema', icon: 'RefreshCw' }
     ]
   },
-  { id: 'indicacoes', label: 'Indicações', icon: 'UserRoundPlus', color: '#ADFF2F' },
+  { id: 'indicacoes', label: 'Afiliados', icon: 'Crown', color: '#ADFF2F' },
   { id: 'saas-manager', label: 'Assinatura', icon: 'ShieldEllipsis', color: '#00FFFF' },
 ];
 

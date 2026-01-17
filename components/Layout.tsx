@@ -23,6 +23,7 @@ import {
   LayoutGrid,
   CreditCard,
   Code,
+  Crown,
   AlertCircle
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -167,7 +168,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [showSystemInfo, setShowSystemInfo] = useState(false);
 
-  const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
+  const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
   const isRodrigo = user?.email?.toLowerCase().includes('rodrigo');
 
   useEffect(() => {
@@ -198,8 +199,7 @@ export const Layout: React.FC<LayoutProps> = ({
   }, [activeTab, config.license]);
 
   const masterSettings = useMemo<MasterCredentials>(() => {
-    const saved = localStorage.getItem('saas_master_credentials');
-    return saved ? JSON.parse(saved) : { 
+    const fallback: MasterCredentials = {
       email: 'rodrigo@dev.com',
       password: 'master',
       whatsapp: '',
@@ -210,9 +210,23 @@ export const Layout: React.FC<LayoutProps> = ({
       brandLogo: MASTER_LOGO_URL,
       backupFrequency: 'disabled'
     };
+    try {
+      const saved = localStorage.getItem('saas_master_credentials');
+      if (!saved) {
+        return fallback;
+      }
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        return { ...fallback, ...parsed };
+      }
+      return fallback;
+    } catch {
+      localStorage.removeItem('saas_master_credentials');
+      return fallback;
+    }
   }, []);
 
-  const userRoleConfig = config.userRoles.find(r => r.id === user?.role);
+  const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
 
   const isAllowed = (tabId: string) => {
     if (user?.role === 'admin' || isRodrigo) return true;
@@ -253,6 +267,17 @@ export const Layout: React.FC<LayoutProps> = ({
               <button onClick={() => setActiveTab('tickets')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'tickets' ? 'bg-rose-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-rose-400'}`}><Ticket size={18} /><span>Tickets Suporte</span></button>
               <button onClick={() => setActiveTab('master-menu')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-menu' ? 'bg-sky-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-sky-400'}`}><Menu size={18} /><span>Config. Menu</span></button>
               <button onClick={() => setActiveTab('master-broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-broadcast' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-amber-400'}`}><Zap size={18} /><span>Broadcast</span></button>
+              <button
+                onClick={() => setActiveTab('master-affiliates')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${
+                  activeTab === 'master-affiliates'
+                    ? 'bg-lime-400 text-slate-900 shadow-lg'
+                    : 'bg-slate-900 border border-slate-800 text-lime-300'
+                }`}
+              >
+                <Crown size={18} />
+                <span>Afiliados</span>
+              </button>
               <button onClick={() => setActiveTab('master-payments')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-payments' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-emerald-400'}`}><DollarSign size={18} /><span>Faturamento</span></button>
               <button onClick={() => setActiveTab('system-maintenance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'system-maintenance' ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-orange-400'}`}><Wrench size={18} /><span>Manutenção</span></button>
               <button onClick={() => setActiveTab('master-backups')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-backups' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><Database size={18} /><span>Snapshots</span></button>

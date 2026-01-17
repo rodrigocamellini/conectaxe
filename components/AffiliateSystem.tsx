@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Referral, SystemConfig, SaaSClient } from '../types';
 import { 
-  UserRoundPlus, 
+  Crown, 
   Copy, 
   Share2, 
   CheckCircle2, 
@@ -116,7 +116,7 @@ export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referr
       <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-10 bg-[#ADFF2F]/10 border-b border-[#ADFF2F]/20 flex flex-col md:flex-row items-center gap-10">
           <div className="w-24 h-24 bg-[#ADFF2F] rounded-[2rem] flex items-center justify-center text-slate-900 shadow-xl shadow-[#ADFF2F]/20 shrink-0">
-             <UserRoundPlus size={48} />
+             <Crown size={48} />
           </div>
           <div className="flex-1 text-center md:text-left">
              <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Programa de Afiliados</h3>
