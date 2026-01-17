@@ -124,26 +124,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </pre>
               </div>
             )}
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-              <button
-                type="button"
-                onClick={this.handleRetry}
-                className="px-5 py-3 rounded-2xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest"
-              >
-                Tentar novamente
-              </button>
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="px-5 py-3 rounded-2xl border border-slate-300 text-[10px] font-black uppercase tracking-widest text-slate-700 bg-white"
-              >
-                Recarregar sistema
-              </button>
-            </div>
+            <button
+              onClick={this.handleRetry}
+              className="mt-4 px-6 py-3 bg-red-600 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-red-200 hover:bg-red-700 transition-all active:scale-95"
+            >
+              Tentar Novamente
+            </button>
           </div>
         </div>
       );
     }
+
     return this.props.children;
   }
 }
@@ -168,6 +159,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeTab, 
   setActiveTab, 
   isMasterMode = false,
+  systemVersion = '1.0.0',
   children 
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -204,19 +196,6 @@ export const Layout: React.FC<LayoutProps> = ({
       return 0;
     }
   }, [activeTab, config.license]);
-
-  const latestVersion = useMemo(() => {
-    try {
-      const roadmap: ReleaseNote[] = JSON.parse(localStorage.getItem('saas_global_roadmap') || '[]');
-      if (!roadmap.length) return '1.0.0';
-      const released = roadmap.filter(r => r.status !== 'planned');
-      const source = released.length ? released : roadmap;
-      const sorted = [...source].sort((a, b) => compareVersions(a.version || '0.0.0', b.version || '0.0.0'));
-      return sorted[sorted.length - 1].version || '1.0.0';
-    } catch {
-      return '1.0.0';
-    }
-  }, []);
 
   const masterSettings = useMemo<MasterCredentials>(() => {
     const saved = localStorage.getItem('saas_master_credentials');
@@ -405,7 +384,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Versão do Sistema</p>
-                  <p className="font-bold text-white">{latestVersion}</p>
+                  <p className="font-bold text-white">{systemVersion}</p>
                 </div>
                 <div className="pt-4 border-t border-slate-800">
                   {(() => {

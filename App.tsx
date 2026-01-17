@@ -279,9 +279,33 @@ const App: React.FC = () => {
     );
   }
 
+  const currentSystemVersion = useMemo(() => {
+    if (!safeRoadmap.length) return '0.0.0';
+    const sorted = [...safeRoadmap].sort((a, b) => {
+      const vA = a.version.split('.').map(Number);
+      const vB = b.version.split('.').map(Number);
+      for (let i = 0; i < Math.max(vA.length, vB.length); i++) {
+         const numA = vA[i] || 0;
+         const numB = vB[i] || 0;
+         if (numA > numB) return -1;
+         if (numA < numB) return 1;
+      }
+      return 0;
+    });
+    return sorted[0]?.version || '0.0.0';
+  }, [safeRoadmap]);
+
   if (auth.isAuthenticated) {
     return (
-      <Layout user={auth.user!} config={systemConfig} onLogout={() => setAuth({ user: null, isAuthenticated: false })} activeTab={activeTab} setActiveTab={setActiveTab} isMasterMode={auth.isMasterMode}>
+      <Layout 
+        user={auth.user!} 
+        config={systemConfig} 
+        onLogout={() => setAuth({ user: null, isAuthenticated: false })} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        isMasterMode={auth.isMasterMode}
+        systemVersion={currentSystemVersion}
+      >
         {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={safeRoadmap} broadcasts={broadcasts} />}
         {activeTab === 'agenda' && <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />}
         {activeTab === 'ead' && <EadPlatform user={auth.user!} members={members} courses={courses} enrollments={enrollments} config={systemConfig} onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} />}

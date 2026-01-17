@@ -129,6 +129,105 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState<StoredSnapshot | null>(null);
   const [restorePassword, setRestorePassword] = useState('');
 
+  // Estados para Versionamento do Roadmap
+  const [updateType, setUpdateType] = useState<'patch' | 'minor' | 'major' | 'manual'>('patch');
+  const [calculatedVersion, setCalculatedVersion] = useState('');
+  
+  // Estados para Backup/Restore do Roadmap
+  const [showRoadmapRestoreModal, setShowRoadmapRestoreModal] = useState(false);
+  const [roadmapRestorePassword, setRoadmapRestorePassword] = useState('');
+  const [roadmapRestoreError, setRoadmapRestoreError] = useState('');
+
+  const getLatestVersion = () => {
+    if (!roadmap || roadmap.length === 0) return '0.0.0';
+    const sortedRoadmap = [...roadmap].sort((a, b) => {
+      const vA = a.version.split('.').map(Number);
+      const vB = b.version.split('.').map(Number);
+      for (let i = 0; i < Math.max(vA.length, vB.length); i++) {
+        const numA = vA[i] || 0;
+        const numB = vB[i] || 0;
+        if (numA > numB) return -1;
+        if (numA < numB) return 1;
+      }
+      return 0;
+    });
+    return sortedRoadmap[0]?.version || '0.0.0';
+  };
+
+  // Efeito para calcular versão automaticamente
+  useEffect(() => {
+    const latestVersion = getLatestVersion();
+
+    if (updateType === 'manual') {
+      setCalculatedVersion(latestVersion);
+      return;
+    }
+
+    const parts = latestVersion.split('.').map(p => parseInt(p, 10));
+    
+    if (parts.length >= 3 && parts.every(p => !isNaN(p))) {
+      let [major, minor, patch] = parts;
+      
+      if (updateType === 'patch') patch++; // Correção (1.0.1)
+      if (updateType === 'minor') { minor++; patch = 0; } // Atualização (1.1.0)
+      if (updateType === 'major') { major++; minor = 0; patch = 0; } // Implantação/Grande (2.0.0)
+      
+      setCalculatedVersion(`${major}.${minor}.${patch}`);
+    } else {
+      setCalculatedVersion(`${latestVersion}.1`);
+    }
+  }, [roadmap, updateType]);
+
+  const handleExportRoadmap = () => {
+    const data = JSON.stringify(roadmap, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `roadmap_backup_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleRestoreRoadmap = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRoadmapRestoreError('');
+
+    if (roadmapRestorePassword !== masterCreds.password) {
+      setRoadmapRestoreError('Senha de desenvolvedor incorreta.');
+      return;
+    }
+
+    const fileInput = document.getElementById('roadmap-restore-file') as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+      setRoadmapRestoreError('Selecione um arquivo JSON válido.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json)) {
+          if (confirm('ATENÇÃO: Isso substituirá todo o histórico de versões atual pelos dados do arquivo. Continuar?')) {
+            onUpdateRoadmap(json);
+            setShowRoadmapRestoreModal(false);
+            setRoadmapRestorePassword('');
+            alert('Timeline restaurada com sucesso!');
+          }
+        } else {
+          setRoadmapRestoreError('O arquivo não contém um formato de timeline válido.');
+        }
+      } catch (err) {
+        setRoadmapRestoreError('Erro ao ler o arquivo JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Estados para Broadcast
   const [newBroadcastText, setNewBroadcastText] = useState('');
   const [newBroadcastType, setNewBroadcastType] = useState<'info' | 'warning' | 'success'>('info');
@@ -546,8 +645,197 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
               )}
            </div>
 
-           {/* LISTA DE TERREIROS */}
-           <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden">
+          {showAddClient && (
+            <div className="bg-slate-900 rounded-[2.5rem] border border-emerald-600/40 shadow-2xl overflow-hidden mb-8">
+              <form onSubmit={handleAddClient} className="p-8 space-y-6">
+                <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-emerald-500 rounded-2xl text-slate-900 shadow-lg">
+                      <Plus size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight">Novo Terreiro</h3>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
+                        Cadastro de nova instância do sistema
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddClient(false)}
+                    className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Nome do Terreiro
+                    </label>
+                    <input
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Ex: Tenda de Umbanda Pai João"
+                      value={newClient.name || ''}
+                      onChange={e => setNewClient(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Plano
+                    </label>
+                    <select
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
+                      value={newClient.plan || SAAS_PLANS[0]}
+                      onChange={e => setNewClient(prev => ({ ...prev, plan: e.target.value }))}
+                    >
+                      {SAAS_PLANS.map(plan => (
+                        <option key={plan} value={plan}>
+                          {plan}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Valor Mensal (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Ex: 49.90"
+                      value={newClient.monthlyValue?.toString() || ''}
+                      onChange={e =>
+                        setNewClient(prev => ({
+                          ...prev,
+                          monthlyValue: parseFloat(e.target.value) || 0
+                        }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Vencimento do Contrato
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={newClient.expirationDate || format(new Date(), 'yyyy-12-31')}
+                      onChange={e => setNewClient(prev => ({ ...prev, expirationDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Nome do Administrador
+                    </label>
+                    <input
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Responsável pelo Terreiro"
+                      value={newClient.adminName || ''}
+                      onChange={e => setNewClient(prev => ({ ...prev, adminName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      E-mail do Administrador
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="email@exemplo.com"
+                      value={newClient.adminEmail || ''}
+                      onChange={e => setNewClient(prev => ({ ...prev, adminEmail: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Senha de Acesso
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Defina uma senha para o admin"
+                      value={newClient.adminPassword || ''}
+                      onChange={e => setNewClient(prev => ({ ...prev, adminPassword: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Telefone / WhatsApp
+                    </label>
+                    <div className="relative">
+                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                      <input
+                        className="w-full pl-9 p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="DDD + Número"
+                        value={newClient.adminPhone || ''}
+                        onChange={e => setNewClient(prev => ({ ...prev, adminPhone: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Cidade / UF
+                    </label>
+                    <div className="grid grid-cols-[2fr,1fr] gap-2">
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                        <input
+                          className="w-full pl-9 p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Cidade"
+                          value={newClient.adminCidade || ''}
+                          onChange={e => setNewClient(prev => ({ ...prev, adminCidade: e.target.value }))}
+                        />
+                      </div>
+                      <select
+                        className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
+                        value={newClient.adminEstado || 'SP'}
+                        onChange={e => setNewClient(prev => ({ ...prev, adminEstado: e.target.value }))}
+                      >
+                        {BRAZILIAN_STATES.map(uf => (
+                          <option key={uf} value={uf}>
+                            {uf}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    Um acesso admin será criado para este terreiro
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddClient(false)}
+                      className="px-4 py-2 rounded-2xl border border-slate-700 text-[10px] font-black uppercase text-slate-400 hover:bg-slate-800 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 rounded-2xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-700 transition-all active:scale-95"
+                    >
+                      Salvar Terreiro
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* LISTA DE TERREIROS */}
+          <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden">
               <div className="p-8 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center bg-slate-950/50 gap-6">
                  <div className="flex items-center gap-3">
                     <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg">
@@ -790,7 +1078,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                  <form onSubmit={(e) => {
                     e.preventDefault();
                     const form = e.target as HTMLFormElement;
-                    const version = (form.elements.namedItem('version') as HTMLInputElement).value;
+                    const version = updateType === 'manual' ? (form.elements.namedItem('version') as HTMLInputElement).value : calculatedVersion;
                     const title = (form.elements.namedItem('title') as HTMLInputElement).value;
                     const content = (form.elements.namedItem('content') as HTMLTextAreaElement).value;
                     const status = (form.elements.namedItem('status') as HTMLSelectElement).value as ReleaseNote['status'];
@@ -808,16 +1096,57 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
                     onUpdateRoadmap([...roadmap, newNote]);
                     form.reset();
+                    // Reset to default
+                    setUpdateType('patch');
                     alert('Item adicionado à timeline com sucesso!');
                  }} className="space-y-4">
                     <div>
-                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Versão</label>
-                       <input 
-                         name="version"
-                         className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold text-xs outline-none focus:ring-2 focus:ring-emerald-500"
-                         placeholder="Ex: 1.0.0"
-                         required
-                       />
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Tipo de Lançamento</label>
+                       <div className="grid grid-cols-4 gap-2 mb-4">
+                          <button 
+                             type="button" 
+                             onClick={() => setUpdateType('patch')}
+                             className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${updateType === 'patch' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                          >
+                             <span className="text-[10px] font-black uppercase">Correção</span>
+                             <span className="text-[8px] opacity-60">Bug Fix</span>
+                          </button>
+                          <button 
+                             type="button" 
+                             onClick={() => setUpdateType('minor')}
+                             className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${updateType === 'minor' ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                          >
+                             <span className="text-[10px] font-black uppercase">Atualização</span>
+                             <span className="text-[8px] opacity-60">Feature</span>
+                          </button>
+                          <button 
+                             type="button" 
+                             onClick={() => setUpdateType('major')}
+                             className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${updateType === 'major' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                          >
+                             <span className="text-[10px] font-black uppercase">Grande</span>
+                             <span className="text-[8px] opacity-60">Major</span>
+                          </button>
+                          <button 
+                             type="button" 
+                             onClick={() => setUpdateType('manual')}
+                             className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${updateType === 'manual' ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}
+                          >
+                             <span className="text-[10px] font-black uppercase">Manual</span>
+                             <span className="text-[8px] opacity-60">Custom</span>
+                          </button>
+                       </div>
+                    
+                       <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Versão {updateType !== 'manual' && '(Calculada Automaticamente)'}</label>
+                        <input 
+                          name="version"
+                          className={`w-full p-4 border rounded-2xl font-bold text-xs outline-none focus:ring-2 focus:ring-emerald-500 ${updateType !== 'manual' ? 'bg-slate-900 border-slate-800 text-slate-400 cursor-not-allowed' : 'bg-slate-950 border-slate-800 text-white'}`}
+                          placeholder="Ex: 1.0.0"
+                          required
+                          value={calculatedVersion}
+                          readOnly={updateType !== 'manual'}
+                          onChange={(e) => setCalculatedVersion(e.target.value)}
+                        />
                     </div>
                     <div>
                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título da Atualização</label>
@@ -865,7 +1194,23 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
               {/* Lista de Roadmap */}
               <div className="lg:col-span-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden">
                  <div className="p-6 bg-slate-950/50 border-b border-slate-800 flex justify-between items-center">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Histórico de Versões</h3>
+                    <div>
+                       <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Histórico de Versões</h3>
+                       <div className="flex gap-2 mt-2">
+                          <button 
+                             onClick={handleExportRoadmap}
+                             className="px-3 py-1 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 font-black uppercase text-[8px] hover:bg-slate-700 hover:text-white transition-all flex items-center gap-1"
+                          >
+                             <Download size={10} /> Backup
+                          </button>
+                          <button 
+                             onClick={() => setShowRoadmapRestoreModal(true)}
+                             className="px-3 py-1 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 font-black uppercase text-[8px] hover:bg-slate-700 hover:text-white transition-all flex items-center gap-1"
+                          >
+                             <Upload size={10} /> Restaurar
+                          </button>
+                       </div>
+                    </div>
                     <span className="text-[9px] font-black bg-slate-800 text-slate-500 px-3 py-1 rounded-full uppercase">{roadmap.length} REGISTROS</span>
                  </div>
                  <div className="overflow-x-auto">
@@ -939,6 +1284,74 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Modal de Restauração da Roadmap */}
+      {showRoadmapRestoreModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[120] p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+             <form onSubmit={handleRestoreRoadmap}>
+                <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                     <History size={20} />
+                     <h3 className="text-xl font-black uppercase tracking-tight">Restaurar Timeline</h3>
+                  </div>
+                  <button type="button" onClick={() => setShowRoadmapRestoreModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                     <X size={24} />
+                  </button>
+                </div>
+
+                <div className="p-8 space-y-6">
+                   <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 flex items-start gap-3">
+                      <AlertTriangle className="text-rose-600 shrink-0" size={20} />
+                      <p className="text-xs text-rose-800 font-bold leading-tight">
+                         CUIDADO: Isso substituirá todo o histórico de versões atual pelos dados do arquivo.
+                      </p>
+                   </div>
+
+                   <div className="space-y-4">
+                      <div>
+                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Senha de Desenvolvedor</label>
+                         <div className="relative">
+                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                           <input 
+                              required
+                              type="password"
+                              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold transition-all"
+                              placeholder="••••••••"
+                              value={roadmapRestorePassword}
+                              onChange={e => setRoadmapRestorePassword(e.target.value)}
+                           />
+                         </div>
+                      </div>
+
+                      <div>
+                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Arquivo JSON</label>
+                         <input 
+                            id="roadmap-restore-file"
+                            type="file"
+                            accept=".json"
+                            required
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                         />
+                      </div>
+
+                      {roadmapRestoreError && (
+                         <div className="bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center gap-2 animate-bounce">
+                            <Shield className="text-red-600" size={14} />
+                            <p className="text-[10px] text-red-600 font-black uppercase">{roadmapRestoreError}</p>
+                         </div>
+                      )}
+                   </div>
+
+                   <div className="pt-4 flex gap-4">
+                      <button type="button" onClick={() => setShowRoadmapRestoreModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                      <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">Restaurar</button>
+                   </div>
+                </div>
+             </form>
+          </div>
         </div>
       )}
 

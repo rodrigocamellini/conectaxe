@@ -53,8 +53,10 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
   // Lógica de Backup (Exportar JSON)
   const handleExportBackup = () => {
     const data: any = {};
-    // Coleta todas as chaves do localStorage
-    const keys = [
+    // Coleta todas as chaves do localStorage que são relevantes para o sistema
+    // Isso inclui configurações do painel master, clientes, roadmap, etc.
+    const keysToBackup = [
+      // Dados do Terreiro (Single Client Mode)
       STORAGE_KEYS.MEMBERS,
       STORAGE_KEYS.ENTITIES,
       STORAGE_KEYS.SYSTEM_CONFIG,
@@ -65,12 +67,48 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
       'terreiro_inventory_items',
       'terreiro_inventory_cats',
       'terreiro_system_users',
-      'terreiro_tickets'
+      'terreiro_tickets',
+      
+      // Dados Globais SaaS (Developer Panel)
+      'saas_master_credentials',
+      'saas_clients',
+      'saas_plans',
+      'saas_global_roadmap',
+      'saas_global_broadcasts',
+      'saas_coupons',
+      'saas_tickets',
+      'saas_audit_logs',
+      'saas_referrals',
+      'saas_master_snapshots',
+      'saas_global_maintenance',
+      // Incluir qualquer outra configuração do sistema que possa estar faltando
+      'user_preferences',
+      'theme_config',
     ];
 
-    keys.forEach(key => {
+    // Iterar sobre todas as chaves do localStorage para encontrar dados dinâmicos de clientes
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+          key.startsWith('terreiro_') || 
+          key.startsWith('saas_') || 
+          key.startsWith('dismissed_')
+      )) {
+        if (!keysToBackup.includes(key)) {
+          keysToBackup.push(key);
+        }
+      }
+    }
+
+    keysToBackup.forEach(key => {
       const stored = localStorage.getItem(key);
-      if (stored) data[key] = JSON.parse(stored);
+      if (stored) {
+        try {
+          data[key] = JSON.parse(stored);
+        } catch (e) {
+          data[key] = stored; // Fallback para string simples se não for JSON
+        }
+      }
     });
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -79,7 +117,7 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
     
     const timestamp = new Date().toISOString().split('T')[0];
     link.href = url;
-    link.download = `backup_${config.systemName.replace(/\s+/g, '_')}_${timestamp}.json`;
+    link.download = `full_system_backup_${config.systemName.replace(/\s+/g, '_')}_${timestamp}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
