@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Banho, Erva, SystemConfig } from '../types';
-import { Sprout, Droplets, Plus, Trash2, Edit2, Search, X, Upload, Image as ImageIcon, Info } from 'lucide-react';
+import { Sprout, Droplets, Plus, Trash2, Edit2, Search, X, Upload, Image as ImageIcon, Info, Filter } from 'lucide-react';
 
 interface MediaErvasBanhosProps {
   ervas: Erva[];
@@ -18,23 +18,38 @@ const DEFAULT_ERVA_AREAS = [
   'Defumação',
   'Banhos',
   'Chás',
-  'Ambiente'
+  'Ambiente',
+  'Amuleto'
+];
+
+const DEFAULT_ERVA_CLASSIFICATIONS = [
+  'Quente',
+  'Morna',
+  'Fria'
+];
+
+const DEFAULT_BANHO_AREAS = [
+  'Amor',
+  'Prosperidade',
+  'Saúde',
+  'Espiritualidade',
+  'Proteção',
+  'Energização'
 ];
 
 const DEFAULT_BANHO_PURPOSES = [
-  'Proteção',
   'Descarrego',
   'Abertura de Caminhos',
   'Limpeza',
-  'Equilíbrio'
+  'Equilíbrio',
+  'Energização',
+  'Atração'
 ];
 
 const DEFAULT_BANHO_DIRECTIONS = [
   'Da cabeça para baixo',
   'Do pescoço para baixo'
 ];
-
-const DEFAULT_ERVA_PHOTO = '/images/erva_padrao.png';
 
 export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
   ervas,
@@ -58,18 +73,21 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
   const [ervaSearch, setErvaSearch] = useState('');
   const [ervaAreaFilter, setErvaAreaFilter] = useState('');
   const [ervaLineFilter, setErvaLineFilter] = useState('');
+  const [ervaClassificationFilter, setErvaClassificationFilter] = useState('');
 
   const [banhoSearch, setBanhoSearch] = useState('');
   const [banhoPurposeFilter, setBanhoPurposeFilter] = useState('');
   const [banhoDirectionFilter, setBanhoDirectionFilter] = useState('');
   const [banhoTargetFilter, setBanhoTargetFilter] = useState('');
+  const [banhoAreaFilter, setBanhoAreaFilter] = useState('');
 
   const [ervaForm, setErvaForm] = useState<Partial<Erva>>({
     name: '',
     description: '',
     photo: '',
     areas: [],
-    lines: []
+    lines: [],
+    classification: ''
   });
 
   const [banhoForm, setBanhoForm] = useState<Partial<Banho>>({
@@ -94,9 +112,35 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
     return [];
   }, [config.pontoCategories, config.rezaCategories]);
 
-  const ervaAreaOptions = DEFAULT_ERVA_AREAS;
-  const banhoPurposeOptions = DEFAULT_BANHO_PURPOSES;
-  const banhoDirectionOptions = DEFAULT_BANHO_DIRECTIONS;
+  const ervaAreaOptions = useMemo(() => {
+    return config.ervaCategories && config.ervaCategories.length > 0
+      ? config.ervaCategories
+      : DEFAULT_ERVA_AREAS;
+  }, [config.ervaCategories]);
+
+  const ervaClassificationOptions = useMemo(() => {
+    return config.ervaTypes && config.ervaTypes.length > 0
+      ? config.ervaTypes
+      : DEFAULT_ERVA_CLASSIFICATIONS;
+  }, [config.ervaTypes]);
+
+  const banhoAreaOptions = useMemo(() => {
+    return config.banhoCategories && config.banhoCategories.length > 0
+      ? config.banhoCategories
+      : DEFAULT_BANHO_AREAS;
+  }, [config.banhoCategories]);
+
+  const banhoPurposeOptions = useMemo(() => {
+    return config.banhoTypes && config.banhoTypes.length > 0
+      ? config.banhoTypes
+      : DEFAULT_BANHO_PURPOSES;
+  }, [config.banhoTypes]);
+
+  const banhoDirectionOptions = useMemo(() => {
+    return config.banhoDirections && config.banhoDirections.length > 0
+      ? config.banhoDirections
+      : DEFAULT_BANHO_DIRECTIONS;
+  }, [config.banhoDirections]);
 
   const filteredErvas = useMemo(() => {
     return ervas.filter(e => {
@@ -106,9 +150,10 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
         e.description.toLowerCase().includes(query);
       const matchesArea = ervaAreaFilter ? e.areas.includes(ervaAreaFilter) : true;
       const matchesLine = ervaLineFilter ? e.lines.includes(ervaLineFilter) : true;
-      return matchesSearch && matchesArea && matchesLine;
+      const matchesClassification = ervaClassificationFilter ? e.classification === ervaClassificationFilter : true;
+      return matchesSearch && matchesArea && matchesLine && matchesClassification;
     });
-  }, [ervas, ervaSearch, ervaAreaFilter, ervaLineFilter]);
+  }, [ervas, ervaSearch, ervaAreaFilter, ervaLineFilter, ervaClassificationFilter]);
 
   const filteredBanhos = useMemo(() => {
     return banhos.filter(b => {
@@ -119,9 +164,10 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
       const matchesPurpose = banhoPurposeFilter ? b.purpose === banhoPurposeFilter : true;
       const matchesDirection = banhoDirectionFilter ? b.direction === banhoDirectionFilter : true;
       const matchesTarget = banhoTargetFilter ? b.target === banhoTargetFilter : true;
-      return matchesSearch && matchesPurpose && matchesDirection && matchesTarget;
+      const matchesArea = banhoAreaFilter ? b.area === banhoAreaFilter : true;
+      return matchesSearch && matchesPurpose && matchesDirection && matchesTarget && matchesArea;
     });
-  }, [banhos, banhoSearch, banhoPurposeFilter, banhoDirectionFilter, banhoTargetFilter]);
+  }, [banhos, banhoSearch, banhoPurposeFilter, banhoDirectionFilter, banhoTargetFilter, banhoAreaFilter]);
 
   const handleToggleErvaArea = (area: string) => {
     setErvaForm(prev => {
@@ -157,7 +203,8 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
       description: '',
       photo: '',
       areas: [],
-      lines: []
+      lines: [],
+      classification: ''
     });
     setErvaViewMode('form');
   };
@@ -169,7 +216,8 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
       description: erva.description,
       photo: erva.photo,
       areas: erva.areas || [],
-      lines: erva.lines || []
+      lines: erva.lines || [],
+      classification: erva.classification || ''
     });
     setErvaViewMode('form');
   };
@@ -185,6 +233,8 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
     const description = (ervaForm.description || '').trim();
     const areas = ervaForm.areas || [];
     const lines = ervaForm.lines || [];
+    const classification = ervaForm.classification || '';
+    
     if (!name || !description || areas.length === 0) return;
 
     if (selectedErva) {
@@ -193,7 +243,8 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
         description,
         photo: ervaForm.photo,
         areas,
-        lines
+        lines,
+        classification
       });
     } else {
       const newErva: Erva = {
@@ -203,6 +254,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
         photo: ervaForm.photo || '',
         areas,
         lines,
+        classification,
         createdAt: new Date().toISOString()
       };
       onAddErva(newErva);
@@ -334,6 +386,19 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                 />
               </div>
               <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Classificação</label>
+                <select
+                  className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  value={ervaForm.classification || ''}
+                  onChange={e => setErvaForm(prev => ({ ...prev, classification: e.target.value }))}
+                >
+                  <option value="">Selecione...</option>
+                  {ervaClassificationOptions.map(cls => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Descrição / Propriedades</label>
                 <textarea
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500 min-h-[120px]"
@@ -347,7 +412,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                     <label className="block text-[10px] font-black text-gray-400 uppercase">Áreas de Atuação</label>
                     <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1">
                       <Info size={12} />
-                      Selecione se é para defumação, banho, etc.
+                      Selecione...
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -375,7 +440,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                     <label className="block text-[10px] font-black text-gray-400 uppercase">Linhas / Entidades</label>
                     <span className="text-[10px] text-gray-400 font-bold uppercase flex items-center gap-1">
                       <Info size={12} />
-                      Para quais linhas ou orixás ela serve.
+                      Para quem serve
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
@@ -467,6 +532,11 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                   Erva cadastrada em {new Date(selectedErva.createdAt).toLocaleDateString('pt-BR')}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedErva.classification && (
+                    <span className="px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-widest">
+                      {selectedErva.classification}
+                    </span>
+                  )}
                   {selectedErva.areas.map(area => (
                     <span
                       key={area}
@@ -559,6 +629,18 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
           </select>
           <select
             className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 bg-white"
+            value={ervaClassificationFilter}
+            onChange={e => setErvaClassificationFilter(e.target.value)}
+          >
+            <option value="">Todas as Classificações</option>
+            {ervaClassificationOptions.map(cls => (
+              <option key={cls} value={cls}>
+                {cls}
+              </option>
+            ))}
+          </select>
+          <select
+            className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 bg-white"
             value={ervaLineFilter}
             onChange={e => setErvaLineFilter(e.target.value)}
           >
@@ -612,7 +694,12 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                     </div>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {erva.areas.map(area => (
+                    {erva.classification && (
+                      <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[9px] font-black uppercase tracking-widest">
+                        {erva.classification}
+                      </span>
+                    )}
+                    {erva.areas.slice(0, 2).map(area => (
                       <span
                         key={area}
                         className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-widest"
@@ -721,7 +808,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                     onChange={e => setBanhoForm(prev => ({ ...prev, area: e.target.value }))}
                   >
                     <option value="">Selecione...</option>
-                    {ervaAreaOptions.map(area => (
+                    {banhoAreaOptions.map(area => (
                       <option key={area} value={area}>
                         {area}
                       </option>
@@ -744,7 +831,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Finalidade</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Propósito / Finalidade</label>
                   <select
                     className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-sky-500 bg-white"
                     value={banhoForm.purpose || ''}
@@ -938,6 +1025,18 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
         <div className="flex flex-col md:flex-row gap-3">
           <select
             className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 bg-white"
+            value={banhoAreaFilter}
+            onChange={e => setBanhoAreaFilter(e.target.value)}
+          >
+            <option value="">Todas as Áreas</option>
+            {banhoAreaOptions.map(area => (
+              <option key={area} value={area}>
+                {area}
+              </option>
+            ))}
+          </select>
+          <select
+            className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 bg-white"
             value={banhoPurposeFilter}
             onChange={e => setBanhoPurposeFilter(e.target.value)}
           >
@@ -989,7 +1088,7 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenEditBanho(banho)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50"
                     >
                       <Edit2 size={14} />
                     </button>
@@ -1013,57 +1112,21 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                   <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[9px] font-black uppercase tracking-widest">
                     {banho.purpose}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[9px] font-black uppercase tracking-widest">
-                    {banho.target}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-widest">
-                    {banho.direction}
-                  </span>
                 </div>
-                <p className="text-xs text-gray-600 line-clamp-3 mt-1">
-                  {banho.description || 'Sem observações adicionais.'}
+                <p className="text-xs text-gray-600 line-clamp-2">
+                  {banho.description}
                 </p>
-                <div className="mt-2 space-y-1.5">
-                  {banho.ervaIds.slice(0, 3).map(id => {
-                    const erva = ervas.find(e => e.id === id);
-                    if (!erva) return null;
-                    const subtitleSource = erva.areas.length > 0 ? erva.areas : erva.lines;
-                    const photo = erva.photo && erva.photo.trim() !== '' ? erva.photo : DEFAULT_ERVA_PHOTO;
-                    return (
-                      <div
-                        key={id}
-                        className="flex items-center gap-2"
-                      >
-                        <div className="w-8 h-8 rounded-xl overflow-hidden bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-                          <img src={photo} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-widest truncate">
-                            {erva.name}
-                          </p>
-                          {subtitleSource.length > 0 && (
-                            <p className="text-[10px] text-gray-400 truncate">
-                              {subtitleSource.join(' • ')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {banho.ervaIds.length > 3 && (
-                    <p className="text-[9px] font-black uppercase text-gray-400">
-                      +{banho.ervaIds.length - 3} ervas
-                    </p>
-                  )}
+                <div className="flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                  <Sprout size={12} />
+                  {banho.ervaIds.length} ervas
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => handleOpenViewBanho(banho)}
-                className="w-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 bg-gray-50 border-t border-gray-100 hover:bg-gray-100 flex items-center justify-center gap-2"
+                className="mt-auto w-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 bg-gray-50 border-t border-gray-100 hover:bg-gray-100"
               >
-                <Droplets size={14} />
-                Ver detalhes e ervas
+                Ver receita completa
               </button>
             </div>
           ))}
@@ -1075,15 +1138,14 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
                   Nenhum banho cadastrado
                 </p>
                 <p className="text-xs text-gray-400 max-w-md">
-                  Monte banhos selecionando ervas cadastradas, área de atuação, entidade alvo e
-                  direção correta da aplicação.
+                  Crie receitas de banhos combinando ervas e definindo seus propósitos espirituais.
                 </p>
                 <button
                   type="button"
                   onClick={handleOpenNewBanho}
                   className="mt-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-black uppercase tracking-widest hover:bg-sky-700"
                 >
-                  Cadastrar primeiro banho
+                  Criar primeiro banho
                 </button>
               </div>
             </div>
@@ -1094,51 +1156,31 @@ export const MediaErvasBanhos: React.FC<MediaErvasBanhosProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
-            <Sprout size={24} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
-              Ervas e Banhos
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Cadastre as ervas da casa e monte banhos com direção e finalidade correta.
-            </p>
-          </div>
-        </div>
-        <div className="flex p-1 bg-gray-100 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => setActiveSection('ervas')}
-            className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-1 ${
-              activeSection === 'ervas'
-                ? 'bg-white shadow-sm text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Sprout size={14} />
-            Ervas
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSection('banhos')}
-            className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-1 ${
-              activeSection === 'banhos'
-                ? 'bg-white shadow-sm text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Droplets size={14} />
-            Banhos
-          </button>
-        </div>
+    <div className="space-y-6 animate-fadeIn">
+      <div className="flex items-center justify-center p-1 bg-gray-100 rounded-2xl w-fit mx-auto">
+        <button
+          onClick={() => setActiveSection('ervas')}
+          className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            activeSection === 'ervas'
+              ? 'bg-white text-emerald-600 shadow-sm'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          Ervas & Plantas
+        </button>
+        <button
+          onClick={() => setActiveSection('banhos')}
+          className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            activeSection === 'banhos'
+              ? 'bg-white text-sky-600 shadow-sm'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          Banhos & Receitas
+        </button>
       </div>
 
-      {activeSection === 'ervas' && renderErvasSection()}
-      {activeSection === 'banhos' && renderBanhosSection()}
+      {activeSection === 'ervas' ? renderErvasSection() : renderBanhosSection()}
     </div>
   );
 };

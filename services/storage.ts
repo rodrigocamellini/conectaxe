@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   REZAS: 'terreiro_rezas',
   ERVAS: 'terreiro_ervas',
   BANHOS: 'terreiro_banhos',
+  CONSULENTES: 'terreiro_consulentes',
   AUTH: 'terreiro_auth',
   SYSTEM_CONFIG: 'terreiro_system_config'
 };

@@ -315,6 +315,11 @@ export interface SystemConfig {
   pontoTypes?: string[];
   rezaCategories?: string[];
   rezaTypes?: string[];
+  ervaCategories?: string[];
+  ervaTypes?: string[];
+  banhoCategories?: string[];
+  banhoTypes?: string[];
+  banhoDirections?: string[];
 }
 
 export interface SpiritualEntity {
@@ -420,6 +425,18 @@ export interface Member {
   createdAt: string;
 }
 
+export interface Consulente {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  birthDate?: string;
+  cidade?: string;
+  estado?: string;
+  observations?: string;
+  createdAt: string;
+}
+
 export interface InventoryCategory {
   id: string;
   name: string;
@@ -493,6 +510,7 @@ export interface Erva {
   name: string;
   description: string;
   photo?: string;
+  classification?: string;
   areas: string[];
   lines: string[];
   createdAt: string;

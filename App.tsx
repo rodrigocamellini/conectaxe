@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto, Reza, Erva, Banho } from './types';
+import { AuthState, Member, Consulente, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto, Reza, Erva, Banho } from './types';
 import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, MASTER_LOGO_URL } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
@@ -96,6 +96,7 @@ const App: React.FC = () => {
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
   
   const [members, setMembers] = useState<Member[]>(() => storage.get<Member[]>(STORAGE_KEYS.MEMBERS) || []);
+  const [consulentes, setConsulentes] = useState<Consulente[]>(() => storage.get<Consulente[]>(STORAGE_KEYS.CONSULENTES) || []);
   const [entities, setEntities] = useState<SpiritualEntity[]>(() => {
     const saved = storage.get<SpiritualEntity[]>(STORAGE_KEYS.ENTITIES);
     const legacyCargoNames = ['Pai de Santo / Mão de Santo', 'Pai Pequeno / Mãe Pequena'];
@@ -175,7 +176,12 @@ const App: React.FC = () => {
       pontoTypes: Array.from(new Set([...((saved as any).pontoTypes || []), ...DEFAULT_SYSTEM_CONFIG.pontoTypes])),
       pontoCategories: Array.from(new Set([...((saved as any).pontoCategories || []), ...DEFAULT_SYSTEM_CONFIG.pontoCategories])),
       rezaTypes: Array.from(new Set([...((saved as any).rezaTypes || []), ...DEFAULT_SYSTEM_CONFIG.rezaTypes])),
-      rezaCategories: Array.from(new Set([...((saved as any).rezaCategories || []), ...DEFAULT_SYSTEM_CONFIG.rezaCategories]))
+      rezaCategories: Array.from(new Set([...((saved as any).rezaCategories || []), ...DEFAULT_SYSTEM_CONFIG.rezaCategories])),
+      ervaCategories: Array.from(new Set([...((saved as any).ervaCategories || []), ...(DEFAULT_SYSTEM_CONFIG.ervaCategories || [])])),
+      ervaTypes: Array.from(new Set([...((saved as any).ervaTypes || []), ...(DEFAULT_SYSTEM_CONFIG.ervaTypes || [])])),
+      banhoCategories: Array.from(new Set([...((saved as any).banhoCategories || []), ...(DEFAULT_SYSTEM_CONFIG.banhoCategories || [])])),
+      banhoTypes: Array.from(new Set([...((saved as any).banhoTypes || []), ...(DEFAULT_SYSTEM_CONFIG.banhoTypes || [])])),
+      banhoDirections: Array.from(new Set([...((saved as any).banhoDirections || []), ...(DEFAULT_SYSTEM_CONFIG.banhoDirections || [])]))
     };
     return merged;
   });
@@ -188,6 +194,7 @@ const App: React.FC = () => {
     setSystemUsers(storage.get<User[]>(`terreiro_system_users${suffix}`) || []);
 
     setMembers(storage.get<Member[]>(`${STORAGE_KEYS.MEMBERS}${suffix}`) || []);
+    setConsulentes(storage.get<Consulente[]>(`${STORAGE_KEYS.CONSULENTES}${suffix}`) || []);
 
     setEntities(() => {
       const saved = storage.get<SpiritualEntity[]>(`${STORAGE_KEYS.ENTITIES}${suffix}`);
@@ -262,7 +269,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setSystemConfig(prev => {
       const currentMenu = prev.menuConfig || DEFAULT_SYSTEM_CONFIG.menuConfig;
-      const updatedMenu = currentMenu.map(item => {
+      let updatedMenu = currentMenu.map(item => {
         if (item.id === 'indicacoes') {
           const needsUpdate = item.label !== 'Afiliados' || item.icon !== 'Crown' || item.color !== '#ADFF2F';
           if (needsUpdate) {
@@ -271,6 +278,23 @@ const App: React.FC = () => {
         }
         return item;
       });
+
+      updatedMenu = updatedMenu.map(item => {
+        if (item.id !== 'cadastros') return item;
+        const subItems = item.subItems || [];
+        const hasConsulentes = subItems.some(s => s.id === 'consulentes');
+        if (hasConsulentes) return item;
+        const newSubItems = [...subItems];
+        const mediumsIndex = newSubItems.findIndex(s => s.id === 'mediums');
+        const consulenteItem = { id: 'consulentes', label: 'Consulentes', icon: 'UserRoundPlus' };
+        if (mediumsIndex >= 0) {
+          newSubItems.splice(mediumsIndex + 1, 0, consulenteItem);
+        } else {
+          newSubItems.push(consulenteItem);
+        }
+        return { ...item, subItems: newSubItems };
+      });
+
       const changed = updatedMenu.some((item, index) => item !== currentMenu[index]);
       if (!changed) return prev;
       return { ...prev, menuConfig: updatedMenu };
@@ -590,6 +614,7 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'members' && <MemberManagement members={members} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} />}
+        {activeTab === 'consulentes' && <MemberManagement members={members.filter(m => m.status === 'consulente' || m.isConsulente)} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const baseStatus = m.status && m.status.trim() !== '' ? m.status : 'consulente'; const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, status: baseStatus, isConsulente: true, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data, isConsulente: data.isConsulente ?? m.isConsulente } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} mode="consulente" />}
         {activeTab === 'mediums' && <MediumManagement members={members} entities={entities} config={systemConfig} onUpdateMemberSpiritualInfo={(mid, eids, enms) => setMembers(members.map(m => m.id === mid ? { ...m, assignedEntities: eids, entityNames: enms } : m))} />}
         {activeTab === 'idcards' && <IDCardManagement members={members} entities={entities} logs={idCardLogs} config={systemConfig} onUpdateLogs={setIdCardLogs} onUpdateConfig={setSystemConfig} currentUser={auth.user!} />}
         {activeTab === 'attendance' && <AttendanceManagement members={members} attendanceRecords={attendanceRecords} config={systemConfig} onUpdateAttendance={setAttendanceRecords} />}
@@ -688,7 +713,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-900">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="p-10 text-white text-center bg-indigo-900 flex flex-col items-center" style={{ backgroundColor: systemConfig.primaryColor }}>
+        <div className="p-10 text-white text-center bg-indigo-900 flex flex-col items-center">
             <img src={masterSettings.brandLogo || MASTER_LOGO_URL} className="w-64 h-auto mx-auto mb-6 object-contain" />
             <h1 className="text-sm font-black tracking-widest whitespace-nowrap">{masterSettings.sidebarTitle}</h1>
         </div>
@@ -712,7 +737,7 @@ const App: React.FC = () => {
                 Salvar acesso neste dispositivo
               </span>
             </label>
-            <button type="submit" className="w-full py-5 bg-indigo-900 text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95" style={{ backgroundColor: systemConfig.primaryColor }}>Entrar no Painel</button>
+            <button type="submit" className="w-full py-5 bg-indigo-900 text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95">Entrar no Painel</button>
             <button type="button" onClick={() => setShowEcosystemConcept(true)} className="w-full py-3 mt-4 bg-slate-50 text-slate-400 border border-slate-100 rounded-2xl font-black text-[9px] uppercase hover:bg-slate-100 transition-all flex items-center justify-center gap-2"><Layers size={14} /> Ver Conceito SaaS</button>
         </form>
       </div>

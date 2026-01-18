@@ -72,6 +72,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
     subItems: [
       { id: 'members', label: 'Membros', icon: 'Users' },
       { id: 'mediums', label: 'Médiuns', icon: 'UserCheck' },
+      { id: 'consulentes', label: 'Consulentes', icon: 'UserRoundPlus' },
       { id: 'idcards', label: 'Carteirinhas', icon: 'Contact2' },
       { id: 'attendance', label: 'Presença', icon: 'UserRoundCheck' }
     ]

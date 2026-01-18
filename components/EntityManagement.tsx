@@ -32,6 +32,10 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
   const [newType, setNewType] = useState('');
   const [newRezaLine, setNewRezaLine] = useState('');
   const [newRezaType, setNewRezaType] = useState('');
+  const [newErvaCategory, setNewErvaCategory] = useState('');
+  const [newErvaType, setNewErvaType] = useState('');
+  const [newBanhoCategory, setNewBanhoCategory] = useState('');
+  const [newBanhoType, setNewBanhoType] = useState('');
 
   const baseConfig = config || DEFAULT_SYSTEM_CONFIG;
 
@@ -69,6 +73,24 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
   const rezaTypes =
     baseConfig.rezaTypes && baseConfig.rezaTypes.length > 0
       ? baseConfig.rezaTypes
+      : [];
+
+  const ervaCategories =
+    baseConfig.ervaCategories && baseConfig.ervaCategories.length > 0
+      ? baseConfig.ervaCategories
+      : [];
+  const ervaTypes =
+    baseConfig.ervaTypes && baseConfig.ervaTypes.length > 0
+      ? baseConfig.ervaTypes
+      : [];
+
+  const banhoCategories =
+    baseConfig.banhoCategories && baseConfig.banhoCategories.length > 0
+      ? baseConfig.banhoCategories
+      : [];
+  const banhoTypes =
+    baseConfig.banhoTypes && baseConfig.banhoTypes.length > 0
+      ? baseConfig.banhoTypes
       : [];
 
   const handleAddLine = () => {
@@ -140,6 +162,78 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
     onUpdateConfig({
       ...baseConfig,
       rezaTypes: rezaTypes.filter(v => v !== value)
+    });
+  };
+
+  const handleAddErvaCategory = () => {
+    if (!newErvaCategory.trim()) return;
+    const value = newErvaCategory.trim();
+    if (ervaCategories.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      ervaCategories: [...ervaCategories, value]
+    });
+    setNewErvaCategory('');
+  };
+
+  const handleRemoveErvaCategory = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      ervaCategories: ervaCategories.filter(v => v !== value)
+    });
+  };
+
+  const handleAddErvaType = () => {
+    if (!newErvaType.trim()) return;
+    const value = newErvaType.trim();
+    if (ervaTypes.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      ervaTypes: [...ervaTypes, value]
+    });
+    setNewErvaType('');
+  };
+
+  const handleRemoveErvaType = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      ervaTypes: ervaTypes.filter(v => v !== value)
+    });
+  };
+
+  const handleAddBanhoCategory = () => {
+    if (!newBanhoCategory.trim()) return;
+    const value = newBanhoCategory.trim();
+    if (banhoCategories.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      banhoCategories: [...banhoCategories, value]
+    });
+    setNewBanhoCategory('');
+  };
+
+  const handleRemoveBanhoCategory = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      banhoCategories: banhoCategories.filter(v => v !== value)
+    });
+  };
+
+  const handleAddBanhoType = () => {
+    if (!newBanhoType.trim()) return;
+    const value = newBanhoType.trim();
+    if (banhoTypes.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      banhoTypes: [...banhoTypes, value]
+    });
+    setNewBanhoType('');
+  };
+
+  const handleRemoveBanhoType = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      banhoTypes: banhoTypes.filter(v => v !== value)
     });
   };
 
@@ -449,6 +543,223 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
             {rezaTypes.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
                 <Sparkles size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ERVAS E BANHOS CONFIGURATION */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Áreas de Atuação (Ervas)
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {ervaCategories.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Nova área..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newErvaCategory}
+                onChange={e => setNewErvaCategory(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddErvaCategory();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddErvaCategory}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {ervaCategories.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveErvaCategory(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {ervaCategories.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Sprout size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Tipos de Ervas
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {ervaTypes.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Novo tipo..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newErvaType}
+                onChange={e => setNewErvaType(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddErvaType();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddErvaType}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {ervaTypes.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveErvaType(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {ervaTypes.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Sprout size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Áreas de Atuação (Banhos)
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {banhoCategories.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Novo propósito..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newBanhoCategory}
+                onChange={e => setNewBanhoCategory(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddBanhoCategory();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddBanhoCategory}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {banhoCategories.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveBanhoCategory(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {banhoCategories.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Droplets size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Propósitos (Banhos)
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {banhoTypes.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Novo propósito..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newBanhoType}
+                onChange={e => setNewBanhoType(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddBanhoType();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddBanhoType}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {banhoTypes.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveBanhoType(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {banhoTypes.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Droplets size={24} />
                 <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
               </div>
             )}

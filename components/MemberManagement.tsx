@@ -16,6 +16,7 @@ interface MemberManagementProps {
   onAddMember: (member: Partial<Member>) => void;
   onUpdateMember: (id: string, member: Partial<Member>) => void;
   onDeleteMember: (id: string) => void;
+  mode?: 'member' | 'consulente';
 }
 
 const MARITAL_STATUS_OPTIONS = [
@@ -41,7 +42,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   currentUser,
   onAddMember,
   onUpdateMember,
-  onDeleteMember
+  onDeleteMember,
+  mode = 'member'
 }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMemberForView, setSelectedMemberForView] = useState<Member | null>(null);
@@ -73,12 +75,12 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     setFormData({
       name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
       address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '', 
-      status: 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '', 
+      status: mode === 'consulente' ? 'consulente' : 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '', 
       cargoId: '', photo: '', houseRoles: [],
       nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
       spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
       childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
-      observations: '', isMedium: false, isCambone: false, isConsulente: false
+      observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente'
     });
     setActiveTab('pessoal');
     setShowEditModal(true);
@@ -226,7 +228,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
         </div>
         {permissions.add && (
           <button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all">
-            <Plus size={20} /> Novo Membro
+            <Plus size={20} /> {mode === 'consulente' ? 'Novo Consulente' : 'Novo Membro'}
           </button>
         )}
       </div>
@@ -238,8 +240,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               <tr>
                 <th className="px-6 py-4 font-bold">ID</th>
                 <th className="px-6 py-4 font-bold">Foto</th>
-                <th className="px-6 py-4 font-bold">Membro</th>
-                <th className="px-6 py-4 font-bold">Cargo</th>
+                <th className="px-6 py-4 font-bold">{mode === 'consulente' ? 'Nome' : 'Membro'}</th>
+                {mode === 'member' && <th className="px-6 py-4 font-bold">Cargo</th>}
                 <th className="px-6 py-4 font-bold">Contato</th>
                 <th className="px-6 py-4 font-bold">Status</th>
                 <th className="px-6 py-4 font-bold text-center">Ações</th>
@@ -258,9 +260,11 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                     <div className="font-semibold text-gray-900">{m.name}</div>
                     <div className="text-[10px] text-gray-400 font-mono">CPF: {m.cpf || '-'}</div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-indigo-600">
-                    {entities.find(e => e.id === m.cargoId)?.name || 'N/D'}
-                  </td>
+                  {mode === 'member' && (
+                    <td className="px-6 py-4 font-medium text-indigo-600">
+                      {entities.find(e => e.id === m.cargoId)?.name || 'N/D'}
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div className="text-xs text-gray-700">{m.phone || '-'}</div>
                     <div className="text-[10px] text-gray-400">{m.email}</div>
@@ -287,7 +291,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-indigo-900 text-white">
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-white/20 rounded-xl"><UserCircle size={24} /></div>
-                <h3 className="text-xl font-bold uppercase tracking-tight">{editingId ? `Editar Membro #${editingId}` : 'Novo Cadastro'}</h3>
+                <h3 className="text-xl font-bold uppercase tracking-tight">{editingId ? `Editar ${mode === 'consulente' ? 'Consulente' : 'Membro'} #${editingId}` : (mode === 'consulente' ? 'Novo Consulente' : 'Novo Cadastro')}</h3>
               </div>
               <button onClick={() => setShowEditModal(false)} className="text-white/60 hover:text-white text-2xl transition-colors">&times;</button>
             </div>
@@ -296,7 +300,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               {[
                 { id: 'pessoal', label: 'Dados Pessoais', icon: UserCircle },
                 { id: 'contato', label: 'Contato e Endereço', icon: MapPin },
-                { id: 'espiritual', label: 'Vida Espiritual', icon: Sparkles },
+                ...(mode === 'member' ? [{ id: 'espiritual', label: 'Vida Espiritual', icon: Sparkles }] : []),
                 { id: 'observacoes', label: 'Observações', icon: MessageSquare }
               ].map(tab => (
                 <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as any)} className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
@@ -314,9 +318,11 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload size={24} className="text-white" /></div>
                     </div>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                    <select className="w-full p-2.5 border border-gray-300 rounded-xl font-bold text-sm outline-none focus:ring-1 focus:ring-indigo-500" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
-                      <option value="ativo">Ativo</option><option value="consulente">Consulente</option><option value="inativo">Inativo</option><option value="desligado">Desligado</option>
-                    </select>
+                    {mode === 'member' && (
+                      <select className="w-full p-2.5 border border-gray-300 rounded-xl font-bold text-sm outline-none focus:ring-1 focus:ring-indigo-500" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+                        <option value="ativo">Ativo</option><option value="consulente">Consulente</option><option value="inativo">Inativo</option><option value="desligado">Desligado</option>
+                      </select>
+                    )}
                   </div>
                   <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
@@ -325,74 +331,82 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CPF</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cpf} onChange={e => setFormData({...formData, cpf: e.target.value})} /></div>
                     
                     <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">RG</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.rg} onChange={e => setFormData({...formData, rg: e.target.value})} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nacionalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} /></div>
+                    {mode === 'member' && (
+                      <>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nacionalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} /></div>
 
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Naturalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Escolaridade</label>
-                      <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.education} onChange={e => setFormData({...formData, education: e.target.value})}>
-                        <option value="">Selecione...</option>
-                        {SCHOOLING_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
-                      </select>
-                    </div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Naturalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.birthPlace} onChange={e => setFormData({...formData, birthPlace: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Escolaridade</label>
+                          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.education} onChange={e => setFormData({...formData, education: e.target.value})}>
+                            <option value="">Selecione...</option>
+                            {SCHOOLING_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
+                          </select>
+                        </div>
 
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Profissão</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.profession} onChange={e => setFormData({...formData, profession: e.target.value})} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Situação de Trabalho</label>
-                      <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.isWorking ? 'working' : 'not_working'} onChange={e => setFormData({...formData, isWorking: e.target.value === 'working'})}>
-                        <option value="working">Trabalhando</option>
-                        <option value="not_working">Desempregado</option>
-                      </select>
-                    </div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Profissão</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.profession} onChange={e => setFormData({...formData, profession: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Situação de Trabalho</label>
+                          <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.isWorking ? 'working' : 'not_working'} onChange={e => setFormData({...formData, isWorking: e.target.value === 'working'})}>
+                            <option value="working">Trabalhando</option>
+                            <option value="not_working">Desempregado</option>
+                          </select>
+                        </div>
 
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado Civil</label><select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.maritalStatus} onChange={e => setFormData({...formData, maritalStatus: e.target.value as any})}>{MARITAL_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-                    {(formData.maritalStatus === 'casado' || formData.maritalStatus === 'uniao_estavel') && (
-                      <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cônjuge</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.spouseName} onChange={e => setFormData({...formData, spouseName: e.target.value})} /></div>
+                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado Civil</label><select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.maritalStatus} onChange={e => setFormData({...formData, maritalStatus: e.target.value as any})}>{MARITAL_STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+                        {(formData.maritalStatus === 'casado' || formData.maritalStatus === 'uniao_estavel') && (
+                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cônjuge</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.spouseName} onChange={e => setFormData({...formData, spouseName: e.target.value})} /></div>
+                        )}
+                      </>
                     )}
 
-                    <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
-                      <div className="flex items-center gap-2">
-                         <input type="checkbox" id="hasChildren" checked={formData.hasChildren} onChange={e => setFormData({...formData, hasChildren: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                         <label htmlFor="hasChildren" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">Tem Filhos?</label>
-                      </div>
-                      {formData.hasChildren && (
-                        <div className="space-y-3 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
-                           <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome dos Filhos</label>
-                           {formData.childrenNames?.map((child, idx) => (
-                             <div key={idx} className="flex gap-2">
-                               <input 
-                                 value={child} 
-                                 onChange={e => {
-                                   const newChildren = [...(formData.childrenNames || [])];
-                                   newChildren[idx] = e.target.value;
-                                   setFormData({...formData, childrenNames: newChildren});
-                                 }}
-                                 placeholder="Nome do Filho(a)"
-                                 className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                               />
-                               <button type="button" onClick={() => {
-                                  const newChildren = formData.childrenNames?.filter((_, i) => i !== idx);
-                                  setFormData({...formData, childrenNames: newChildren});
-                               }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                             </div>
-                           ))}
-                           <button type="button" onClick={() => setFormData({...formData, childrenNames: [...(formData.childrenNames || []), '']})} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
-                             <Plus size={14} /> Adicionar Filho
-                           </button>
+                    {mode === 'member' && (
+                      <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
+                        <div className="flex items-center gap-2">
+                           <input type="checkbox" id="hasChildren" checked={formData.hasChildren} onChange={e => setFormData({...formData, hasChildren: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                           <label htmlFor="hasChildren" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">Tem Filhos?</label>
                         </div>
-                      )}
-                    </div>
+                        {formData.hasChildren && (
+                          <div className="space-y-3 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
+                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome dos Filhos</label>
+                             {formData.childrenNames?.map((child, idx) => (
+                               <div key={idx} className="flex gap-2">
+                                 <input 
+                                   value={child} 
+                                   onChange={e => {
+                                     const newChildren = [...(formData.childrenNames || [])];
+                                     newChildren[idx] = e.target.value;
+                                     setFormData({...formData, childrenNames: newChildren});
+                                   }}
+                                   placeholder="Nome do Filho(a)"
+                                   className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                 />
+                                 <button type="button" onClick={() => {
+                                    const newChildren = formData.childrenNames?.filter((_, i) => i !== idx);
+                                    setFormData({...formData, childrenNames: newChildren});
+                                 }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                               </div>
+                             ))}
+                             <button type="button" onClick={() => setFormData({...formData, childrenNames: [...(formData.childrenNames || []), '']})} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                               <Plus size={14} /> Adicionar Filho
+                             </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                    <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
-                      <div className="flex items-center gap-2">
-                         <input type="checkbox" id="isBaptized" checked={formData.isBaptized} onChange={e => setFormData({...formData, isBaptized: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                         <label htmlFor="isBaptized" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">É Batizado?</label>
-                      </div>
-                      {formData.isBaptized && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
-                           <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Terreiro de Batismo</label><input className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismLocation} onChange={e => setFormData({...formData, baptismLocation: e.target.value})} /></div>
-                           <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Batismo</label><input type="date" className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismDate} onChange={e => setFormData({...formData, baptismDate: e.target.value})} /></div>
+                    {mode === 'member' && (
+                      <div className="md:col-span-2 space-y-3 pt-2 border-t border-gray-100 mt-2">
+                        <div className="flex items-center gap-2">
+                           <input type="checkbox" id="isBaptized" checked={formData.isBaptized} onChange={e => setFormData({...formData, isBaptized: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                           <label htmlFor="isBaptized" className="text-xs font-bold text-gray-500 uppercase select-none cursor-pointer">É Batizado?</label>
                         </div>
-                      )}
-                    </div>
+                        {formData.isBaptized && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
+                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Terreiro de Batismo</label><input className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismLocation} onChange={e => setFormData({...formData, baptismLocation: e.target.value})} /></div>
+                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data de Batismo</label><input type="date" className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.baptismDate} onChange={e => setFormData({...formData, baptismDate: e.target.value})} /></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -416,7 +430,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                 </div>
               )}
 
-              {activeTab === 'espiritual' && (
+              {activeTab === 'espiritual' && mode === 'member' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
@@ -574,21 +588,25 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             <div className="p-16 overflow-y-auto max-h-[55vh] space-y-12" style={{ scrollbarWidth: 'thin' }}>
               {viewProfileTab === 'perfil' ? (
                 <div className="space-y-12 animate-in fade-in duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2 space-y-8">
+                  <div className={`grid grid-cols-1 ${mode === 'member' ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-8`}>
+                    <div className={`${mode === 'member' ? 'md:col-span-2' : 'md:col-span-1'} space-y-8`}>
                        <div className="flex items-center gap-3 border-b border-gray-100 pb-4"><div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><Calendar size={20} /></div><h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Informações Pessoais</h4></div>
                        <div className="grid grid-cols-2 gap-8">
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Nascimento</p><p className="font-bold text-gray-800">{formatSafeDate(selectedMemberForView.birthDate, "dd/MM/yyyy")} <span className="text-indigo-500">({calculateAge(selectedMemberForView.birthDate)} anos)</span></p></div>
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">RG</p><p className="font-bold text-gray-800">{selectedMemberForView.rg || '---'}</p></div>
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">CPF</p><p className="font-bold text-gray-800">{selectedMemberForView.cpf || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Nacionalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.nationality || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Naturalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.birthPlace || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Escolaridade</p><p className="font-bold text-gray-800">{selectedMemberForView.education || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Profissão</p><p className="font-bold text-gray-800">{selectedMemberForView.profession || '---'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Situação de Trabalho</p><p className="font-bold text-gray-800">{selectedMemberForView.isWorking ? 'Trabalhando' : 'Desempregado'}</p></div>
-                          <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Estado Civil</p><p className="font-bold text-gray-800">{MARITAL_STATUS_OPTIONS.find(o => o.value === selectedMemberForView.maritalStatus)?.label || selectedMemberForView.maritalStatus || '---'}</p></div>
-                          {(selectedMemberForView.maritalStatus === 'casado' || selectedMemberForView.maritalStatus === 'uniao_estavel') && (
-                            <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cônjuge</p><p className="font-bold text-gray-800">{selectedMemberForView.spouseName || '---'}</p></div>
+                          {mode === 'member' && (
+                            <>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Nacionalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.nationality || '---'}</p></div>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Naturalidade</p><p className="font-bold text-gray-800">{selectedMemberForView.birthPlace || '---'}</p></div>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Escolaridade</p><p className="font-bold text-gray-800">{selectedMemberForView.education || '---'}</p></div>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Profissão</p><p className="font-bold text-gray-800">{selectedMemberForView.profession || '---'}</p></div>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Situação de Trabalho</p><p className="font-bold text-gray-800">{selectedMemberForView.isWorking ? 'Trabalhando' : 'Desempregado'}</p></div>
+                              <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Estado Civil</p><p className="font-bold text-gray-800">{MARITAL_STATUS_OPTIONS.find(o => o.value === selectedMemberForView.maritalStatus)?.label || selectedMemberForView.maritalStatus || '---'}</p></div>
+                              {(selectedMemberForView.maritalStatus === 'casado' || selectedMemberForView.maritalStatus === 'uniao_estavel') && (
+                                <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cônjuge</p><p className="font-bold text-gray-800">{selectedMemberForView.spouseName || '---'}</p></div>
+                              )}
+                            </>
                           )}
                        </div>
 
@@ -603,7 +621,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                           <div><p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-widest">Cidade/UF</p><p className="font-bold text-gray-800">{selectedMemberForView.cidade} - {selectedMemberForView.estado}</p></div>
                        </div>
 
-                       {(selectedMemberForView.hasChildren || selectedMemberForView.isBaptized) && (
+                       {mode === 'member' && (selectedMemberForView.hasChildren || selectedMemberForView.isBaptized) && (
                          <>
                            <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mt-8"><div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><Baby size={20} /></div><h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Família e Batismo</h4></div>
                            <div className="grid grid-cols-2 gap-8">
@@ -632,84 +650,86 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                          </>
                        )}
                     </div>
-                    <div className="bg-indigo-900 rounded-[2rem] p-8 text-white space-y-6 shadow-xl">
-                       <p className="text-xs font-black uppercase text-white/50 tracking-widest text-center border-b border-white/10 pb-4">
-                         Funções Espirituais
-                       </p>
-                       <div className="space-y-4 text-[11px]">
-                         <div className="flex justify-between gap-4">
-                           <span className="text-white/70 font-black uppercase tracking-widest">Pai de Cabeça</span>
-                           <span className="font-bold text-right">
-                             {entities.find(e => e.id === selectedMemberForView.paiCabecaId)?.name || (
-                               <span className="text-white/40 italic">Não informado</span>
-                             )}
-                           </span>
-                         </div>
-                         <div className="flex justify-between gap-4">
-                           <span className="text-white/70 font-black uppercase tracking-widest">Mãe de Cabeça</span>
-                           <span className="font-bold text-right">
-                             {entities.find(e => e.id === selectedMemberForView.maeCabecaId)?.name || (
-                               <span className="text-white/40 italic">Não informado</span>
-                             )}
-                           </span>
-                         </div>
-                         <div className="flex justify-between gap-4">
-                           <span className="text-white/70 font-black uppercase tracking-widest">Guia de Frente</span>
-                           <span className="font-bold text-right">
-                             {entities.find(e => e.id === selectedMemberForView.guiaFrenteId)?.name || (
-                               <span className="text-white/40 italic">Não informado</span>
-                             )}
-                           </span>
-                         </div>
-                         <div className="flex justify-between gap-4">
-                           <span className="text-white/70 font-black uppercase tracking-widest">Cargo na Casa</span>
-                           <span className="font-bold text-right">
-                             {entities.find(e => e.id === selectedMemberForView.cargoId)?.name || (
-                               <span className="text-white/40 italic">Não informado</span>
-                             )}
-                           </span>
-                         </div>
-                       </div>
-                       <div className="pt-4 border-t border-white/10 space-y-3">
-                         <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
-                           Funções na Corrente
+                    {mode === 'member' && (
+                      <div className="bg-indigo-900 rounded-[2rem] p-8 text-white space-y-6 shadow-xl">
+                         <p className="text-xs font-black uppercase text-white/50 tracking-widest text-center border-b border-white/10 pb-4">
+                           Funções Espirituais
                          </p>
-                         <div className="flex flex-wrap gap-2">
-                           {(selectedMemberForView.houseRoles || []).length > 0 ? (
-                             (selectedMemberForView.houseRoles || []).map(roleId => (
-                               <span
-                                 key={roleId}
-                                 className="px-3 py-1.5 bg-[#ADFF2F] text-slate-900 rounded-xl text-[9px] font-black uppercase"
-                               >
-                                 {entities.find(e => e.id === roleId)?.name}
-                               </span>
-                             ))
-                           ) : (
-                             <span className="text-[10px] text-white/50 italic">
-                               Nenhuma função marcada.
+                         <div className="space-y-4 text-[11px]">
+                           <div className="flex justify-between gap-4">
+                             <span className="text-white/70 font-black uppercase tracking-widest">Pai de Cabeça</span>
+                             <span className="font-bold text-right">
+                               {entities.find(e => e.id === selectedMemberForView.paiCabecaId)?.name || (
+                                 <span className="text-white/40 italic">Não informado</span>
+                               )}
                              </span>
-                           )}
+                           </div>
+                           <div className="flex justify-between gap-4">
+                             <span className="text-white/70 font-black uppercase tracking-widest">Mãe de Cabeça</span>
+                             <span className="font-bold text-right">
+                               {entities.find(e => e.id === selectedMemberForView.maeCabecaId)?.name || (
+                                 <span className="text-white/40 italic">Não informado</span>
+                               )}
+                             </span>
+                           </div>
+                           <div className="flex justify-between gap-4">
+                             <span className="text-white/70 font-black uppercase tracking-widest">Guia de Frente</span>
+                             <span className="font-bold text-right">
+                               {entities.find(e => e.id === selectedMemberForView.guiaFrenteId)?.name || (
+                                 <span className="text-white/40 italic">Não informado</span>
+                               )}
+                             </span>
+                           </div>
+                           <div className="flex justify-between gap-4">
+                             <span className="text-white/70 font-black uppercase tracking-widest">Cargo na Casa</span>
+                             <span className="font-bold text-right">
+                               {entities.find(e => e.id === selectedMemberForView.cargoId)?.name || (
+                                 <span className="text-white/40 italic">Não informado</span>
+                               )}
+                             </span>
+                           </div>
                          </div>
-                       </div>
-                       <div className="pt-3 border-t border-white/10">
-                         <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">
-                           Papel Principal
-                         </p>
-                         <p className="text-xs font-bold">
-                           {selectedMemberForView.isMedium ||
-                           selectedMemberForView.isCambone ||
-                           selectedMemberForView.isConsulente
-                             ? [
-                                 selectedMemberForView.isMedium && 'MÉDIUM',
-                                 selectedMemberForView.isCambone && 'CAMBONE',
-                                 selectedMemberForView.isConsulente && 'CONSULENTE'
-                               ]
-                                 .filter(Boolean)
-                                 .join(' • ')
-                             : 'Nenhum papel definido'}
-                         </p>
-                       </div>
-                    </div>
+                         <div className="pt-4 border-t border-white/10 space-y-3">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
+                             Funções na Corrente
+                           </p>
+                           <div className="flex flex-wrap gap-2">
+                             {(selectedMemberForView.houseRoles || []).length > 0 ? (
+                               (selectedMemberForView.houseRoles || []).map(roleId => (
+                                 <span
+                                   key={roleId}
+                                   className="px-3 py-1.5 bg-[#ADFF2F] text-slate-900 rounded-xl text-[9px] font-black uppercase"
+                                 >
+                                   {entities.find(e => e.id === roleId)?.name}
+                                 </span>
+                               ))
+                             ) : (
+                               <span className="text-[10px] text-white/50 italic">
+                                 Nenhuma função marcada.
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                         <div className="pt-3 border-t border-white/10">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">
+                             Papel Principal
+                           </p>
+                           <p className="text-xs font-bold">
+                             {selectedMemberForView.isMedium ||
+                             selectedMemberForView.isCambone ||
+                             selectedMemberForView.isConsulente
+                               ? [
+                                   selectedMemberForView.isMedium && 'MÉDIUM',
+                                   selectedMemberForView.isCambone && 'CAMBONE',
+                                   selectedMemberForView.isConsulente && 'CONSULENTE'
+                                 ]
+                                   .filter(Boolean)
+                                   .join(' • ')
+                               : 'Nenhum papel definido'}
+                           </p>
+                         </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
