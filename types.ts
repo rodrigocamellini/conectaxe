@@ -299,7 +299,8 @@ export interface SystemConfig {
   defaultCertificateTemplate?: string;
   certificateConfig?: CertificateConfig;
   idCardConfig?: IDCardConfig;
-  menuConfig?: MenuItemConfig[]; // Nova propriedade
+  menuConfig?: MenuItemConfig[];
+  masterMenuConfig?: MenuItemConfig[];
 }
 
 export interface SpiritualEntity {

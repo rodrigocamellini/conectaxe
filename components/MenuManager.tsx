@@ -15,7 +15,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { MENU_ICONS_CATALOG, DEFAULT_LOGO_URL } from '../constants';
+import { MENU_ICONS_CATALOG, DEFAULT_LOGO_URL, INITIAL_MASTER_MENU_CONFIG } from '../constants';
 
 interface MenuManagerProps {
   config: SystemConfig;
@@ -28,19 +28,32 @@ const DynamicIcon = ({ name, size = 16, className = "", color }: { name: string,
 };
 
 export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig }) => {
-  const [menu, setMenu] = useState<MenuItemConfig[]>(config.menuConfig || []);
+  const [activeMenuType, setActiveMenuType] = useState<'client' | 'master'>('client');
+  const [clientMenu, setClientMenu] = useState<MenuItemConfig[]>(config.menuConfig || []);
+  const [masterMenu, setMasterMenu] = useState<MenuItemConfig[]>(config.masterMenuConfig || INITIAL_MASTER_MENU_CONFIG);
   const [showEditor, setShowEditor] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<MenuItemConfig> | null>(null);
   const [iconSearch, setIconSearch] = useState('');
   const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    if (config.menuConfig) setMenu(config.menuConfig);
+    if (config.menuConfig) setClientMenu(config.menuConfig);
   }, [config.menuConfig]);
 
+  useEffect(() => {
+    if (config.masterMenuConfig) setMasterMenu(config.masterMenuConfig);
+  }, [config.masterMenuConfig]);
+
+  const menu = activeMenuType === 'master' ? masterMenu : clientMenu;
+
   const saveMenu = (newMenu: MenuItemConfig[]) => {
-    setMenu(newMenu);
-    onUpdateConfig({ ...config, menuConfig: newMenu });
+    if (activeMenuType === 'master') {
+      setMasterMenu(newMenu);
+      onUpdateConfig({ ...config, masterMenuConfig: newMenu });
+    } else {
+      setClientMenu(newMenu);
+      onUpdateConfig({ ...config, menuConfig: newMenu });
+    }
   };
 
   const handleAddItem = (parentId?: string) => {
@@ -115,47 +128,63 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-500 pb-20">
       {/* LADO ESQUERDO: EDITOR */}
       <div className="xl:col-span-8 space-y-6">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-           <div className="flex justify-between items-center mb-8">
+        <div className="bg-gray-50 p-8 rounded-[2.5rem] shadow-sm border border-gray-200">
+           <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
               <div>
-                 <h3 className="text-2xl font-black text-gray-800 uppercase tracking-tight">Editor de Navegação</h3>
-                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Personalize a estrutura de menus</p>
+                 <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Editor de Navegação</h3>
+                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Personalize a estrutura de menus</p>
               </div>
-              <button 
-                onClick={() => handleAddItem()} 
-                className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-              >
-                <Plus size={18} /> Nova Aba Principal
-              </button>
+              <div className="flex flex-col items-end gap-3">
+                <div className="flex items-center gap-2 bg-slate-800 rounded-2xl p-1 text-[10px] font-black uppercase tracking-widest">
+                  <button
+                    onClick={() => setActiveMenuType('client')}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${activeMenuType === 'client' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    Menu do Terreiro
+                  </button>
+                  <button
+                    onClick={() => setActiveMenuType('master')}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${activeMenuType === 'master' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    Painel Master
+                  </button>
+                </div>
+                <button 
+                  onClick={() => handleAddItem()} 
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+                >
+                  <Plus size={18} /> Nova Aba Principal
+                </button>
+              </div>
            </div>
            
            <div className="space-y-4">
               {menu.map((item) => (
                 <div key={item.id} className="space-y-2">
-                   <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-2xl group hover:border-indigo-300 transition-all">
-                      <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-100" style={item.color ? { color: item.color } : { color: config.primaryColor }}>
+                      <div className="flex items-center gap-3 p-4 bg-slate-950/40 border border-slate-800 rounded-2xl group hover:border-indigo-500 transition-all">
+                      <div className="p-2 bg-slate-900 rounded-xl shadow-sm border border-slate-700" style={item.color ? { color: item.color } : { color: config.primaryColor }}>
                         <DynamicIcon name={item.icon} size={20} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-black text-gray-800 uppercase text-xs">{item.label}</p>
-                        <p className="text-[9px] font-mono text-gray-400 uppercase">{item.id}</p>
+                        <p className="font-black text-slate-50 uppercase text-xs">{item.label}</p>
+                        <p className="text-[9px] font-mono text-slate-500 uppercase">{item.id}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                          <button onClick={() => moveItem(item.id, 'up')} className="p-2 text-gray-400 hover:text-indigo-600"><ChevronUp size={16} /></button>
                          <button onClick={() => moveItem(item.id, 'down')} className="p-2 text-gray-400 hover:text-indigo-600"><ChevronDown size={16} /></button>
-                         <button onClick={() => handleAddItem(item.id)} title="Nova Sub-aba" className="p-2 text-emerald-500"><Plus size={16} /></button>
+                         <button onClick={() => handleAddItem(item.id)} title="Nova Sub-aba" className="p-2 text-emerald-400"><Plus size={16} /></button>
                          <button onClick={() => startEdit(item)} className="p-2 text-indigo-500"><Pencil size={16} /></button>
                          <button onClick={() => handleDeleteItem(item.id)} className="p-2 text-red-400"><Trash2 size={16} /></button>
                       </div>
                    </div>
                    
-                   <div className="ml-12 space-y-2 border-l-2 border-gray-100 pl-4">
+                   <div className="ml-12 space-y-2 border-l-2 border-slate-800 pl-4">
                       {item.subItems?.map((sub) => (
-                        <div key={sub.id} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl group/sub hover:border-indigo-200 transition-all">
-                           <div className="p-1.5 bg-gray-50 rounded-lg" style={sub.color ? { color: sub.color } : { color: config.primaryColor }}>
+                        <div key={sub.id} className="flex items-center gap-3 p-3 bg-slate-900 border border-slate-800 rounded-xl group/sub hover:border-indigo-500/70 transition-all">
+                           <div className="p-1.5 bg-slate-950 rounded-lg" style={sub.color ? { color: sub.color } : { color: config.primaryColor }}>
                              <DynamicIcon name={sub.icon} size={14} />
                            </div>
-                           <span className="flex-1 text-[11px] font-bold text-gray-600 uppercase">{sub.label}</span>
+                           <span className="flex-1 text-[11px] font-bold text-slate-100 uppercase">{sub.label}</span>
                            <div className="flex items-center gap-1 opacity-0 group-hover/sub:opacity-100 transition-opacity">
                               <button onClick={() => moveItem(sub.id, 'up')} className="p-1 text-gray-300"><ChevronUp size={14} /></button>
                               <button onClick={() => moveItem(sub.id, 'down')} className="p-1 text-gray-300"><ChevronDown size={14} /></button>
@@ -184,11 +213,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
                  </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-1" style={{ backgroundColor: config.sidebarColor }}>
+              <div className="flex-1 overflow-y-auto p-4 space-y-1" style={{ backgroundColor: activeMenuType === 'master' ? '#020617' : config.sidebarColor }}>
                  {menu.map(item => {
                     const hasSub = item.subItems && item.subItems.length > 0;
                     const isExpanded = expandedPreview === item.id;
-                    const itemColor = item.color || config.sidebarTextColor;
+                    const itemColor = item.color || (activeMenuType === 'master' ? '#e5e7eb' : config.sidebarTextColor);
 
                     return (
                        <div key={item.id} className="space-y-1">

@@ -32,13 +32,15 @@ export const SAAS_PLANS = [
 ];
 
 export const MENU_ICONS_CATALOG = [
-  'LayoutDashboard', 'Users', 'CalendarDays', 'GraduationCap', 'PlayCircle', 
-  'Music', 'Scroll', 'Sprout', 'UserPlus', 'UserCheck', 'Contact2', 
-  'UserRoundCheck', 'ShoppingCart', 'Coffee', 'List', 'Database', 'Package', 
-  'ClipboardCheck', 'Wallet2', 'DollarSign', 'Heart', 'BarChart3', 'Calculator', 
-  'Settings2', 'Monitor', 'ShieldAlert', 'Layers', 'ImageIcon', 'Key', 
-  'Archive', 'RefreshCw', 'UserRoundPlus', 'ShieldEllipsis', 'Ticket', 
-  'Crown', 'Sparkles', 'Star', 'Flame', 'Zap', 'Bell', 'Info', 'Code'
+  'LayoutDashboard', 'Users', 'CalendarDays', 'GraduationCap', 'PlayCircle',
+  'Music', 'Scroll', 'Sprout', 'UserPlus', 'UserCheck', 'Contact2',
+  'UserRoundCheck', 'ShoppingCart', 'Coffee', 'List', 'Database', 'Package',
+  'ClipboardCheck', 'Wallet2', 'DollarSign', 'Heart', 'BarChart3', 'Calculator',
+  'Settings2', 'Monitor', 'ShieldAlert', 'Layers', 'ImageIcon', 'Key',
+  'Archive', 'RefreshCw', 'UserRoundPlus', 'ShieldEllipsis', 'Ticket',
+  'Crown', 'Sparkles', 'Star', 'Flame', 'Zap', 'Bell', 'Info', 'Code',
+  'MoonStar', 'Church', 'Candles', 'CloudMoon', 'Flower2', 'Waves',
+  'Sword', 'Axe', 'Shield', 'Hammer', 'Drumstick', 'Droplets', 'Wind', 'Feather'
 ];
 
 export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
@@ -121,6 +123,20 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
   },
   { id: 'indicacoes', label: 'Afiliados', icon: 'Crown', color: '#ADFF2F' },
   { id: 'saas-manager', label: 'Assinatura', icon: 'ShieldEllipsis', color: '#00FFFF' },
+];
+
+export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
+  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid' },
+  { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket' },
+  { id: 'master-menu', label: 'Config. Menu', icon: 'Menu' },
+  { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap' },
+  { id: 'master-affiliates', label: 'Afiliados', icon: 'Crown', color: '#ADFF2F' },
+  { id: 'master-payments', label: 'Faturamento', icon: 'DollarSign' },
+  { id: 'system-maintenance', label: 'Manutenção', icon: 'Wrench' },
+  { id: 'master-backups', label: 'Snapshots', icon: 'Database' },
+  { id: 'master-audit', label: 'Auditoria', icon: 'History' },
+  { id: 'master-coupons', label: 'Cupons', icon: 'Tag' },
+  { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList' }
 ];
 
 export const INITIAL_USERS: User[] = [
@@ -272,5 +288,6 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
     sigLeftStyle: { x: 25, y: 88, fontSize: 12, color: '#374151' },
     sigRightStyle: { x: 75, y: 88, fontSize: 12, color: '#374151' }
   },
-  menuConfig: INITIAL_MENU_CONFIG
+  menuConfig: INITIAL_MENU_CONFIG,
+  masterMenuConfig: INITIAL_MASTER_MENU_CONFIG
 };

@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
-import { DEFAULT_LOGO_URL, MASTER_LOGO_URL } from '../constants';
+import { DEFAULT_LOGO_URL, MASTER_LOGO_URL, INITIAL_MASTER_MENU_CONFIG } from '../constants';
 import { RoleIconComponent } from './UserManagement';
 
 interface LayoutProps {
@@ -226,6 +226,12 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   }, []);
 
+  const masterMenuItems: MenuItemConfig[] = useMemo(() => {
+    return (config.masterMenuConfig && config.masterMenuConfig.length > 0)
+      ? config.masterMenuConfig
+      : INITIAL_MASTER_MENU_CONFIG;
+  }, [config.masterMenuConfig]);
+
   const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
 
   const isAllowed = (tabId: string) => {
@@ -263,29 +269,30 @@ export const Layout: React.FC<LayoutProps> = ({
 
           {isAtDeveloperPortal ? (
             <div className="space-y-2">
-              <button onClick={() => setActiveTab('developer-portal')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'developer-portal' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><LayoutGrid size={18} /><span>Terreiros Ativos</span></button>
-              <button onClick={() => setActiveTab('tickets')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'tickets' ? 'bg-rose-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-rose-400'}`}><Ticket size={18} /><span>Tickets Suporte</span></button>
-              <button onClick={() => setActiveTab('master-menu')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-menu' ? 'bg-sky-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-sky-400'}`}><Menu size={18} /><span>Config. Menu</span></button>
-              <button onClick={() => setActiveTab('master-broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-broadcast' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-amber-400'}`}><Zap size={18} /><span>Broadcast</span></button>
-              <button
-                onClick={() => setActiveTab('master-affiliates')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${
-                  activeTab === 'master-affiliates'
-                    ? 'bg-lime-400 text-slate-900 shadow-lg'
-                    : 'bg-slate-900 border border-slate-800 text-lime-300'
-                }`}
-              >
-                <Crown size={18} />
-                <span>Afiliados</span>
-              </button>
-              <button onClick={() => setActiveTab('master-payments')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-payments' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-emerald-400'}`}><DollarSign size={18} /><span>Faturamento</span></button>
-              <button onClick={() => setActiveTab('system-maintenance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'system-maintenance' ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-orange-400'}`}><Wrench size={18} /><span>Manutenção</span></button>
-              <button onClick={() => setActiveTab('master-backups')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-backups' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-indigo-400'}`}><Database size={18} /><span>Snapshots</span></button>
-              <button onClick={() => setActiveTab('master-audit')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-audit' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-amber-400'}`}><History size={18} /><span>Auditoria</span></button>
-              <button onClick={() => setActiveTab('master-coupons')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-coupons' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-emerald-400'}`}><Tag size={18} /><span>Cupons</span></button>
-              <button onClick={() => setActiveTab('master-roadmap')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${activeTab === 'master-roadmap' ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-900 border border-slate-800 text-purple-400'}`}><ClipboardList size={18} /><span>Roadmap</span></button>
+              {masterMenuItems.map(item => {
+                const isActive = activeTab === item.id;
+                const baseColor = item.color || '#4f46e5';
+                const backgroundColor = isActive ? baseColor : '#020617';
+                const textColor = isActive ? '#0f172a' : baseColor;
+                const borderColor = isActive ? baseColor : '#1f2937';
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border"
+                    style={{ backgroundColor, color: textColor, borderColor, boxShadow: isActive ? '0 10px 25px rgba(15,23,42,0.6)' : undefined }}
+                  >
+                    <DynamicIcon name={item.icon} size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
               
-              <button onClick={() => setActiveTab('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 mt-8 rounded-xl transition-all bg-white/5 text-slate-400 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest"><ArrowLeftCircle size={18} /><span>Sair da Master</span></button>
+              <button onClick={() => setActiveTab('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 mt-8 rounded-xl transition-all bg-white/5 text-slate-400 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest">
+                <ArrowLeftCircle size={18} />
+                <span>Sair da Master</span>
+              </button>
             </div>
           ) : (
             (config.menuConfig || []).map((item) => {
