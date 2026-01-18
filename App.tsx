@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto } from './types';
+import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto, Reza } from './types';
 import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, MASTER_LOGO_URL } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
@@ -35,6 +35,7 @@ import { RoadmapHistory } from './components/RoadmapHistory';
 import { CanteenManagement } from './components/CanteenManagement';
 import { MenuManager } from './components/MenuManager';
 import { MediaPontos } from './components/MediaPontos';
+import { MediaRezas } from './components/MediaRezas';
 import { LogIn, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
@@ -171,7 +172,9 @@ const App: React.FC = () => {
       rolePermissions: (saved as any).rolePermissions || DEFAULT_SYSTEM_CONFIG.rolePermissions,
       spiritualSectionColors: (saved as any).spiritualSectionColors || DEFAULT_SYSTEM_CONFIG.spiritualSectionColors,
       pontoTypes: Array.from(new Set([...((saved as any).pontoTypes || []), ...DEFAULT_SYSTEM_CONFIG.pontoTypes])),
-      pontoCategories: Array.from(new Set([...((saved as any).pontoCategories || []), ...DEFAULT_SYSTEM_CONFIG.pontoCategories]))
+      pontoCategories: Array.from(new Set([...((saved as any).pontoCategories || []), ...DEFAULT_SYSTEM_CONFIG.pontoCategories])),
+      rezaTypes: Array.from(new Set([...((saved as any).rezaTypes || []), ...DEFAULT_SYSTEM_CONFIG.rezaTypes])),
+      rezaCategories: Array.from(new Set([...((saved as any).rezaCategories || []), ...DEFAULT_SYSTEM_CONFIG.rezaCategories]))
     };
     return merged;
   });
@@ -281,9 +284,14 @@ const App: React.FC = () => {
     const saved = storage.get<CanteenOrder[]>('terreiro_canteen_orders');
     return Array.isArray(saved) ? saved : [];
   });
-  
+
   const [pontos, setPontos] = useState<Ponto[]>(() => {
     const saved = storage.get<Ponto[]>(STORAGE_KEYS.PONTOS);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  const [rezas, setRezas] = useState<Reza[]>(() => {
+    const saved = storage.get<Reza[]>(STORAGE_KEYS.REZAS);
     return Array.isArray(saved) ? saved : [];
   });
 
@@ -421,11 +429,13 @@ const App: React.FC = () => {
     storage.set('saas_global_roadmap', safeRoadmap);
     storage.set('saas_global_coupons', coupons);
     storage.set('saas_master_audit_logs', auditLogs);
+    storage.set(STORAGE_KEYS.PONTOS, pontos);
+    storage.set(STORAGE_KEYS.REZAS, rezas);
     storage.set(`terreiro_canteen_items${suffix}`, canteenItems);
     storage.set(`terreiro_canteen_orders${suffix}`, canteenOrders);
     storage.set(STORAGE_KEYS.AUTH, auth);
     storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
-  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, activeClientId]);
+  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, pontos, rezas, activeClientId]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -596,6 +606,15 @@ const App: React.FC = () => {
             onAddPonto={p => setPontos([p, ...pontos])} 
             onUpdatePonto={(id, data) => setPontos(pontos.map(p => p.id === id ? { ...p, ...data } : p))} 
             onDeletePonto={id => setPontos(pontos.filter(p => p.id !== id))} 
+          />
+        )}
+        {activeTab === 'media-rezas' && (
+          <MediaRezas 
+            rezas={rezas} 
+            config={systemConfig} 
+            onAddReza={r => setRezas([r, ...rezas])} 
+            onUpdateReza={(id, data) => setRezas(rezas.map(r => r.id === id ? { ...r, ...data } : r))} 
+            onDeleteReza={id => setRezas(rezas.filter(r => r.id !== id))} 
           />
         )}
         

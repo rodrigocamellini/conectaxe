@@ -3,10 +3,10 @@ const STORAGE_KEYS = {
   MEMBERS: 'terreiro_members',
   ENTITIES: 'terreiro_entities',
   PONTOS: 'terreiro_pontos',
+  REZAS: 'terreiro_rezas',
   AUTH: 'terreiro_auth',
   SYSTEM_CONFIG: 'terreiro_system_config'
 };
-
 export const storage = {
   get: <T,>(key: string): T | null => {
     try {

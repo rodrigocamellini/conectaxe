@@ -302,6 +302,34 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
     'Demanda',
     'Louvação'
   ],
+  rezaCategories: [
+    'Exu',
+    'Pomba Gira',
+    'Exu Mirim',
+    'Ogum',
+    'Oxossi',
+    'Xangô',
+    'Iansã',
+    'Oxum',
+    'Iemanjá',
+    'Nanã',
+    'Obaluaê',
+    'Oxalá',
+    'Preto Velho',
+    'Caboclo',
+    'Erê',
+    'Boiadeiro',
+    'Marinheiro',
+    'Baiano',
+    'Cigano',
+    'Malandro'
+  ],
+  rezaTypes: [
+    'Abertura',
+    'Proteção',
+    'Louvação',
+    'Encerramento'
+  ],
   financialConfig: {
     mediumValue: 50,
     camboneValue: 30,

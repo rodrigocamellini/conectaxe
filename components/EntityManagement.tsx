@@ -30,6 +30,8 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
   });
   const [newLine, setNewLine] = useState('');
   const [newType, setNewType] = useState('');
+  const [newRezaLine, setNewRezaLine] = useState('');
+  const [newRezaType, setNewRezaType] = useState('');
 
   const baseConfig = config || DEFAULT_SYSTEM_CONFIG;
 
@@ -58,6 +60,15 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
   const pontoTypes =
     baseConfig.pontoTypes && baseConfig.pontoTypes.length > 0
       ? baseConfig.pontoTypes
+      : [];
+
+  const rezaCategories =
+    baseConfig.rezaCategories && baseConfig.rezaCategories.length > 0
+      ? baseConfig.rezaCategories
+      : [];
+  const rezaTypes =
+    baseConfig.rezaTypes && baseConfig.rezaTypes.length > 0
+      ? baseConfig.rezaTypes
       : [];
 
   const handleAddLine = () => {
@@ -93,6 +104,42 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
     onUpdateConfig({
       ...baseConfig,
       pontoTypes: pontoTypes.filter(v => v !== value)
+    });
+  };
+
+  const handleAddRezaLine = () => {
+    if (!newRezaLine.trim()) return;
+    const value = newRezaLine.trim();
+    if (rezaCategories.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      rezaCategories: [...rezaCategories, value]
+    });
+    setNewRezaLine('');
+  };
+
+  const handleRemoveRezaLine = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      rezaCategories: rezaCategories.filter(v => v !== value)
+    });
+  };
+
+  const handleAddRezaType = () => {
+    if (!newRezaType.trim()) return;
+    const value = newRezaType.trim();
+    if (rezaTypes.includes(value)) return;
+    onUpdateConfig({
+      ...baseConfig,
+      rezaTypes: [...rezaTypes, value]
+    });
+    setNewRezaType('');
+  };
+
+  const handleRemoveRezaType = (value: string) => {
+    onUpdateConfig({
+      ...baseConfig,
+      rezaTypes: rezaTypes.filter(v => v !== value)
     });
   };
 
@@ -191,7 +238,7 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
             <h3 className="font-black text-[10px] uppercase tracking-widest">
@@ -292,6 +339,114 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
               </div>
             ))}
             {pontoTypes.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Sparkles size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Linhas e Entidades das Rezas
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {rezaCategories.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Nova linha/entidade..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newRezaLine}
+                onChange={e => setNewRezaLine(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddRezaLine();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddRezaLine}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {rezaCategories.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveRezaLine(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {rezaCategories.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
+                <Sparkles size={24} />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+            <h3 className="font-black text-[10px] uppercase tracking-widest">
+              Tipos e Momentos da Reza
+            </h3>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              {rezaTypes.length}
+            </span>
+          </div>
+          <div className="p-3 border-b border-gray-100 bg-gray-50/30">
+            <div className="flex gap-2">
+              <input
+                placeholder="Novo tipo/momento..."
+                className="flex-1 p-2 text-xs border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                value={newRezaType}
+                onChange={e => setNewRezaType(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddRezaType();
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddRezaType}
+                className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/20" style={{ scrollbarWidth: 'thin' }}>
+            {rezaTypes.map(value => (
+              <div
+                key={value}
+                className="group flex items-center justify-between px-3 py-2 rounded-lg border border-gray-300 bg-white text-[10px] font-black uppercase tracking-tight hover:border-indigo-500/70 hover:shadow-sm transition-all"
+              >
+                <span className="truncate">{value}</span>
+                <button
+                  onClick={() => handleRemoveRezaType(value)}
+                  className="p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+            {rezaTypes.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-gray-300 p-8 text-center space-y-2 opacity-40">
                 <Sparkles size={24} />
                 <p className="text-[9px] font-black uppercase tracking-[0.2em]">Lista vazia</p>

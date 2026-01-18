@@ -310,9 +310,11 @@ export interface SystemConfig {
   idCardConfig?: IDCardConfig;
   menuConfig?: MenuItemConfig[];
   masterMenuConfig?: MenuItemConfig[];
-   spiritualSectionColors?: SpiritualSectionColors;
-   pontoCategories?: string[];
-   pontoTypes?: string[];
+  spiritualSectionColors?: SpiritualSectionColors;
+  pontoCategories?: string[];
+  pontoTypes?: string[];
+  rezaCategories?: string[];
+  rezaTypes?: string[];
 }
 
 export interface SpiritualEntity {
@@ -465,6 +467,17 @@ export interface AuthState {
 }
 
 export interface Ponto {
+  id: string;
+  title: string;
+  type: string;
+  category: string;
+  lyrics: string;
+  audioUrl?: string;
+  youtubeUrl?: string;
+  createdAt: string;
+}
+
+export interface Reza {
   id: string;
   title: string;
   type: string;
