@@ -172,6 +172,70 @@ const App: React.FC = () => {
     return merged;
   });
 
+  const activeClientId = systemConfig.license?.clientId;
+
+  const loadClientData = useCallback((clientId: string) => {
+    const suffix = `_${clientId}`;
+
+    setSystemUsers(storage.get<User[]>(`terreiro_system_users${suffix}`) || []);
+
+    setMembers(storage.get<Member[]>(`${STORAGE_KEYS.MEMBERS}${suffix}`) || []);
+
+    setEntities(() => {
+      const saved = storage.get<SpiritualEntity[]>(`${STORAGE_KEYS.ENTITIES}${suffix}`);
+      const legacyCargoNames = ['Pai de Santo / Mão de Santo', 'Pai Pequeno / Mãe Pequena'];
+      const hasLegacyCargos = (saved || []).some(
+        e => e.type === 'cargo' && legacyCargoNames.includes(e.name)
+      );
+
+      const canonicalCargos = INITIAL_ENTITIES.filter(e => e.type === 'cargo');
+
+      let base: SpiritualEntity[];
+
+      if (saved && saved.length > 0) {
+        if (hasLegacyCargos) {
+          const nonCargo = saved.filter(e => e.type !== 'cargo');
+          base = [...nonCargo, ...canonicalCargos];
+        } else {
+          base = saved;
+        }
+      } else {
+        base = INITIAL_ENTITIES;
+      }
+
+      return base.map(entity => {
+        if (entity.imageUrl) {
+          return entity;
+        }
+        const defaultImage = DEFAULT_ENTITY_IMAGES[entity.id];
+        if (defaultImage) {
+          return { ...entity, imageUrl: defaultImage };
+        }
+        return entity;
+      });
+    });
+
+    setEvents(storage.get<CalendarEvent[]>(`terreiro_events${suffix}`) || []);
+    setCourses(storage.get<Course[]>(`terreiro_courses${suffix}`) || []);
+    setEnrollments(storage.get<Enrollment[]>(`terreiro_enrollments${suffix}`) || []);
+    setAttendanceRecords(storage.get<AttendanceRecord[]>(`terreiro_attendance${suffix}`) || []);
+    setInventoryItems(storage.get<InventoryItem[]>(`terreiro_inventory_items${suffix}`) || []);
+    setInventoryCategories(storage.get<InventoryCategory[]>(`terreiro_inventory_cats${suffix}`) || []);
+    setStockLogs(storage.get<StockLog[]>(`terreiro_stock_logs${suffix}`) || []);
+
+    const savedDonations = storage.get<Donation[]>(`terreiro_donations${suffix}`);
+    setDonations(Array.isArray(savedDonations) ? savedDonations : []);
+
+    const savedIdLogs = storage.get<IDCardLog[]>(`terreiro_idcard_logs${suffix}`);
+    setIdCardLogs(Array.isArray(savedIdLogs) ? savedIdLogs : []);
+
+    const savedCanteenItems = storage.get<CanteenItem[]>(`terreiro_canteen_items${suffix}`);
+    setCanteenItems(Array.isArray(savedCanteenItems) ? savedCanteenItems : []);
+
+    const savedCanteenOrders = storage.get<CanteenOrder[]>(`terreiro_canteen_orders${suffix}`);
+    setCanteenOrders(Array.isArray(savedCanteenOrders) ? savedCanteenOrders : []);
+  }, []);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem('saas_login_persist');
@@ -325,17 +389,20 @@ const App: React.FC = () => {
   }, [auth.user, activeTab, systemConfig.rolePermissions, auth.isMasterMode]);
 
   useEffect(() => {
-    storage.set(STORAGE_KEYS.MEMBERS, members);
-    storage.set(STORAGE_KEYS.ENTITIES, entities);
-    storage.set('terreiro_events', events);
-    storage.set('terreiro_courses', courses);
-    storage.set('terreiro_enrollments', enrollments);
-    storage.set('terreiro_attendance', attendanceRecords);
-    storage.set('terreiro_inventory_items', inventoryItems);
-    storage.set('terreiro_inventory_cats', inventoryCategories);
-    storage.set('terreiro_stock_logs', stockLogs);
-    storage.set('terreiro_donations', donations);
-    storage.set('terreiro_system_users', systemUsers);
+    const suffix = activeClientId ? `_${activeClientId}` : '';
+
+    storage.set(`${STORAGE_KEYS.MEMBERS}${suffix}`, members);
+    storage.set(`${STORAGE_KEYS.ENTITIES}${suffix}`, entities);
+    storage.set(`terreiro_events${suffix}`, events);
+    storage.set(`terreiro_courses${suffix}`, courses);
+    storage.set(`terreiro_enrollments${suffix}`, enrollments);
+    storage.set(`terreiro_attendance${suffix}`, attendanceRecords);
+    storage.set(`terreiro_inventory_items${suffix}`, inventoryItems);
+    storage.set(`terreiro_inventory_cats${suffix}`, inventoryCategories);
+    storage.set(`terreiro_stock_logs${suffix}`, stockLogs);
+    storage.set(`terreiro_donations${suffix}`, donations);
+    storage.set(`terreiro_system_users${suffix}`, systemUsers);
+
     storage.set('terreiro_referrals', referrals);
     storage.set('terreiro_tickets', tickets);
     storage.set('terreiro_idcard_logs', idCardLogs);
@@ -345,11 +412,11 @@ const App: React.FC = () => {
     storage.set('saas_global_roadmap', safeRoadmap);
     storage.set('saas_global_coupons', coupons);
     storage.set('saas_master_audit_logs', auditLogs);
-    storage.set('terreiro_canteen_items', canteenItems);
-    storage.set('terreiro_canteen_orders', canteenOrders);
+    storage.set(`terreiro_canteen_items${suffix}`, canteenItems);
+    storage.set(`terreiro_canteen_orders${suffix}`, canteenOrders);
     storage.set(STORAGE_KEYS.AUTH, auth);
     storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
-  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders]);
+  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, activeClientId]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -384,6 +451,7 @@ const App: React.FC = () => {
         clientId: client.id
       }
     }));
+    loadClientData(client.id);
     setActiveTab('dashboard');
   };
 

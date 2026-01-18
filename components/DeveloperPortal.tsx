@@ -60,7 +60,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
@@ -147,11 +147,18 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [updateType, setUpdateType] = useState<'patch' | 'minor' | 'major' | 'manual'>('patch');
   const [calculatedVersion, setCalculatedVersion] = useState('');
   
+  // Estados para Deleção de Cliente
+  const [showDeleteClientModal, setShowDeleteClientModal] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<SaaSClient | null>(null);
+  const [deleteClientPassword, setDeleteClientPassword] = useState('');
+  const [deleteClientError, setDeleteClientError] = useState('');
+
   // Estados para Backup/Restore do Roadmap
   const [showRoadmapRestoreModal, setShowRoadmapRestoreModal] = useState(false);
   const [roadmapRestorePassword, setRoadmapRestorePassword] = useState('');
   const [roadmapRestoreError, setRoadmapRestoreError] = useState('');
-
+  const [systemConfigTab, setSystemConfigTab] = useState<'motor' | 'planos'>('motor');
+ 
   const getLatestVersion = () => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
     const sortedRoadmap = [...roadmap].sort((a, b) => {
@@ -276,8 +283,6 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [newClient, setNewClient] = useState<Partial<SaaSClient>>(() => ({
     name: '',
     plan: (plans && plans[0]?.name) || SAAS_PLANS[0],
-    monthlyValue: 49.90,
-    expirationDate: format(new Date(), 'yyyy-12-31'),
     adminName: '',
     adminEmail: '',
     adminPassword: '',
@@ -290,6 +295,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     adminEstado: 'SP',
     status: 'active'
   }));
+
+  const getClientBillingFromPlan = (planName: string) => {
+    const selected = plans && plans.find(p => p.name === planName);
+    const today = new Date();
+    if (selected) {
+      const price = selected.price || 0;
+      let expirationDate: string;
+      if (selected.durationDays === null) {
+        expirationDate = '2099-12-31';
+      } else {
+        const future = addDays(today, selected.durationDays || 0);
+        expirationDate = format(future, 'yyyy-MM-dd');
+      }
+      return { price, expirationDate };
+    }
+    const defaultExpiration = format(new Date(today.getFullYear(), 11, 31), 'yyyy-MM-dd');
+    return { price: 0, expirationDate: defaultExpiration };
+  };
 
   useEffect(() => {
     if (externalTab) {
@@ -331,9 +354,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
   const handleAddClient = (e: React.FormEvent) => {
     e.preventDefault();
+    const planName = newClient.plan || ((plans && plans[0]?.name) || SAAS_PLANS[0]);
+    const { price, expirationDate } = getClientBillingFromPlan(planName);
     const client: SaaSClient = {
       ...newClient,
       id: Math.random().toString(36).substr(2, 6).toUpperCase(),
+      plan: planName,
+      monthlyValue: price,
+      expirationDate,
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString()
     } as SaaSClient;
@@ -342,8 +370,6 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     setNewClient({
       name: '',
       plan: (plans && plans[0]?.name) || SAAS_PLANS[0],
-      monthlyValue: 49.90,
-      expirationDate: format(new Date(), 'yyyy-12-31'),
       adminName: '',
       adminEmail: '',
       adminPassword: '',
@@ -474,10 +500,75 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     alert('Comunicado disparado com sucesso para toda a rede!');
   };
 
-  const deleteClient = (id: string) => {
-    if (confirm('ATENÇÃO: Excluir este terreiro permanentemente? Todos os dados da instância serão destruídos.')) {
-      onUpdateClients(clients.filter(c => c.id !== id));
+  const handleDownloadClientBackup = (clientId: string) => {
+    const clientInfo = clients.find(c => c.id === clientId);
+    const suffix = `_${clientId}`;
+    const backupData: Record<string, any> = {};
+    
+    // Coleta dados específicos do cliente
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.endsWith(suffix)) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          backupData[key] = JSON.parse(val);
+        }
+      }
     }
+
+    // Adiciona metadados do cliente
+    if (clientInfo) {
+      backupData['__client_metadata__'] = clientInfo;
+    }
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `BACKUP_${clientInfo?.name?.replace(/\s+/g, '_').toUpperCase() || clientId}_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const deleteClient = (id: string) => {
+    const client = clients.find(c => c.id === id);
+    if (client) {
+      setClientToDelete(client);
+      setDeleteClientPassword('');
+      setDeleteClientError('');
+      setShowDeleteClientModal(true);
+    }
+  };
+
+  const handleConfirmDeleteClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientToDelete) return;
+
+    if (deleteClientPassword !== masterCreds.password) {
+      setDeleteClientError('Senha de desenvolvedor incorreta!');
+      return;
+    }
+
+    // Remove dados do localStorage
+    const suffix = `_${clientToDelete.id}`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.endsWith(suffix)) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    // Remove da lista de clientes
+    onUpdateClients(clients.filter(c => c.id !== clientToDelete.id));
+    
+    setShowDeleteClientModal(false);
+    setClientToDelete(null);
+    setDeleteClientPassword('');
+    setDeleteClientError('');
+    alert('Instância removida permanentemente e dados limpos.');
   };
 
   const toggleStatus = (id: string, newStatus: SaaSClient['status']) => {
@@ -551,162 +642,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                  </div>
               </div>
            </div>
-
-           {/* PAINEL DE CONFIGURAÇÕES MASTER */}
-           <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden">
-              <div 
-                className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-950/40 cursor-pointer group"
-                onClick={() => setShowMasterSettings(!showMasterSettings)}
-              >
-                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-slate-800 rounded-2xl text-amber-500 border border-slate-700 shadow-inner group-hover:scale-110 transition-transform">
-                       <ShieldCheck size={24} />
-                    </div>
-                    <div>
-                       <h3 className="text-lg font-black text-white uppercase tracking-tight">Configurações Estruturais do Motor (Master)</h3>
-                       <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">Customize a identidade visual e acessos de mestre da rede</p>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{showMasterSettings ? 'Recolher Painel' : 'Expandir Painel Master'}</span>
-                    <button className={`p-2 bg-slate-800 rounded-xl transition-all ${showMasterSettings ? 'rotate-180 text-amber-500' : 'text-slate-400'}`}>
-                       <ChevronDown size={20} />
-                    </button>
-                 </div>
-              </div>
-
-              {showMasterSettings && (
-                <form onSubmit={handleSaveMasterSettings} className="p-10 space-y-12 animate-in slide-in-from-top-4 duration-500">
-                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                      <div className="lg:col-span-4 space-y-6">
-                         <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                           <ImageIcon size={14} /> 01. Identidade Visual Master
-                         </h4>
-                         <div className="flex flex-col items-center gap-4 p-6 bg-slate-950 rounded-3xl border border-slate-800">
-                            <div 
-                              onClick={() => logoInputRef.current?.click()}
-                              className="w-24 h-24 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden group relative"
-                            >
-                               {masterCreds.brandLogo ? (
-                                 <img src={masterCreds.brandLogo} className="w-full h-full object-contain p-2" alt="Master Logo" />
-                               ) : (
-                                 <ImageIcon size={32} className="text-slate-700" />
-                               )}
-                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <Upload size={20} className="text-white" />
-                               </div>
-                            </div>
-                            <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                            <p className="text-[9px] font-black text-slate-500 uppercase">Logo do Painel Master</p>
-                         </div>
-                      </div>
-
-                      <div className="lg:col-span-8 space-y-6">
-                         <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                           <Type size={14} /> 02. Textos e Títulos do Sistema
-                         </h4>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                               <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título do Sistema (Header)</label>
-                               <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={masterCreds.systemTitle} onChange={e => setMasterCreds({...masterCreds, systemTitle: e.target.value})} placeholder="Ex: SaaS Master Engine" />
-                            </div>
-                            <div>
-                               <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título do Sistema (Login)</label>
-                               <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500" value={masterCreds.sidebarTitle} onChange={e => setMasterCreds({...masterCreds, sidebarTitle: e.target.value})} placeholder="Ex: Conectaxe" />
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                      <div className="space-y-6">
-                        <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
-                           <Lock size={14} /> 03. Credenciais Master
-                        </h4>
-                        <div className="space-y-4">
-                           <div>
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">E-mail Master (Acesso)</label>
-                              <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500" value={masterCreds.email} onChange={e => setMasterCreds({...masterCreds, email: e.target.value})} />
-                           </div>
-                           <div>
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Senha de Mestre</label>
-                              <div className="relative">
-                                <input 
-                                  type={showMasterPassword ? 'text' : 'password'} 
-                                  className="w-full p-4 pr-12 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500" 
-                                  value={masterCreds.password} 
-                                  onChange={e => setMasterCreds({...masterCreds, password: e.target.value})} 
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowMasterPassword(!showMasterPassword)}
-                                  className="absolute inset-y-0 right-4 flex items-center text-slate-500 hover:text-amber-400"
-                                >
-                                  {showMasterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                              </div>
-                           </div>
-                           <div>
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">WhatsApp de Suporte (DDI+DDD+Número)</label>
-                              <input 
-                                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500" 
-                                value={masterCreds.whatsapp || ''} 
-                                onChange={e => setMasterCreds({...masterCreds, whatsapp: e.target.value})} 
-                                placeholder="5511999999999" 
-                              />
-                           </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-6">
-                        <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                           <Banknote size={14} /> 04. Cobrança SaaS
-                        </h4>
-                        <div className="space-y-4">
-                           <div>
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Chave PIX (Recebimento)</label>
-                              <input className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500" value={masterCreds.pixKey} onChange={e => setMasterCreds({...masterCreds, pixKey: e.target.value})} />
-                           </div>
-                           <div>
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Dados Bancários / Transferência</label>
-                              <textarea className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-24" value={masterCreds.bankDetails} onChange={e => setMasterCreds({...masterCreds, bankDetails: e.target.value})} />
-                           </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-6">
-                        <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                           <Database size={14} /> 05. Snapshots Automáticos
-                        </h4>
-                        <div className="space-y-4">
-                           <div className="p-5 bg-slate-950 rounded-3xl border border-slate-800 space-y-4">
-                              <label className="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">Frequência de Backup Automático</label>
-                              <div className="relative">
-                                 <select 
-                                   className="w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer" 
-                                   value={masterCreds.backupFrequency} 
-                                   onChange={e => setMasterCreds({...masterCreds, backupFrequency: e.target.value as any})}
-                                 >
-                                    <option value="disabled">🚫 Backup Automático Desativado</option>
-                                    <option value="7days">🗓️ A cada 7 dias</option>
-                                    <option value="15days">🗓️ A cada 15 dias</option>
-                                    <option value="monthly">🗓️ A cada 1 mês</option>
-                                 </select>
-                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500"><ChevronDown size={18} /></div>
-                              </div>
-                           </div>
-                           <div className="pt-4">
-                              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black text-xs uppercase shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
-                                 <Save size={20} /> Salvar Tudo e Atualizar Painel
-                              </button>
-                           </div>
-                        </div>
-                      </div>
-                   </div>
-                </form>
-              )}
-           </div>
-
+ 
           {showAddClient && (
             <div className="bg-slate-900 rounded-[2.5rem] border border-emerald-600/40 shadow-2xl overflow-hidden mb-8">
               <form onSubmit={handleAddClient} className="p-8 space-y-6">
@@ -759,37 +695,6 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                         </option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
-                      Valor Mensal (R$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Ex: 49.90"
-                      value={newClient.monthlyValue?.toString() || ''}
-                      onChange={e =>
-                        setNewClient(prev => ({
-                          ...prev,
-                          monthlyValue: parseFloat(e.target.value) || 0
-                        }))
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
-                      Vencimento do Contrato
-                    </label>
-                    <input
-                      type="date"
-                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      value={newClient.expirationDate || format(new Date(), 'yyyy-12-31')}
-                      onChange={e => setNewClient(prev => ({ ...prev, expirationDate: e.target.value }))}
-                      required
-                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
@@ -1251,7 +1156,225 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       )}
 
       {activeTab === 'system-config' && (
-        <MasterPlansManager plans={plans} onUpdatePlans={onUpdatePlans} />
+        <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+          <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+              <Settings size={140} className="text-emerald-400" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-4 bg-emerald-500 rounded-3xl text-slate-900 shadow-xl shadow-emerald-500/20">
+                <Database size={32} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Configurações de Sistema</h2>
+                <p className="text-slate-500 font-medium">
+                  Organize o motor master e os planos de assinatura em um só lugar.
+                </p>
+              </div>
+            </div>
+          </div>
+ 
+          <div className="bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-800 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Menu de Configurações</p>
+                <p className="text-xs text-slate-400 font-medium">
+                  Selecione se deseja ajustar o motor ou os planos.
+                </p>
+              </div>
+              <div className="inline-flex p-1 rounded-full bg-slate-950/60 border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setSystemConfigTab('motor')}
+                  className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+                    systemConfigTab === 'motor'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <ShieldCheck size={14} />
+                  Motor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSystemConfigTab('planos')}
+                  className={`ml-1 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+                    systemConfigTab === 'planos'
+                      ? 'bg-indigo-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Tag size={14} />
+                  Planos
+                </button>
+              </div>
+            </div>
+ 
+            {systemConfigTab === 'motor' && (
+              <form onSubmit={handleSaveMasterSettings} className="p-10 space-y-12 animate-in slide-in-from-top-4 duration-500">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                  <div className="lg:col-span-4 space-y-6">
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                      <ImageIcon size={14} /> 01. Identidade Visual Master
+                    </h4>
+                    <div className="flex flex-col items-center gap-4 p-6 bg-slate-950 rounded-3xl border border-slate-800">
+                      <div
+                        onClick={() => logoInputRef.current?.click()}
+                        className="w-24 h-24 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center cursor-pointer overflow-hidden group relative"
+                      >
+                        {masterCreds.brandLogo ? (
+                          <img src={masterCreds.brandLogo} className="w-full h-full object-contain p-2" alt="Master Logo" />
+                        ) : (
+                          <ImageIcon size={32} className="text-slate-700" />
+                        )}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Upload size={20} className="text-white" />
+                        </div>
+                      </div>
+                      <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Logo do Painel Master</p>
+                    </div>
+                  </div>
+ 
+                  <div className="lg:col-span-8 space-y-6">
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                      <Type size={14} /> 02. Textos e Títulos do Sistema
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título do Sistema (Header)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={masterCreds.systemTitle}
+                          onChange={e => setMasterCreds({ ...masterCreds, systemTitle: e.target.value })}
+                          placeholder="Ex: SaaS Master Engine"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Título do Sistema (Login)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                          value={masterCreds.sidebarTitle}
+                          onChange={e => setMasterCreds({ ...masterCreds, sidebarTitle: e.target.value })}
+                          placeholder="Ex: Conectaxe"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+ 
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                      <Lock size={14} /> 03. Credenciais Master
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">E-mail Master (Acesso)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500"
+                          value={masterCreds.email}
+                          onChange={e => setMasterCreds({ ...masterCreds, email: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Senha de Mestre</label>
+                        <div className="relative">
+                          <input
+                            type={showMasterPassword ? 'text' : 'password'}
+                            className="w-full p-4 pr-12 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500"
+                            value={masterCreds.password}
+                            onChange={e => setMasterCreds({ ...masterCreds, password: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowMasterPassword(!showMasterPassword)}
+                            className="absolute inset-y-0 right-4 flex items-center text-slate-500 hover:text-amber-400"
+                          >
+                            {showMasterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">WhatsApp de Suporte (DDI+DDD+Número)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                          value={masterCreds.whatsapp || ''}
+                          onChange={e => setMasterCreds({ ...masterCreds, whatsapp: e.target.value })}
+                          placeholder="5511999999999"
+                        />
+                      </div>
+                    </div>
+                  </div>
+ 
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                      <Banknote size={14} /> 04. Cobrança SaaS
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Chave PIX (Recebimento)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                          value={masterCreds.pixKey}
+                          onChange={e => setMasterCreds({ ...masterCreds, pixKey: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Dados Bancários / Transferência</label>
+                        <textarea
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-24"
+                          value={masterCreds.bankDetails}
+                          onChange={e => setMasterCreds({ ...masterCreds, bankDetails: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+ 
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                      <Database size={14} /> 05. Snapshots Automáticos
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="p-5 bg-slate-950 rounded-3xl border border-slate-800 space-y-4">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-1 ml-1">Frequência de Backup Automático</label>
+                        <div className="relative">
+                          <select
+                            className="w-full p-4 bg-slate-900 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
+                            value={masterCreds.backupFrequency}
+                            onChange={e => setMasterCreds({ ...masterCreds, backupFrequency: e.target.value as any })}
+                          >
+                            <option value="disabled">🚫 Backup Automático Desativado</option>
+                            <option value="7days">🗓️ A cada 7 dias</option>
+                            <option value="15days">🗓️ A cada 15 dias</option>
+                            <option value="monthly">🗓️ A cada 1 mês</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                            <ChevronDown size={18} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-4">
+                        <button
+                          type="submit"
+                          className="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black text-xs uppercase shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3"
+                        >
+                          <Save size={20} /> Salvar Tudo e Atualizar Painel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            )}
+ 
+            {systemConfigTab === 'planos' && (
+              <div className="p-6">
+                <MasterPlansManager plans={plans} onUpdatePlans={onUpdatePlans} />
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ABA: ROADMAP (TIMELINE DO SISTEMA) */}
@@ -1545,6 +1668,89 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                    <div className="pt-4 flex gap-4">
                       <button type="button" onClick={() => setShowRoadmapRestoreModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
                       <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">Restaurar</button>
+                   </div>
+                </div>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Cliente */}
+      {showDeleteClientModal && clientToDelete && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[130] p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300 border-4 border-red-600">
+             <form onSubmit={handleConfirmDeleteClient}>
+                <div className="p-8 bg-red-600 text-white flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                     <ShieldAlert size={24} className="animate-pulse" />
+                     <div>
+                        <h3 className="text-xl font-black uppercase tracking-tight">Excluir Instância</h3>
+                        <p className="text-[10px] opacity-80 font-bold uppercase tracking-widest">Zona de Perigo</p>
+                     </div>
+                  </div>
+                  <button type="button" onClick={() => setShowDeleteClientModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                     <X size={24} />
+                  </button>
+                </div>
+
+                <div className="p-8 space-y-6">
+                   <div className="text-center space-y-2">
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Trash2 size={32} className="text-red-600" />
+                      </div>
+                      <h4 className="text-lg font-black text-slate-800 uppercase">Tem certeza absoluta?</h4>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed px-4">
+                         Você está prestes a excluir permanentemente a instância <strong className="text-slate-900">"{clientToDelete.name}"</strong>. 
+                         Todos os dados (membros, financeiro, entidades) serão <span className="text-red-600 font-black uppercase">DESTRUÍDOS</span>.
+                      </p>
+                   </div>
+
+                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2 text-slate-600">
+                            <Database size={16} />
+                            <span className="text-[10px] font-black uppercase">Backup de Segurança</span>
+                         </div>
+                         <button 
+                            type="button"
+                            onClick={() => handleDownloadClientBackup(clientToDelete.id)}
+                            className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors flex items-center gap-1.5"
+                         >
+                            <Download size={12} /> Baixar Dados
+                         </button>
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-medium leading-tight">
+                         Recomendamos baixar os dados antes de prosseguir, caso o cliente se arrependa.
+                      </p>
+                   </div>
+
+                   <div className="space-y-4">
+                      <div>
+                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Senha de Desenvolvedor (Confirmação)</label>
+                         <div className="relative">
+                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                           <input 
+                              required
+                              type="password"
+                              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 font-bold transition-all text-red-900"
+                              placeholder="Digite sua senha master..."
+                              value={deleteClientPassword}
+                              onChange={e => setDeleteClientPassword(e.target.value)}
+                           />
+                         </div>
+                      </div>
+
+                      {deleteClientError && (
+                         <div className="bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center gap-2 animate-bounce">
+                            <Shield className="text-red-600" size={14} />
+                            <p className="text-[10px] text-red-600 font-black uppercase">{deleteClientError}</p>
+                         </div>
+                      )}
+                   </div>
+
+                   <div className="pt-2 flex gap-4">
+                      <button type="button" onClick={() => setShowDeleteClientModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                      <button type="submit" className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95">Excluir Definitivamente</button>
                    </div>
                 </div>
              </form>
