@@ -2,6 +2,7 @@
 const STORAGE_KEYS = {
   MEMBERS: 'terreiro_members',
   ENTITIES: 'terreiro_entities',
+  PONTOS: 'terreiro_pontos',
   AUTH: 'terreiro_auth',
   SYSTEM_CONFIG: 'terreiro_system_config'
 };

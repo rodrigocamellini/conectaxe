@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder } from './types';
+import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto } from './types';
 import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, MASTER_LOGO_URL } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
@@ -34,6 +34,7 @@ import { IDCardManagement } from './components/IDCardManagement';
 import { RoadmapHistory } from './components/RoadmapHistory';
 import { CanteenManagement } from './components/CanteenManagement';
 import { MenuManager } from './components/MenuManager';
+import { MediaPontos } from './components/MediaPontos';
 import { LogIn, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
@@ -167,7 +168,10 @@ const App: React.FC = () => {
       ...saved,
       menuConfig: Array.isArray((saved as any).menuConfig) ? (saved as any).menuConfig : DEFAULT_SYSTEM_CONFIG.menuConfig,
       userRoles: Array.isArray((saved as any).userRoles) ? (saved as any).userRoles : DEFAULT_SYSTEM_CONFIG.userRoles,
-      rolePermissions: (saved as any).rolePermissions || DEFAULT_SYSTEM_CONFIG.rolePermissions
+      rolePermissions: (saved as any).rolePermissions || DEFAULT_SYSTEM_CONFIG.rolePermissions,
+      spiritualSectionColors: (saved as any).spiritualSectionColors || DEFAULT_SYSTEM_CONFIG.spiritualSectionColors,
+      pontoTypes: Array.from(new Set([...((saved as any).pontoTypes || []), ...DEFAULT_SYSTEM_CONFIG.pontoTypes])),
+      pontoCategories: Array.from(new Set([...((saved as any).pontoCategories || []), ...DEFAULT_SYSTEM_CONFIG.pontoCategories]))
     };
     return merged;
   });
@@ -275,6 +279,11 @@ const App: React.FC = () => {
   });
   const [canteenOrders, setCanteenOrders] = useState<CanteenOrder[]>(() => {
     const saved = storage.get<CanteenOrder[]>('terreiro_canteen_orders');
+    return Array.isArray(saved) ? saved : [];
+  });
+  
+  const [pontos, setPontos] = useState<Ponto[]>(() => {
+    const saved = storage.get<Ponto[]>(STORAGE_KEYS.PONTOS);
     return Array.isArray(saved) ? saved : [];
   });
 
@@ -570,7 +579,7 @@ const App: React.FC = () => {
         {activeTab === 'finance-config' && <FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'layout' && <SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'users' && <UserManagement users={systemUsers} config={systemConfig} onAddUser={u => setSystemUsers([...systemUsers, u as User])} onUpdateUser={(id, data) => setSystemUsers(systemUsers.map(u => u.id === id ? { ...u, ...data } : u))} onDeleteUser={id => setSystemUsers(systemUsers.filter(u => u.id !== id))} onUpdateConfig={setSystemConfig} />}
-        {activeTab === 'entities' && <EntityManagement entities={entities} permissions={userPermissions!} onAddEntity={(n, t) => setEntities([...entities, { id: Math.random().toString(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />}
+        {activeTab === 'entities' && <EntityManagement entities={entities} permissions={userPermissions!} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: Math.random().toString(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />}
         {activeTab === 'entity-images' && <EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={(id, data) => setEntities(entities.map(e => e.id === id ? { ...e, ...data } : e))} />}
         {activeTab === 'permissions' && <PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'backup' && <BackupSystem user={auth.user!} config={systemConfig} onRestoreFromBackup={d => { Object.keys(d).forEach(k => localStorage.setItem(k, JSON.stringify(d[k]))); window.location.reload(); }} />}
@@ -580,6 +589,15 @@ const App: React.FC = () => {
         {activeTab === 'support-client' && <TicketSystem user={auth.user!} config={systemConfig} tickets={tickets} onUpdateTickets={setTickets} />}
         {activeTab === 'news-announcements' && <RoadmapHistory roadmap={safeRoadmap} broadcasts={broadcasts} clientId={currentClient?.id || auth.user?.id || 'default'} />}
         {activeTab === 'master-menu' && <MenuManager config={systemConfig} onUpdateConfig={setSystemConfig} />}
+        {activeTab === 'media-pontos' && (
+          <MediaPontos 
+            pontos={pontos} 
+            config={systemConfig} 
+            onAddPonto={p => setPontos([p, ...pontos])} 
+            onUpdatePonto={(id, data) => setPontos(pontos.map(p => p.id === id ? { ...p, ...data } : p))} 
+            onDeletePonto={id => setPontos(pontos.filter(p => p.id !== id))} 
+          />
+        )}
         
         {auth.isMasterMode && ['developer-portal', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'tickets', 'master-broadcast', 'master-roadmap', 'master-system-config', 'master-coupons', 'master-audit'].includes(activeTab) && (
           <SafeMasterPortal

@@ -284,6 +284,15 @@ export interface IDCardLog {
   issuedBy: string;
 }
 
+export interface SpiritualSectionColors {
+  pai_cabeca: string;
+  mae_cabeca: string;
+  guia_frente: string;
+  cargo: string;
+  entidade: string;
+  funcao: string;
+}
+
 export interface SystemConfig {
   systemName: string;
   logoUrl?: string;
@@ -301,6 +310,9 @@ export interface SystemConfig {
   idCardConfig?: IDCardConfig;
   menuConfig?: MenuItemConfig[];
   masterMenuConfig?: MenuItemConfig[];
+   spiritualSectionColors?: SpiritualSectionColors;
+   pontoCategories?: string[];
+   pontoTypes?: string[];
 }
 
 export interface SpiritualEntity {
@@ -450,4 +462,15 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isMasterMode?: boolean; 
+}
+
+export interface Ponto {
+  id: string;
+  title: string;
+  type: string;
+  category: string;
+  lyrics: string;
+  audioUrl?: string;
+  youtubeUrl?: string;
+  createdAt: string;
 }

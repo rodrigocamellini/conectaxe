@@ -14,6 +14,26 @@ export const SystemConfigManagement: React.FC<SystemConfigManagementProps> = ({ 
   const [logoInputMode, setLogoInputMode] = useState<'upload' | 'url'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const spiritualColors =
+    formData.spiritualSectionColors ||
+    DEFAULT_SYSTEM_CONFIG.spiritualSectionColors || {
+      pai_cabeca: formData.primaryColor,
+      mae_cabeca: formData.primaryColor,
+      guia_frente: formData.primaryColor,
+      cargo: formData.primaryColor,
+      entidade: formData.primaryColor,
+      funcao: formData.primaryColor
+    };
+
+  const spiritualSections = [
+    { key: 'pai_cabeca', label: 'Pai de Cabeça' },
+    { key: 'mae_cabeca', label: 'Mãe de Cabeça' },
+    { key: 'guia_frente', label: 'Guia de Frente' },
+    { key: 'cargo', label: 'Cargos' },
+    { key: 'entidade', label: 'Entidades' },
+    { key: 'funcao', label: 'Funções da Casa' }
+  ] as const;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -205,6 +225,53 @@ export const SystemConfigManagement: React.FC<SystemConfigManagementProps> = ({ 
                     />
                     <span className="text-[10px] font-mono text-gray-400 uppercase">{formData.accentColor}</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-gray-400 uppercase mb-1 flex items-center gap-1">
+                  Cores das Barras Espirituais
+                  <Sparkle size={10} className="text-amber-400" />
+                </label>
+                <p className="text-[11px] text-gray-400">
+                  Personalize as barras usadas em &quot;Config. Espirituais&quot; para cada tipo.
+                </p>
+                <div className="space-y-2 mt-2">
+                  {spiritualSections.map(section => {
+                    const value = spiritualColors[section.key];
+                    return (
+                      <div key={section.key} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-16 h-2 rounded-full border border-black/5"
+                            style={{ backgroundColor: value }}
+                          />
+                          <span className="text-[11px] font-black uppercase text-gray-500">
+                            {section.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            className="w-9 h-9 rounded-lg cursor-pointer border-none p-0 shadow-sm"
+                            value={value}
+                            onChange={e =>
+                              setFormData(prev => ({
+                                ...prev,
+                                spiritualSectionColors: {
+                                  ...(prev.spiritualSectionColors || spiritualColors),
+                                  [section.key]: e.target.value
+                                }
+                              }))
+                            }
+                          />
+                          <span className="text-[10px] font-mono text-gray-400 uppercase min-w-[84px] text-right">
+                            {value}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

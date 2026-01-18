@@ -632,10 +632,82 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                          </>
                        )}
                     </div>
-                    <div className="bg-indigo-900 rounded-[2rem] p-8 text-white space-y-4 shadow-xl">
-                       <p className="text-xs font-black uppercase text-white/50 tracking-widest text-center border-b border-white/10 pb-4">Funções Espirituais</p>
-                       <div className="flex flex-wrap gap-2 justify-center">
-                          {(selectedMemberForView.houseRoles || []).map(roleId => <span key={roleId} className="px-3 py-1.5 bg-[#ADFF2F] text-slate-900 rounded-xl text-[9px] font-black uppercase">{entities.find(e => e.id === roleId)?.name}</span>)}
+                    <div className="bg-indigo-900 rounded-[2rem] p-8 text-white space-y-6 shadow-xl">
+                       <p className="text-xs font-black uppercase text-white/50 tracking-widest text-center border-b border-white/10 pb-4">
+                         Funções Espirituais
+                       </p>
+                       <div className="space-y-4 text-[11px]">
+                         <div className="flex justify-between gap-4">
+                           <span className="text-white/70 font-black uppercase tracking-widest">Pai de Cabeça</span>
+                           <span className="font-bold text-right">
+                             {entities.find(e => e.id === selectedMemberForView.paiCabecaId)?.name || (
+                               <span className="text-white/40 italic">Não informado</span>
+                             )}
+                           </span>
+                         </div>
+                         <div className="flex justify-between gap-4">
+                           <span className="text-white/70 font-black uppercase tracking-widest">Mãe de Cabeça</span>
+                           <span className="font-bold text-right">
+                             {entities.find(e => e.id === selectedMemberForView.maeCabecaId)?.name || (
+                               <span className="text-white/40 italic">Não informado</span>
+                             )}
+                           </span>
+                         </div>
+                         <div className="flex justify-between gap-4">
+                           <span className="text-white/70 font-black uppercase tracking-widest">Guia de Frente</span>
+                           <span className="font-bold text-right">
+                             {entities.find(e => e.id === selectedMemberForView.guiaFrenteId)?.name || (
+                               <span className="text-white/40 italic">Não informado</span>
+                             )}
+                           </span>
+                         </div>
+                         <div className="flex justify-between gap-4">
+                           <span className="text-white/70 font-black uppercase tracking-widest">Cargo na Casa</span>
+                           <span className="font-bold text-right">
+                             {entities.find(e => e.id === selectedMemberForView.cargoId)?.name || (
+                               <span className="text-white/40 italic">Não informado</span>
+                             )}
+                           </span>
+                         </div>
+                       </div>
+                       <div className="pt-4 border-t border-white/10 space-y-3">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
+                           Funções na Corrente
+                         </p>
+                         <div className="flex flex-wrap gap-2">
+                           {(selectedMemberForView.houseRoles || []).length > 0 ? (
+                             (selectedMemberForView.houseRoles || []).map(roleId => (
+                               <span
+                                 key={roleId}
+                                 className="px-3 py-1.5 bg-[#ADFF2F] text-slate-900 rounded-xl text-[9px] font-black uppercase"
+                               >
+                                 {entities.find(e => e.id === roleId)?.name}
+                               </span>
+                             ))
+                           ) : (
+                             <span className="text-[10px] text-white/50 italic">
+                               Nenhuma função marcada.
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                       <div className="pt-3 border-t border-white/10">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">
+                           Papel Principal
+                         </p>
+                         <p className="text-xs font-bold">
+                           {selectedMemberForView.isMedium ||
+                           selectedMemberForView.isCambone ||
+                           selectedMemberForView.isConsulente
+                             ? [
+                                 selectedMemberForView.isMedium && 'MÉDIUM',
+                                 selectedMemberForView.isCambone && 'CAMBONE',
+                                 selectedMemberForView.isConsulente && 'CONSULENTE'
+                               ]
+                                 .filter(Boolean)
+                                 .join(' • ')
+                             : 'Nenhum papel definido'}
+                         </p>
                        </div>
                     </div>
                   </div>
