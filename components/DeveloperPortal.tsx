@@ -63,6 +63,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
+import { MasterCouponsManager } from './MasterCouponsManager';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
 
 interface DeveloperPortalProps {
@@ -1217,6 +1218,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
               </div>
            </div>
         </div>
+      )}
+
+      {activeTab === 'coupons' && (
+        <MasterCouponsManager coupons={coupons} onUpdateCoupons={onUpdateCoupons} />
       )}
 
       {/* ABA: ROADMAP (TIMELINE DO SISTEMA) */}
