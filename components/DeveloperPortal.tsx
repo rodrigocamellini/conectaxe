@@ -64,6 +64,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
+import { MasterPlansManager } from './MasterPlansManager';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
 
 interface DeveloperPortalProps {
@@ -272,11 +273,23 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     localStorage.setItem('saas_master_snapshots', JSON.stringify(snapshots));
   }, [snapshots]);
 
-  const [newClient, setNewClient] = useState<Partial<SaaSClient>>({
-    name: '', plan: SAAS_PLANS[0], monthlyValue: 49.90, expirationDate: format(new Date(), 'yyyy-12-31'),
-    adminName: '', adminEmail: '', adminPassword: '', adminCpf: '', adminPhone: '',
-    adminCep: '', adminAddress: '', adminBairro: '', adminCidade: '', adminEstado: 'SP', status: 'active'
-  });
+  const [newClient, setNewClient] = useState<Partial<SaaSClient>>(() => ({
+    name: '',
+    plan: (plans && plans[0]?.name) || SAAS_PLANS[0],
+    monthlyValue: 49.90,
+    expirationDate: format(new Date(), 'yyyy-12-31'),
+    adminName: '',
+    adminEmail: '',
+    adminPassword: '',
+    adminCpf: '',
+    adminPhone: '',
+    adminCep: '',
+    adminAddress: '',
+    adminBairro: '',
+    adminCidade: '',
+    adminEstado: 'SP',
+    status: 'active'
+  }));
 
   useEffect(() => {
     if (externalTab) {
@@ -289,6 +302,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         'tickets': 'tickets',
         'master-broadcast': 'broadcast',
         'master-roadmap': 'roadmap',
+        'master-system-config': 'system-config',
         'master-coupons': 'coupons',
         'developer-portal': 'clients'
       };
@@ -326,9 +340,21 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     onUpdateClients([...clients, client]);
     setShowAddClient(false);
     setNewClient({
-      name: '', plan: SAAS_PLANS[0], monthlyValue: 49.90, expirationDate: format(new Date(), 'yyyy-12-31'),
-      adminName: '', adminEmail: '', adminPassword: '', adminCpf: '', adminPhone: '',
-      adminCep: '', adminAddress: '', adminBairro: '', adminCidade: '', adminEstado: 'SP', status: 'active'
+      name: '',
+      plan: (plans && plans[0]?.name) || SAAS_PLANS[0],
+      monthlyValue: 49.90,
+      expirationDate: format(new Date(), 'yyyy-12-31'),
+      adminName: '',
+      adminEmail: '',
+      adminPassword: '',
+      adminCpf: '',
+      adminPhone: '',
+      adminCep: '',
+      adminAddress: '',
+      adminBairro: '',
+      adminCidade: '',
+      adminEstado: 'SP',
+      status: 'active'
     });
   };
 
@@ -724,12 +750,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                     </label>
                     <select
                       className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
-                      value={newClient.plan || SAAS_PLANS[0]}
+                      value={newClient.plan || ((plans && plans[0]?.name) || SAAS_PLANS[0])}
                       onChange={e => setNewClient(prev => ({ ...prev, plan: e.target.value }))}
                     >
-                      {SAAS_PLANS.map(plan => (
-                        <option key={plan} value={plan}>
-                          {plan}
+                      {(plans && plans.length ? plans.map(p => p.name) : SAAS_PLANS).map(planName => (
+                        <option key={planName} value={planName}>
+                          {planName}
                         </option>
                       ))}
                     </select>
@@ -1222,6 +1248,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
       {activeTab === 'coupons' && (
         <MasterCouponsManager coupons={coupons} onUpdateCoupons={onUpdateCoupons} />
+      )}
+
+      {activeTab === 'system-config' && (
+        <MasterPlansManager plans={plans} onUpdatePlans={onUpdatePlans} />
       )}
 
       {/* ABA: ROADMAP (TIMELINE DO SISTEMA) */}

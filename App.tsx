@@ -513,7 +513,7 @@ const App: React.FC = () => {
         {activeTab === 'news-announcements' && <RoadmapHistory roadmap={safeRoadmap} broadcasts={broadcasts} clientId={currentClient?.id || auth.user?.id || 'default'} />}
         {activeTab === 'master-menu' && <MenuManager config={systemConfig} onUpdateConfig={setSystemConfig} />}
         
-        {auth.isMasterMode && ['developer-portal', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'tickets', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit'].includes(activeTab) && (
+        {auth.isMasterMode && ['developer-portal', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'tickets', 'master-broadcast', 'master-roadmap', 'master-system-config', 'master-coupons', 'master-audit'].includes(activeTab) && (
           <SafeMasterPortal
             onReset={() => {
               localStorage.removeItem('terreiro_referrals');

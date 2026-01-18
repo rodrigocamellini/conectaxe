@@ -170,6 +170,18 @@ export const MasterTicketManager: React.FC<MasterTicketManagerProps> = ({ ticket
     setSelectedTicket(updatedTicket);
   };
 
+  const handleDeleteTicket = (ticketId: string) => {
+    if (!confirm('Deseja realmente remover este ticket da fila de suporte?')) return;
+    const updated = tickets.filter(t => t.id !== ticketId);
+    onUpdateTickets(updated);
+    if (selectedTicket?.id === ticketId) {
+      setSelectedTicket(null);
+      setSelectedAttachments([]);
+      setNewMessage('');
+      setShowTemplatePicker(false);
+    }
+  };
+
   const downloadConversation = (ticket: SupportTicket) => {
     let content = `LOG DE ATENDIMENTO MASTER - CHAMADO #${ticket.id}\n`;
     content += `Cliente: ${ticket.clientName} (ID: ${ticket.clientId})\n`;
@@ -339,7 +351,18 @@ export const MasterTicketManager: React.FC<MasterTicketManagerProps> = ({ ticket
                     <span className={`px-3 py-0.5 rounded text-[9px] font-black uppercase border ${getPriorityStyle(ticket.priority)}`}>{ticket.priority}</span>
                   </td>
                   <td className="px-10 py-5 text-right">
-                    <div className="w-9 h-9 rounded-xl bg-slate-800 group-hover:bg-indigo-600 group-hover:text-white text-slate-600 transition-all flex items-center justify-center ml-auto shadow-lg"><ChevronRight size={18} /></div>
+                    <div className="flex items-center gap-1 justify-end">
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDeleteTicket(ticket.id); }}
+                        className="p-1 hover:bg-slate-800 rounded text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Remover ticket"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                      <div className="w-9 h-9 rounded-xl bg-slate-800 group-hover:bg-indigo-600 group-hover:text-white text-slate-600 transition-all flex items-center justify-center ml-auto shadow-lg">
+                        <ChevronRight size={18} />
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}

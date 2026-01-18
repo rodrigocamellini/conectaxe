@@ -30,7 +30,40 @@ const DynamicIcon = ({ name, size = 16, className = "", color }: { name: string,
 export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig }) => {
   const [activeMenuType, setActiveMenuType] = useState<'client' | 'master'>('client');
   const [clientMenu, setClientMenu] = useState<MenuItemConfig[]>(config.menuConfig || []);
-  const [masterMenu, setMasterMenu] = useState<MenuItemConfig[]>(config.masterMenuConfig || INITIAL_MASTER_MENU_CONFIG);
+  const [masterMenu, setMasterMenu] = useState<MenuItemConfig[]>(() => {
+    const saved = config.masterMenuConfig && config.masterMenuConfig.length > 0
+      ? config.masterMenuConfig
+      : INITIAL_MASTER_MENU_CONFIG;
+
+    const map = new Map<string, MenuItemConfig>();
+    saved.forEach(item => {
+      map.set(item.id, item);
+    });
+
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      if (!map.has(def.id)) {
+        map.set(def.id, def);
+      }
+    });
+
+    const ordered: MenuItemConfig[] = [];
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      const item = map.get(def.id);
+      if (item) {
+        ordered.push(item);
+      }
+    });
+
+    saved.forEach(item => {
+      if (!INITIAL_MASTER_MENU_CONFIG.find(def => def.id === item.id)) {
+        if (!ordered.find(o => o.id === item.id)) {
+          ordered.push(item);
+        }
+      }
+    });
+
+    return ordered;
+  });
   const [showEditor, setShowEditor] = useState(false);
   const [editingItem, setEditingItem] = useState<Partial<MenuItemConfig> | null>(null);
   const [iconSearch, setIconSearch] = useState('');
@@ -41,7 +74,38 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
   }, [config.menuConfig]);
 
   useEffect(() => {
-    if (config.masterMenuConfig) setMasterMenu(config.masterMenuConfig);
+    if (config.masterMenuConfig) {
+      const saved = config.masterMenuConfig;
+
+      const map = new Map<string, MenuItemConfig>();
+      saved.forEach(item => {
+        map.set(item.id, item);
+      });
+
+      INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+        if (!map.has(def.id)) {
+          map.set(def.id, def);
+        }
+      });
+
+      const ordered: MenuItemConfig[] = [];
+      INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+        const item = map.get(def.id);
+        if (item) {
+          ordered.push(item);
+        }
+      });
+
+      saved.forEach(item => {
+        if (!INITIAL_MASTER_MENU_CONFIG.find(def => def.id === item.id)) {
+          if (!ordered.find(o => o.id === item.id)) {
+            ordered.push(item);
+          }
+        }
+      });
+
+      setMasterMenu(ordered);
+    }
   }, [config.masterMenuConfig]);
 
   const menu = activeMenuType === 'master' ? masterMenu : clientMenu;
@@ -128,11 +192,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-500 pb-20">
       {/* LADO ESQUERDO: EDITOR */}
       <div className="xl:col-span-8 space-y-6">
-        <div className="bg-gray-50 p-8 rounded-[2.5rem] shadow-sm border border-gray-200">
+        <div className="p-8 rounded-[2.5rem] shadow-sm border border-slate-800" style={{ backgroundColor: 'rgb(46, 46, 46)' }}>
            <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
               <div>
-                 <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Editor de Navegação</h3>
-                 <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Personalize a estrutura de menus</p>
+                 <h3 className="text-2xl font-black text-white uppercase tracking-tight">Editor de Navegação</h3>
+                 <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">Personalize a estrutura de menus</p>
               </div>
               <div className="flex flex-col items-end gap-3">
                 <div className="flex items-center gap-2 bg-slate-800 rounded-2xl p-1 text-[10px] font-black uppercase tracking-widest">

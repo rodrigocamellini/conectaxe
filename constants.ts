@@ -136,7 +136,8 @@ export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'master-backups', label: 'Snapshots', icon: 'Database' },
   { id: 'master-audit', label: 'Auditoria', icon: 'History' },
   { id: 'master-coupons', label: 'Cupons', icon: 'Tag' },
-  { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList' }
+  { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList' },
+  { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings' }
 ];
 
 export const INITIAL_USERS: User[] = [
@@ -253,10 +254,10 @@ export const DEFAULT_IDCARD_CONFIG: IDCardConfig = {
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   systemName: 'Sistema Terreiro 1.0',
-  primaryColor: '#0f1967',
-  sidebarColor: '#0a2a4d',
-  sidebarTextColor: '#ffffff',
-  accentColor: '#FFD700', 
+  primaryColor: '#4f46e5',
+  sidebarColor: '#020617',
+  sidebarTextColor: '#4f46e5',
+  accentColor: '#4f46e5', 
   dashboardFontSize: 'medium',
   logoUrl: DEFAULT_LOGO_URL,
   financialConfig: {

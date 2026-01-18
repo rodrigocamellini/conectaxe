@@ -168,7 +168,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [showSystemInfo, setShowSystemInfo] = useState(false);
 
-  const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
+  const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-system-config', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
   const isRodrigo = user?.email?.toLowerCase().includes('rodrigo');
 
   useEffect(() => {
@@ -227,9 +227,38 @@ export const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   const masterMenuItems: MenuItemConfig[] = useMemo(() => {
-    return (config.masterMenuConfig && config.masterMenuConfig.length > 0)
+    const saved = config.masterMenuConfig && config.masterMenuConfig.length > 0
       ? config.masterMenuConfig
       : INITIAL_MASTER_MENU_CONFIG;
+
+    const map = new Map<string, MenuItemConfig>();
+    saved.forEach(item => {
+      map.set(item.id, item);
+    });
+
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      if (!map.has(def.id)) {
+        map.set(def.id, def);
+      }
+    });
+
+    const ordered: MenuItemConfig[] = [];
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      const item = map.get(def.id);
+      if (item) {
+        ordered.push(item);
+      }
+    });
+
+    saved.forEach(item => {
+      if (!INITIAL_MASTER_MENU_CONFIG.find(def => def.id === item.id)) {
+        if (!ordered.find(o => o.id === item.id)) {
+          ordered.push(item);
+        }
+      }
+    });
+
+    return ordered;
   }, [config.masterMenuConfig]);
 
   const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
