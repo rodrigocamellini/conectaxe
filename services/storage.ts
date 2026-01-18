@@ -4,6 +4,8 @@ const STORAGE_KEYS = {
   ENTITIES: 'terreiro_entities',
   PONTOS: 'terreiro_pontos',
   REZAS: 'terreiro_rezas',
+  ERVAS: 'terreiro_ervas',
+  BANHOS: 'terreiro_banhos',
   AUTH: 'terreiro_auth',
   SYSTEM_CONFIG: 'terreiro_system_config'
 };

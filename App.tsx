@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto, Reza } from './types';
+import { AuthState, Member, User, SpiritualEntity, InventoryItem, InventoryCategory, SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, PaymentStatus, Donation, Referral, ReferralStatus, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, IDCardLog, StockLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, CanteenItem, CanteenOrder, Ponto, Reza, Erva, Banho } from './types';
 import { INITIAL_USERS, DEFAULT_AVATAR, DEFAULT_SYSTEM_CONFIG, DEFAULT_LOGO_URL, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, MASTER_LOGO_URL } from './constants';
 import { storage, STORAGE_KEYS } from './services/storage';
 import { Layout } from './components/Layout';
@@ -36,6 +36,7 @@ import { CanteenManagement } from './components/CanteenManagement';
 import { MenuManager } from './components/MenuManager';
 import { MediaPontos } from './components/MediaPontos';
 import { MediaRezas } from './components/MediaRezas';
+import { MediaErvasBanhos } from './components/MediaErvasBanhos';
 import { LogIn, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
@@ -295,6 +296,16 @@ const App: React.FC = () => {
     return Array.isArray(saved) ? saved : [];
   });
 
+  const [ervas, setErvas] = useState<Erva[]>(() => {
+    const saved = storage.get<Erva[]>(STORAGE_KEYS.ERVAS);
+    return Array.isArray(saved) ? saved : [];
+  });
+
+  const [banhos, setBanhos] = useState<Banho[]>(() => {
+    const saved = storage.get<Banho[]>(STORAGE_KEYS.BANHOS);
+    return Array.isArray(saved) ? saved : [];
+  });
+
   const [broadcasts, setBroadcasts] = useState<GlobalBroadcast[]>(() => {
     const saved = storage.get<GlobalBroadcast[]>('saas_global_broadcasts');
     return Array.isArray(saved) ? saved : [];
@@ -431,11 +442,13 @@ const App: React.FC = () => {
     storage.set('saas_master_audit_logs', auditLogs);
     storage.set(STORAGE_KEYS.PONTOS, pontos);
     storage.set(STORAGE_KEYS.REZAS, rezas);
+    storage.set(STORAGE_KEYS.ERVAS, ervas);
+    storage.set(STORAGE_KEYS.BANHOS, banhos);
     storage.set(`terreiro_canteen_items${suffix}`, canteenItems);
     storage.set(`terreiro_canteen_orders${suffix}`, canteenOrders);
     storage.set(STORAGE_KEYS.AUTH, auth);
     storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
-  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, pontos, rezas, activeClientId]);
+  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, pontos, rezas, ervas, banhos, activeClientId]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -615,6 +628,19 @@ const App: React.FC = () => {
             onAddReza={r => setRezas([r, ...rezas])} 
             onUpdateReza={(id, data) => setRezas(rezas.map(r => r.id === id ? { ...r, ...data } : r))} 
             onDeleteReza={id => setRezas(rezas.filter(r => r.id !== id))} 
+          />
+        )}
+        {activeTab === 'media-ervas' && (
+          <MediaErvasBanhos
+            ervas={ervas}
+            banhos={banhos}
+            config={systemConfig}
+            onAddErva={e => setErvas([e, ...ervas])}
+            onUpdateErva={(id, data) => setErvas(ervas.map(ev => ev.id === id ? { ...ev, ...data } : ev))}
+            onDeleteErva={id => setErvas(ervas.filter(ev => ev.id !== id))}
+            onAddBanho={b => setBanhos([b, ...banhos])}
+            onUpdateBanho={(id, data) => setBanhos(banhos.map(ba => ba.id === id ? { ...ba, ...data } : ba))}
+            onDeleteBanho={id => setBanhos(banhos.filter(ba => ba.id !== id))}
           />
         )}
         

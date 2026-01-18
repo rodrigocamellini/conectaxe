@@ -487,3 +487,25 @@ export interface Reza {
   youtubeUrl?: string;
   createdAt: string;
 }
+
+export interface Erva {
+  id: string;
+  name: string;
+  description: string;
+  photo?: string;
+  areas: string[];
+  lines: string[];
+  createdAt: string;
+}
+
+export interface Banho {
+  id: string;
+  name: string;
+  description?: string;
+  ervaIds: string[];
+  area: string;
+  target: string;
+  purpose: string;
+  direction: string;
+  createdAt: string;
+}
