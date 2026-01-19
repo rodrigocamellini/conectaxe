@@ -65,6 +65,7 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
+import { MasterPlanResources } from './MasterPlanResources';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
 
 interface DeveloperPortalProps {
@@ -157,7 +158,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [showRoadmapRestoreModal, setShowRoadmapRestoreModal] = useState(false);
   const [roadmapRestorePassword, setRoadmapRestorePassword] = useState('');
   const [roadmapRestoreError, setRoadmapRestoreError] = useState('');
-  const [systemConfigTab, setSystemConfigTab] = useState<'motor' | 'planos'>('motor');
+  const [systemConfigTab, setSystemConfigTab] = useState<'motor' | 'planos' | 'recursos'>('motor');
  
   const getLatestVersion = () => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
@@ -1207,6 +1208,18 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                   <Tag size={14} />
                   Planos
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSystemConfigTab('recursos')}
+                  className={`ml-1 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+                    systemConfigTab === 'recursos'
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid size={14} />
+                  Recursos
+                </button>
               </div>
             </div>
  
@@ -1371,6 +1384,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
             {systemConfigTab === 'planos' && (
               <div className="p-6">
                 <MasterPlansManager plans={plans} onUpdatePlans={onUpdatePlans} />
+              </div>
+            )}
+
+            {systemConfigTab === 'recursos' && (
+              <div className="p-6">
+                <MasterPlanResources plans={plans} onUpdatePlans={onUpdatePlans} />
               </div>
             )}
           </div>

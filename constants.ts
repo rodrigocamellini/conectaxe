@@ -43,26 +43,87 @@ export const MENU_ICONS_CATALOG = [
   'Sword', 'Axe', 'Shield', 'Hammer', 'Drumstick', 'Droplets', 'Wind', 'Feather'
 ];
 
+export const AVAILABLE_MODULES = [
+  { id: 'agenda', label: 'Agenda de Eventos', icon: 'Calendar', description: 'Calendário e gestão de eventos do terreiro' },
+  { 
+    id: 'cursos', 
+    label: 'Cursos e EAD', 
+    icon: 'GraduationCap', 
+    description: 'Plataforma de ensino a distância e gestão de cursos',
+    subModules: [
+      { id: 'cursos_ead', label: 'Plataforma EAD (Aluno)' },
+      { id: 'cursos_gestao', label: 'Gestão de Cursos' }
+    ]
+  },
+  { 
+    id: 'midia', 
+    label: 'Mídia e Acervo', 
+    icon: 'Music', 
+    description: 'Pontos, rezas, ervas e arquivos de mídia',
+    subModules: [
+      { id: 'midia_pontos', label: 'Pontos Cantados' },
+      { id: 'midia_rezas', label: 'Rezas e Orações' },
+      { id: 'midia_ervas', label: 'Ervas e Banhos' }
+    ]
+  },
+  { 
+    id: 'cantina', 
+    label: 'Cantina', 
+    icon: 'ShoppingCart', 
+    description: 'Gestão de vendas e produtos da cantina',
+    subModules: [
+      { id: 'cantina_pdv', label: 'Ponto de Venda' },
+      { id: 'cantina_gestao', label: 'Gestão de Produtos' },
+      { id: 'cantina_historico', label: 'Histórico de Vendas' }
+    ]
+  },
+  { 
+    id: 'financeiro', 
+    label: 'Financeiro', 
+    icon: 'DollarSign', 
+    description: 'Controle de mensalidades, doações e fluxo de caixa',
+    subModules: [
+      { id: 'financeiro_mensalidades', label: 'Mensalidades' },
+      { id: 'financeiro_doacoes', label: 'Doações' },
+      { id: 'financeiro_relatorios', label: 'Relatórios' },
+      { id: 'financeiro_config', label: 'Configurações' }
+    ]
+  },
+  { 
+    id: 'estoque', 
+    label: 'Estoque', 
+    icon: 'Package', 
+    description: 'Controle de inventário e movimentações',
+    subModules: [
+      { id: 'estoque_dashboard', label: 'Visão Geral' },
+      { id: 'estoque_gestao', label: 'Gestão de Itens' },
+      { id: 'estoque_movimentacao', label: 'Entradas e Saídas' }
+    ]
+  },
+];
+
 export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { id: 'agenda', label: 'Agenda', icon: 'CalendarDays' },
+  { id: 'agenda', label: 'Agenda', icon: 'CalendarDays', requiredModule: 'agenda' },
   { 
     id: 'cursos', 
     label: 'Cursos', 
-    icon: 'GraduationCap', 
+    icon: 'GraduationCap',
+    requiredModule: 'cursos',
     subItems: [
-      { id: 'ead', label: 'Plataforma EAD (Aluno)', icon: 'PlayCircle' },
-      { id: 'course-mgmt', label: 'Cadastrar Cursos', icon: 'GraduationCap' }
+      { id: 'ead', label: 'Plataforma EAD (Aluno)', icon: 'PlayCircle', requiredModule: 'cursos_ead' },
+      { id: 'course-mgmt', label: 'Cadastrar Cursos', icon: 'GraduationCap', requiredModule: 'cursos_gestao' }
     ]
   },
   { 
     id: 'midia', 
     label: 'Mídia', 
-    icon: 'Music', 
+    icon: 'Music',
+    requiredModule: 'midia',
     subItems: [
-      { id: 'media-pontos', label: 'Pontos', icon: 'Music' },
-      { id: 'media-rezas', label: 'Rezas', icon: 'Scroll' },
-      { id: 'media-ervas', label: 'Ervas e Banhos', icon: 'Sprout' }
+      { id: 'media-pontos', label: 'Pontos', icon: 'Music', requiredModule: 'midia_pontos' },
+      { id: 'media-rezas', label: 'Rezas', icon: 'Scroll', requiredModule: 'midia_rezas' },
+      { id: 'media-ervas', label: 'Ervas e Banhos', icon: 'Sprout', requiredModule: 'midia_ervas' }
     ]
   },
   { 
@@ -80,32 +141,35 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
   { 
     id: 'cantina', 
     label: 'Cantina', 
-    icon: 'ShoppingCart', 
+    icon: 'ShoppingCart',
+    requiredModule: 'cantina',
     subItems: [
-      { id: 'canteen-pdv', label: 'Ponto de Venda (PDV)', icon: 'ShoppingCart' },
-      { id: 'canteen-mgmt', label: 'Cardápio e Preços', icon: 'Coffee' },
-      { id: 'canteen-history', label: 'Vendas Realizadas', icon: 'List' }
+      { id: 'canteen-pdv', label: 'Ponto de Venda (PDV)', icon: 'ShoppingCart', requiredModule: 'cantina_pdv' },
+      { id: 'canteen-mgmt', label: 'Cardápio e Preços', icon: 'Coffee', requiredModule: 'cantina_gestao' },
+      { id: 'canteen-history', label: 'Vendas Realizadas', icon: 'List', requiredModule: 'cantina_historico' }
     ]
   },
   { 
     id: 'inventory-root', 
     label: 'Estoque', 
-    icon: 'Database', 
+    icon: 'Database',
+    requiredModule: 'estoque',
     subItems: [
-      { id: 'inventory-dashboard', label: 'Itens em Estoque', icon: 'BarChart' },
-      { id: 'inventory', label: 'Gestão de Estoque', icon: 'Package' },
-      { id: 'inventory-entry', label: 'Entradas/Saídas', icon: 'ClipboardCheck' }
+      { id: 'inventory-dashboard', label: 'Itens em Estoque', icon: 'BarChart', requiredModule: 'estoque_dashboard' },
+      { id: 'inventory', label: 'Gestão de Estoque', icon: 'Package', requiredModule: 'estoque_gestao' },
+      { id: 'inventory-entry', label: 'Entradas/Saídas', icon: 'ClipboardCheck', requiredModule: 'estoque_movimentacao' }
     ]
   },
   { 
     id: 'finance', 
     label: 'Financeiro', 
-    icon: 'Wallet2', 
+    icon: 'Wallet2',
+    requiredModule: 'financeiro',
     subItems: [
-      { id: 'mensalidades', label: 'Mensalidades', icon: 'DollarSign' },
-      { id: 'donations', label: 'Doações', icon: 'Heart' },
-      { id: 'finance-reports', label: 'Relatórios Financeiros', icon: 'BarChart3' },
-      { id: 'finance-config', label: 'Config. Financeira', icon: 'Calculator' }
+      { id: 'mensalidades', label: 'Mensalidades', icon: 'DollarSign', requiredModule: 'financeiro_mensalidades' },
+      { id: 'donations', label: 'Doações', icon: 'Heart', requiredModule: 'financeiro_doacoes' },
+      { id: 'finance-reports', label: 'Relatórios Financeiros', icon: 'BarChart3', requiredModule: 'financeiro_relatorios' },
+      { id: 'finance-config', label: 'Config. Financeira', icon: 'Calculator', requiredModule: 'financeiro_config' }
     ]
   },
   { 

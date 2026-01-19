@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { SaaSPlan } from '../types';
+import { SaaSPlan, PlanLimits } from '../types';
 import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 
 interface MasterPlansManagerProps {
@@ -18,6 +18,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
   const [editPrice, setEditPrice] = useState(0);
   const [editDuration, setEditDuration] = useState(30);
   const [editLifetime, setEditLifetime] = useState(false);
+  const [editLimits, setEditLimits] = useState<PlanLimits>({});
 
   const totalPlans = plans.length;
   const averagePrice = useMemo(() => {
@@ -66,6 +67,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     setEditingPlanId(plan.id);
     setEditName(plan.name);
     setEditPrice(plan.price);
+    setEditLimits(plan.limits || {});
     if (plan.durationDays === null) {
       setEditLifetime(true);
       setEditDuration(30);
@@ -81,6 +83,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     setEditPrice(0);
     setEditDuration(30);
     setEditLifetime(false);
+    setEditLimits({});
   };
 
   const saveEdit = (e: React.FormEvent) => {
@@ -104,11 +107,19 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
       return;
     }
 
-    const updated = plans.map(p =>
-      p.id === editingPlanId
-        ? { ...p, name, price: editPrice, durationDays: editLifetime ? null : editDuration }
-        : p
-    );
+    const updated = plans.map(p => {
+      if (p.id !== editingPlanId) return p;
+      return {
+        ...p,
+        name,
+        price: editPrice,
+        durationDays: editLifetime ? null : editDuration,
+        limits: {
+          maxMembers: editLimits.maxMembers ?? null,
+          maxConsulentes: editLimits.maxConsulentes ?? null
+        }
+      };
+    });
     onUpdatePlans(updated);
     cancelEdit();
   };
@@ -267,6 +278,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
                   <th className="px-8 py-4">Plano</th>
                   <th className="px-8 py-4">Valor</th>
                   <th className="px-8 py-4">Duração</th>
+                  <th className="px-8 py-4">Limites de Uso</th>
                   <th className="px-8 py-4 text-right">Ações</th>
                 </tr>
               </thead>
@@ -349,6 +361,63 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
                             </p>
                           )}
                         </td>
+                        <td className="px-8 py-4">
+                          {isEditing ? (
+                            <div className="grid grid-cols-2 gap-2 max-w-xs">
+                              <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-0.5">
+                                  Membros
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editLimits.maxMembers ?? ''}
+                                  onChange={e =>
+                                    setEditLimits({
+                                      ...editLimits,
+                                      maxMembers: e.target.value === '' ? null : Number(e.target.value)
+                                    })
+                                  }
+                                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                                  placeholder="Ilimitado"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-0.5">
+                                  Consulentes
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={editLimits.maxConsulentes ?? ''}
+                                  onChange={e =>
+                                    setEditLimits({
+                                      ...editLimits,
+                                      maxConsulentes: e.target.value === '' ? null : Number(e.target.value)
+                                    })
+                                  }
+                                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                                  placeholder="Ilimitado"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-300 space-y-1">
+                              <p>
+                                <span className="font-black text-slate-500 uppercase mr-1">Membros:</span>
+                                {plan.limits && plan.limits.maxMembers != null
+                                  ? plan.limits.maxMembers
+                                  : 'Ilimitado'}
+                              </p>
+                              <p>
+                                <span className="font-black text-slate-500 uppercase mr-1">Consulentes:</span>
+                                {plan.limits && plan.limits.maxConsulentes != null
+                                  ? plan.limits.maxConsulentes
+                                  : 'Ilimitado'}
+                              </p>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-8 py-4 text-right">
                           {isEditing ? (
                             <div className="flex justify-end gap-2">
@@ -387,8 +456,8 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
                   })
                 ) : (
                   <tr>
-                    <td
-                      colSpan={4}
+                      <td
+                      colSpan={5}
                       className="px-8 py-20 text-center flex flex-col items-center gap-3"
                     >
                       <CreditCard size={40} className="text-slate-800 opacity-20" />
@@ -406,4 +475,3 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     </div>
   );
 };
-

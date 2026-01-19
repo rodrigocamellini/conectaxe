@@ -38,8 +38,19 @@ interface LayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isMasterMode?: boolean; 
+  enabledModules?: string[];
+  systemVersion?: string;
   children: React.ReactNode;
 }
+
+const MODULE_MAPPING: Record<string, string> = {
+  'agenda': 'agenda',
+  'cursos': 'cursos',
+  'midia': 'midia',
+  'cantina': 'cantina',
+  'finance': 'financeiro',
+  'inventory-root': 'estoque',
+};
 
 const DynamicIcon = ({ name, size = 16, className = "", color }: { name: string, size?: number, className?: string, color?: string }) => {
   const IconComp = (LucideIcons as any)[name] || LucideIcons.HelpCircle;
@@ -160,6 +171,7 @@ export const Layout: React.FC<LayoutProps> = ({
   activeTab, 
   setActiveTab, 
   isMasterMode = false,
+  enabledModules,
   systemVersion = '1.0.0',
   children 
 }) => {
@@ -326,31 +338,91 @@ export const Layout: React.FC<LayoutProps> = ({
           ) : (
             (config.menuConfig || []).map((item) => {
               if (!isAllowed(item.id)) return null;
+              
+              // Check if module is enabled in plan
+          if (enabledModules) {
+            const requiredModule = item.requiredModule || MODULE_MAPPING[item.id];
+            if (requiredModule && !enabledModules.includes(requiredModule)) {
+              return null;
+            }
+          }
+
               const hasSub = item.subItems && item.subItems.length > 0;
               const isExpanded = expandedGroupId === item.id;
               const isActive = hasSub ? isExpanded : activeTab === item.id;
-              const itemColor = item.color || (isActive ? config.accentColor : config.sidebarTextColor);
+              const itemColor = item.color || (isActive ? config.sidebarColor : config.sidebarTextColor);
 
-              return (
-                <div key={item.id} className="space-y-1">
-                  <button onClick={() => hasSub ? toggleGroup(item.id) : setActiveTab(item.id)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all relative group ${isActive ? 'bg-white/10' : 'hover:bg-white/5 opacity-60'}`} style={{ color: itemColor }}>
-                    <div className="flex items-center gap-3"><DynamicIcon name={item.icon} size={16} /><span className="font-bold text-[11px] truncate uppercase tracking-tighter">{item.label}</span></div>
-                    {hasSub && <ChevronDown size={14} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />}
-                  </button>
-                  {hasSub && isExpanded && (
-                    <div className="space-y-0.5 ml-6 border-l border-white/10 pl-2">
-                       {item.subItems!.map(sub => {
+              if (hasSub) {
+                return (
+                  <div key={item.id} className="space-y-1">
+                    <button
+                      onClick={() => toggleGroup(item.id)}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                        isActive ? '' : 'hover:bg-white/5 opacity-60'
+                      }`}
+                      style={{ 
+                        color: itemColor,
+                        backgroundColor: isActive ? config.accentColor : 'transparent'
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <DynamicIcon name={item.icon} size={20} className={isActive ? "stroke-[2.5px]" : "stroke-2"} />
+                        <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                      </div>
+                      <ChevronDown size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <div className={`pl-4 space-y-1 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      {item.subItems!.map(sub => {
                           if (!isAllowed(sub.id)) return null;
+
+                          if (enabledModules) {
+                            const subRequired = sub.requiredModule || MODULE_MAPPING[sub.id];
+                            if (subRequired && !enabledModules.includes(subRequired)) {
+                              return null;
+                            }
+                          }
+
                           const isSubActive = activeTab === sub.id;
                           return (
-                            <button key={sub.id} onClick={() => { setActiveTab(sub.id); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all ${isSubActive ? 'bg-white/10' : 'hover:bg-white/5 opacity-60'}`} style={{ color: sub.color || (isSubActive ? config.accentColor : config.sidebarTextColor) }}>
-                               <DynamicIcon name={sub.icon} size={14} /><span className="font-bold text-[10px] truncate uppercase tracking-tighter">{sub.label}</span>
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                setActiveTab(sub.id);
+                                if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+                              }}
+                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all ${
+                                isSubActive ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                              }`}
+                            >
+                              <DynamicIcon name={sub.icon} size={16} />
+                              <span>{sub.label}</span>
                             </button>
                           );
-                       })}
+                      })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                    isActive ? '' : 'hover:bg-white/5 opacity-60'
+                  }`}
+                  style={{ 
+                    color: itemColor,
+                    backgroundColor: isActive ? config.accentColor : 'transparent'
+                  }}
+                >
+                  <DynamicIcon name={item.icon} size={20} className={isActive ? "stroke-[2.5px]" : "stroke-2"} />
+                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                </button>
               );
             })
           )}

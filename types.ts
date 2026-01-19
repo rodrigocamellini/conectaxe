@@ -26,6 +26,7 @@ export interface MenuItemConfig {
   color?: string; // Cor fixa opcional (Hex)
   subItems?: MenuItemConfig[];
   isSystem?: boolean; // Se for sistema, certas ações podem ser restritas
+  requiredModule?: string; // Módulo necessário para exibir este item
 }
 
 export interface CanteenItem {
@@ -177,11 +178,18 @@ export interface ModulePermission {
 
 export type StaffPermissions = Record<string, ModulePermission>;
 
+export interface PlanLimits {
+  maxMembers?: number | null;
+  maxConsulentes?: number | null;
+}
+
 export interface SaaSPlan {
   id: string;
   name: string;
   price: number;
   durationDays: number | null;
+  limits?: PlanLimits;
+  enabledModules?: string[];
 }
 
 export interface SaaSClient {

@@ -403,6 +403,11 @@ const App: React.FC = () => {
     return clients.find(c => c.adminEmail.toLowerCase() === auth.user?.email.toLowerCase());
   }, [clients, auth]);
 
+  const currentPlan = useMemo(() => {
+    if (!currentClient) return null;
+    return plans.find(p => p.name === currentClient.plan) || null;
+  }, [currentClient, plans]);
+
   const masterSettings = useMemo(() => {
     const fallback = { 
       sidebarTitle: 'Sistema de Gestão de Terreiros', 
@@ -602,29 +607,46 @@ const App: React.FC = () => {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         isMasterMode={auth.isMasterMode}
+        enabledModules={currentPlan?.enabledModules}
         systemVersion={currentSystemVersion}
       >
         {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={safeRoadmap} broadcasts={broadcasts} />}
-        {activeTab === 'agenda' && <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />}
-        {activeTab === 'ead' && <EadPlatform user={auth.user!} members={members} courses={courses} enrollments={enrollments} config={systemConfig} onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} />}
-        {activeTab === 'course-mgmt' && <CourseManagement courses={courses} members={members} enrollments={enrollments} config={systemConfig} onAddCourse={c => { const newId = `CR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`; setCourses([{ ...c, id: newId, createdAt: new Date().toISOString() } as Course, ...courses]); }} onUpdateCourse={(id, data) => setCourses(courses.map(c => c.id === id ? { ...c, ...data } : c))} onDeleteCourse={id => setCourses(courses.filter(c => c.id !== id))} onUpdateConfig={setSystemConfig} />}
+        {activeTab === 'agenda' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('agenda')) && <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />}
+        {(activeTab === 'ead' || activeTab === 'course-mgmt') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('cursos')) && (
+          <>
+            {activeTab === 'ead' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('cursos_ead')) && <EadPlatform user={auth.user!} members={members} courses={courses} enrollments={enrollments} config={systemConfig} onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} />}
+            {activeTab === 'course-mgmt' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('cursos_gestao')) && <CourseManagement courses={courses} members={members} enrollments={enrollments} config={systemConfig} onAddCourse={c => { const newId = `CR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`; setCourses([{ ...c, id: newId, createdAt: new Date().toISOString() } as Course, ...courses]); }} onUpdateCourse={(id, data) => setCourses(courses.map(c => c.id === id ? { ...c, ...data } : c))} onDeleteCourse={id => setCourses(courses.filter(c => c.id !== id))} onUpdateConfig={setSystemConfig} />}
+          </>
+        )}
         
-        {(activeTab === 'canteen-pdv' || activeTab === 'canteen-mgmt' || activeTab === 'canteen-history') && (
+        {(activeTab === 'canteen-pdv' || activeTab === 'canteen-mgmt' || activeTab === 'canteen-history') && (!currentPlan?.enabledModules || (
+           (activeTab === 'canteen-pdv' && currentPlan.enabledModules.includes('cantina_pdv')) ||
+           (activeTab === 'canteen-mgmt' && currentPlan.enabledModules.includes('cantina_gestao')) ||
+           (activeTab === 'canteen-history' && currentPlan.enabledModules.includes('cantina_historico'))
+        )) && (
            <CanteenManagement activeTab={activeTab} setActiveTab={setActiveTab} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={(order) => { setCanteenOrders([order, ...canteenOrders]); const updatedItems = canteenItems.map(item => { const soldItem = order.items.find(si => si.itemId === item.id); if(soldItem) return {...item, stock: Math.max(0, item.stock - soldItem.quantity)}; return item; }); setCanteenItems(updatedItems); }} />
         )}
 
-        {activeTab === 'members' && <MemberManagement members={members} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} />}
-        {activeTab === 'consulentes' && <MemberManagement members={members.filter(m => m.status === 'consulente' || m.isConsulente)} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const baseStatus = m.status && m.status.trim() !== '' ? m.status : 'consulente'; const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, status: baseStatus, isConsulente: true, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data, isConsulente: data.isConsulente ?? m.isConsulente } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} mode="consulente" />}
+        {activeTab === 'members' && <MemberManagement members={members} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const isConsulente = m.status === 'consulente' || m.isConsulente; const limits = currentPlan?.limits; if (!auth.isMasterMode && limits) { if (!isConsulente && limits.maxMembers != null) { const currentCount = members.filter(mem => mem.status !== 'consulente' && !mem.isConsulente).length; if (currentCount >= limits.maxMembers) { alert('Limite de cadastros de membros alcançado para o plano atual.'); return; } } if (isConsulente && limits.maxConsulentes != null) { const currentCons = members.filter(mem => mem.status === 'consulente' || mem.isConsulente).length; if (currentCons >= limits.maxConsulentes) { alert('Limite de cadastros de consulentes alcançado para o plano atual.'); return; } } } const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} />}
+        {activeTab === 'consulentes' && <MemberManagement members={members.filter(m => m.status === 'consulente' || m.isConsulente)} entities={entities} permissions={userPermissions!} config={systemConfig} currentUser={auth.user!} onAddMember={m => { const limits = currentPlan?.limits; if (!auth.isMasterMode && limits && limits.maxConsulentes != null) { const currentCons = members.filter(mem => mem.status === 'consulente' || mem.isConsulente).length; if (currentCons >= limits.maxConsulentes) { alert('Limite de cadastros de consulentes alcançado para o plano atual.'); return; } } const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0); const newId = (lastId + 1).toString(); const baseStatus = m.status && m.status.trim() !== '' ? m.status : 'consulente'; const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png'; setMembers([{ ...m, id: newId, photo, status: baseStatus, isConsulente: true, createdAt: new Date().toISOString() } as Member, ...members]); }} onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data, isConsulente: data.isConsulente ?? m.isConsulente } : m))} onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} mode="consulente" />}
         {activeTab === 'mediums' && <MediumManagement members={members} entities={entities} config={systemConfig} onUpdateMemberSpiritualInfo={(mid, eids, enms) => setMembers(members.map(m => m.id === mid ? { ...m, assignedEntities: eids, entityNames: enms } : m))} />}
         {activeTab === 'idcards' && <IDCardManagement members={members} entities={entities} logs={idCardLogs} config={systemConfig} onUpdateLogs={setIdCardLogs} onUpdateConfig={setSystemConfig} currentUser={auth.user!} />}
         {activeTab === 'attendance' && <AttendanceManagement members={members} attendanceRecords={attendanceRecords} config={systemConfig} onUpdateAttendance={setAttendanceRecords} />}
-        {activeTab === 'inventory-dashboard' && <InventoryDashboard items={inventoryItems} categories={inventoryCategories} config={systemConfig} />}
-        {activeTab === 'inventory' && <InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={(name) => setInventoryCategories([...inventoryCategories, { id: Math.random().toString(), name }])} onDeleteItem={(id) => setInventoryItems(inventoryItems.filter(i => i.id !== id))} onAddItem={(item) => setInventoryItems([...inventoryItems, { ...item, id: Math.random().toString() } as InventoryItem])} />}
-        {activeTab === 'inventory-entry' && <InventoryEntry items={inventoryItems} categories={inventoryCategories} onSaveUpdates={(up) => { const newLogs: StockLog[] = []; const updatedItems = inventoryItems.map(i => { const u = up.find(x => x.id === i.id); if (u && u.currentStock !== i.currentStock) { newLogs.push({ id: Math.random().toString(36).substr(2, 9), itemId: i.id, itemName: i.name, previousStock: i.currentStock, newStock: u.currentStock, change: u.currentStock - i.currentStock, date: new Date().toISOString(), responsible: auth.user?.name || 'Sistema', type: u.currentStock > i.currentStock ? 'entrada' : 'saida' }); return { ...i, currentStock: u.currentStock }; } return i; }); setInventoryItems(updatedItems); setStockLogs([...newLogs, ...stockLogs]); if (newLogs.length > 0) alert(`${newLogs.length} movimentações registradas!`); }} />}
-        {activeTab === 'mensalidades' && <FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} />}
-        {activeTab === 'donations' && <DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />}
-        {activeTab === 'finance-reports' && <FinancialReports members={members} donations={donations} config={systemConfig} />}
-        {activeTab === 'finance-config' && <FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />}
+        {(activeTab === 'inventory-dashboard' || activeTab === 'inventory' || activeTab === 'inventory-entry') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('estoque')) && (
+          <>
+            {activeTab === 'inventory-dashboard' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('estoque_dashboard')) && <InventoryDashboard items={inventoryItems} categories={inventoryCategories} config={systemConfig} />}
+            {activeTab === 'inventory' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('estoque_gestao')) && <InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={(name) => setInventoryCategories([...inventoryCategories, { id: Math.random().toString(), name }])} onDeleteItem={(id) => setInventoryItems(inventoryItems.filter(i => i.id !== id))} onAddItem={(item) => setInventoryItems([...inventoryItems, { ...item, id: Math.random().toString() } as InventoryItem])} />}
+            {activeTab === 'inventory-entry' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('estoque_movimentacao')) && <InventoryEntry items={inventoryItems} categories={inventoryCategories} onSaveUpdates={(up) => { const newLogs: StockLog[] = []; const updatedItems = inventoryItems.map(i => { const u = up.find(x => x.id === i.id); if (u && u.currentStock !== i.currentStock) { newLogs.push({ id: Math.random().toString(36).substr(2, 9), itemId: i.id, itemName: i.name, previousStock: i.currentStock, newStock: u.currentStock, change: u.currentStock - i.currentStock, date: new Date().toISOString(), responsible: auth.user?.name || 'Sistema', type: u.currentStock > i.currentStock ? 'entrada' : 'saida' }); return { ...i, currentStock: u.currentStock }; } return i; }); setInventoryItems(updatedItems); setStockLogs([...newLogs, ...stockLogs]); if (newLogs.length > 0) alert(`${newLogs.length} movimentações registradas!`); }} />}
+          </>
+        )}
+        {(activeTab === 'mensalidades' || activeTab === 'donations' || activeTab === 'finance-reports' || activeTab === 'finance-config') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('financeiro')) && (
+          <>
+            {activeTab === 'mensalidades' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('financeiro_mensalidades')) && <FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} />}
+            {activeTab === 'donations' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('financeiro_doacoes')) && <DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />}
+            {activeTab === 'finance-reports' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('financeiro_relatorios')) && <FinancialReports members={members} donations={donations} config={systemConfig} />}
+            {activeTab === 'finance-config' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('financeiro_config')) && <FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />}
+          </>
+        )}
         {activeTab === 'layout' && <SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'users' && <UserManagement users={systemUsers} config={systemConfig} onAddUser={u => setSystemUsers([...systemUsers, u as User])} onUpdateUser={(id, data) => setSystemUsers(systemUsers.map(u => u.id === id ? { ...u, ...data } : u))} onDeleteUser={id => setSystemUsers(systemUsers.filter(u => u.id !== id))} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'entities' && <EntityManagement entities={entities} permissions={userPermissions!} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: Math.random().toString(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />}
@@ -637,7 +659,7 @@ const App: React.FC = () => {
         {activeTab === 'support-client' && <TicketSystem user={auth.user!} config={systemConfig} tickets={tickets} onUpdateTickets={setTickets} />}
         {activeTab === 'news-announcements' && <RoadmapHistory roadmap={safeRoadmap} broadcasts={broadcasts} clientId={currentClient?.id || auth.user?.id || 'default'} />}
         {activeTab === 'master-menu' && <MenuManager config={systemConfig} onUpdateConfig={setSystemConfig} />}
-        {activeTab === 'media-pontos' && (
+        {activeTab === 'media-pontos' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('midia_pontos')) && (
           <MediaPontos 
             pontos={pontos} 
             config={systemConfig} 
@@ -646,7 +668,7 @@ const App: React.FC = () => {
             onDeletePonto={id => setPontos(pontos.filter(p => p.id !== id))} 
           />
         )}
-        {activeTab === 'media-rezas' && (
+        {activeTab === 'media-rezas' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('midia_rezas')) && (
           <MediaRezas 
             rezas={rezas} 
             config={systemConfig} 
@@ -655,7 +677,7 @@ const App: React.FC = () => {
             onDeleteReza={id => setRezas(rezas.filter(r => r.id !== id))} 
           />
         )}
-        {activeTab === 'media-ervas' && (
+        {activeTab === 'media-ervas' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('midia_ervas')) && (
           <MediaErvasBanhos
             ervas={ervas}
             banhos={banhos}

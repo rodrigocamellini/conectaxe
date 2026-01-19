@@ -15,7 +15,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { MENU_ICONS_CATALOG, DEFAULT_LOGO_URL, INITIAL_MASTER_MENU_CONFIG } from '../constants';
+import { MENU_ICONS_CATALOG, DEFAULT_LOGO_URL, INITIAL_MASTER_MENU_CONFIG, AVAILABLE_MODULES } from '../constants';
 
 interface MenuManagerProps {
   config: SystemConfig;
@@ -350,6 +350,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
                        <input type="color" className="w-14 h-14 rounded-2xl border-none cursor-pointer p-0 bg-transparent shadow-sm" value={editingItem.color || '#6366f1'} onChange={e => setEditingItem({...editingItem, color: e.target.value})} />
                        <div className="flex-1 p-4 bg-gray-50 rounded-2xl border border-gray-200 font-mono text-xs font-bold text-gray-400">{editingItem.color || 'Usando Padrão'}</div>
                     </div>
+                 </div>
+                 <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Módulo Requerido (Plano)</label>
+                    <select
+                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2"
+                      value={editingItem.requiredModule || ''}
+                      onChange={e => setEditingItem({...editingItem, requiredModule: e.target.value || undefined})}
+                    >
+                      <option value="">Nenhum (Visível para todos)</option>
+                      {AVAILABLE_MODULES.map(mod => (
+                        <option key={mod.id} value={mod.id}>{mod.label}</option>
+                      ))}
+                    </select>
                  </div>
                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
