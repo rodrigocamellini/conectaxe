@@ -33,10 +33,12 @@ import { EcosystemPreview } from './components/EcosystemPreview';
 import { IDCardManagement } from './components/IDCardManagement';
 import { RoadmapHistory } from './components/RoadmapHistory';
 import { CanteenManagement } from './components/CanteenManagement';
+import { EventsManager } from './components/EventsModule/EventsManager';
 import { MenuManager } from './components/MenuManager';
 import { MediaPontos } from './components/MediaPontos';
 import { MediaRezas } from './components/MediaRezas';
 import { MediaErvasBanhos } from './components/MediaErvasBanhos';
+import { PublicEventRegistration } from './components/EventsModule/PublicEventRegistration';
 import { LogIn, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
@@ -94,6 +96,7 @@ const App: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
+  const [publicEventId, setPublicEventId] = useState<string | null>(null);
   
   const [members, setMembers] = useState<Member[]>(() => storage.get<Member[]>(STORAGE_KEYS.MEMBERS) || []);
   const [consulentes, setConsulentes] = useState<Consulente[]>(() => storage.get<Consulente[]>(STORAGE_KEYS.CONSULENTES) || []);
@@ -295,9 +298,52 @@ const App: React.FC = () => {
         return { ...item, subItems: newSubItems };
       });
 
-      const changed = updatedMenu.some((item, index) => item !== currentMenu[index]);
-      if (!changed) return prev;
-      return { ...prev, menuConfig: updatedMenu };
+      // Ensure 'events-list' is present in the menu and has correct properties
+      const eventsItemIndex = updatedMenu.findIndex(item => item.id === 'events-list');
+      const eventsItem = { id: 'events-list', label: 'Giras e Eventos', icon: 'CalendarDays', requiredModule: 'gestao_eventos' };
+      
+      if (eventsItemIndex === -1) {
+        // Not found, insert it
+        const agendaIndex = updatedMenu.findIndex(item => item.id === 'agenda');
+        if (agendaIndex >= 0) {
+           updatedMenu.splice(agendaIndex + 1, 0, eventsItem);
+        } else {
+           updatedMenu.splice(1, 0, eventsItem); // Insert after dashboard
+        }
+      } else {
+        // Found, update properties if needed
+        const currentItem = updatedMenu[eventsItemIndex];
+        if (currentItem.icon !== 'CalendarDays' || currentItem.requiredModule !== 'gestao_eventos' || currentItem.label !== 'Giras e Eventos') {
+          updatedMenu[eventsItemIndex] = { ...currentItem, ...eventsItem };
+        }
+      }
+
+      const changed = updatedMenu.some((item, index) => item !== currentMenu[index]) || updatedMenu.length !== currentMenu.length;
+
+      // Update Master Menu Config for 'developer-portal' color
+      const currentMasterMenu = prev.masterMenuConfig || INITIAL_MASTER_MENU_CONFIG;
+      const updatedMasterMenu = currentMasterMenu.map(item => {
+        if (item.id === 'developer-portal' && item.color !== '#10b981') {
+          return { ...item, color: '#10b981' };
+        }
+        return item;
+      });
+      const masterChanged = updatedMasterMenu.some((item, index) => item !== currentMasterMenu[index]) || updatedMasterMenu.length !== currentMasterMenu.length;
+
+      // Update Accent Color if it's the old default
+      let newAccent = prev.accentColor;
+      if (prev.accentColor === '#4f46e5') {
+        newAccent = '#FFD700';
+      }
+      const colorChanged = newAccent !== prev.accentColor;
+
+      if (!changed && !masterChanged && !colorChanged) return prev;
+      return { 
+        ...prev, 
+        menuConfig: updatedMenu, 
+        masterMenuConfig: updatedMasterMenu,
+        accentColor: newAccent
+      };
     });
   }, []);
 
@@ -307,6 +353,14 @@ const App: React.FC = () => {
   });
   const [canteenOrders, setCanteenOrders] = useState<CanteenOrder[]>(() => {
     const saved = storage.get<CanteenOrder[]>('terreiro_canteen_orders');
+    return Array.isArray(saved) ? saved : [];
+  });
+  const [terreiroEvents, setTerreiroEvents] = useState<TerreiroEvent[]>(() => {
+    const saved = storage.get<TerreiroEvent[]>('terreiro_advanced_events');
+    return Array.isArray(saved) ? saved : [];
+  });
+  const [eventTickets, setEventTickets] = useState<EventTicket[]>(() => {
+    const saved = storage.get<EventTicket[]>('terreiro_event_tickets');
     return Array.isArray(saved) ? saved : [];
   });
 
@@ -446,38 +500,66 @@ const App: React.FC = () => {
   }, [auth.user, activeTab, systemConfig.rolePermissions, auth.isMasterMode]);
 
   useEffect(() => {
-    const suffix = activeClientId ? `_${activeClientId}` : '';
-
-    storage.set(`${STORAGE_KEYS.MEMBERS}${suffix}`, members);
-    storage.set(`${STORAGE_KEYS.ENTITIES}${suffix}`, entities);
-    storage.set(`terreiro_events${suffix}`, events);
-    storage.set(`terreiro_courses${suffix}`, courses);
-    storage.set(`terreiro_enrollments${suffix}`, enrollments);
-    storage.set(`terreiro_attendance${suffix}`, attendanceRecords);
-    storage.set(`terreiro_inventory_items${suffix}`, inventoryItems);
-    storage.set(`terreiro_inventory_cats${suffix}`, inventoryCategories);
-    storage.set(`terreiro_stock_logs${suffix}`, stockLogs);
-    storage.set(`terreiro_donations${suffix}`, donations);
-    storage.set(`terreiro_system_users${suffix}`, systemUsers);
+    if (activeClientId) {
+      const suffix = `_${activeClientId}`;
+      storage.set(`terreiro_system_users${suffix}`, systemUsers);
+      storage.set(`${STORAGE_KEYS.MEMBERS}${suffix}`, members);
+      storage.set(`${STORAGE_KEYS.CONSULENTES}${suffix}`, consulentes);
+      storage.set(`${STORAGE_KEYS.ENTITIES}${suffix}`, entities);
+      storage.set(`terreiro_events${suffix}`, events);
+      storage.set(`terreiro_courses${suffix}`, courses);
+      storage.set(`terreiro_enrollments${suffix}`, enrollments);
+      storage.set(`terreiro_attendance${suffix}`, attendanceRecords);
+      storage.set(`terreiro_inventory_items${suffix}`, inventoryItems);
+      storage.set(`terreiro_inventory_cats${suffix}`, inventoryCategories);
+      storage.set(`terreiro_stock_logs${suffix}`, stockLogs);
+      storage.set(`terreiro_donations${suffix}`, donations);
+      storage.set(`terreiro_idcard_logs${suffix}`, idCardLogs);
+      storage.set(`terreiro_canteen_items${suffix}`, canteenItems);
+      storage.set(`terreiro_canteen_orders${suffix}`, canteenOrders);
+      storage.set(`terreiro_advanced_events${suffix}`, terreiroEvents);
+      storage.set(`terreiro_event_tickets${suffix}`, eventTickets);
+      storage.set(`terreiro_pontos${suffix}`, pontos);
+      storage.set(`terreiro_rezas${suffix}`, rezas);
+      storage.set(`terreiro_ervas${suffix}`, ervas);
+      storage.set(`terreiro_banhos${suffix}`, banhos);
+    } else {
+      if (!auth.isMasterMode) {
+        storage.set('terreiro_system_users', systemUsers);
+        storage.set(STORAGE_KEYS.MEMBERS, members);
+        storage.set(STORAGE_KEYS.CONSULENTES, consulentes);
+        storage.set(STORAGE_KEYS.ENTITIES, entities);
+        storage.set('terreiro_events', events);
+        storage.set('terreiro_courses', courses);
+        storage.set('terreiro_enrollments', enrollments);
+        storage.set('terreiro_attendance', attendanceRecords);
+        storage.set('terreiro_inventory_items', inventoryItems);
+        storage.set('terreiro_inventory_cats', inventoryCategories);
+        storage.set('terreiro_stock_logs', stockLogs);
+        storage.set('terreiro_donations', donations);
+        storage.set('terreiro_idcard_logs', idCardLogs);
+        storage.set('terreiro_canteen_items', canteenItems);
+        storage.set('terreiro_canteen_orders', canteenOrders);
+        storage.set('terreiro_advanced_events', terreiroEvents);
+        storage.set('terreiro_event_tickets', eventTickets);
+        storage.set('terreiro_pontos', pontos);
+        storage.set('terreiro_rezas', rezas);
+        storage.set('terreiro_ervas', ervas);
+        storage.set('terreiro_banhos', banhos);
+      }
+    }
 
     storage.set('terreiro_referrals', referrals);
     storage.set('terreiro_tickets', tickets);
-    storage.set('terreiro_idcard_logs', idCardLogs);
     storage.set('saas_master_clients', clients);
     storage.set('saas_master_plans', plans);
     storage.set('saas_global_broadcasts', broadcasts);
     storage.set('saas_global_roadmap', safeRoadmap);
     storage.set('saas_global_coupons', coupons);
     storage.set('saas_master_audit_logs', auditLogs);
-    storage.set(STORAGE_KEYS.PONTOS, pontos);
-    storage.set(STORAGE_KEYS.REZAS, rezas);
-    storage.set(STORAGE_KEYS.ERVAS, ervas);
-    storage.set(STORAGE_KEYS.BANHOS, banhos);
-    storage.set(`terreiro_canteen_items${suffix}`, canteenItems);
-    storage.set(`terreiro_canteen_orders${suffix}`, canteenOrders);
     storage.set(STORAGE_KEYS.AUTH, auth);
     storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
-  }, [members, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, systemUsers, referrals, tickets, idCardLogs, clients, plans, auth, systemConfig, broadcasts, safeRoadmap, coupons, auditLogs, canteenItems, canteenOrders, pontos, rezas, ervas, banhos, activeClientId]);
+  }, [systemUsers, members, consulentes, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, activeClientId, auth.isMasterMode, idCardLogs, canteenItems, canteenOrders, terreiroEvents, eventTickets, pontos, rezas, ervas, banhos, referrals, tickets, clients, plans, broadcasts, safeRoadmap, coupons, auditLogs, auth, systemConfig]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -485,6 +567,14 @@ const App: React.FC = () => {
     root.style.setProperty('--sidebar-color', systemConfig.sidebarColor);
     root.style.setProperty('--accent-color', systemConfig.accentColor);
   }, [systemConfig]);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path.startsWith('/eventos/')) {
+      const id = path.split('/eventos/')[1];
+      if (id) setPublicEventId(id);
+    }
+  }, []);
 
   const handleEnterClientSystem = (client: SaaSClient) => {
     if (auth.isMasterMode) {
@@ -611,7 +701,14 @@ const App: React.FC = () => {
         systemVersion={currentSystemVersion}
       >
         {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={safeRoadmap} broadcasts={broadcasts} />}
-        {activeTab === 'agenda' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('agenda')) && <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />}
+        {/* Módulo Agenda Simples */}
+        {(activeTab === 'agenda') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('agenda')) && (
+           <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />
+        )}
+        {/* Módulo Gestão de Eventos Avançado */}
+        {(activeTab === 'events-list' || activeTab === 'events-checkin') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('gestao_eventos')) && (
+           <EventsManager events={terreiroEvents} tickets={eventTickets} config={systemConfig} onUpdateEvents={setTerreiroEvents} onUpdateTickets={setEventTickets} />
+        )}
         {(activeTab === 'ead' || activeTab === 'course-mgmt') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('cursos')) && (
           <>
             {activeTab === 'ead' && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('cursos_ead')) && <EadPlatform user={auth.user!} members={members} courses={courses} enrollments={enrollments} config={systemConfig} onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} />}
@@ -706,6 +803,47 @@ const App: React.FC = () => {
           </SafeMasterPortal>
         )}
       </Layout>
+    );
+  }
+
+  if (publicEventId) {
+    const event = terreiroEvents.find(e => e.id === publicEventId);
+    
+    if (!event) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold">
+          Evento não encontrado ou link inválido.
+        </div>
+      );
+    }
+
+    return (
+      <PublicEventRegistration
+        event={event}
+        config={systemConfig}
+        existingTickets={eventTickets}
+        onRegister={async (ticketData) => {
+          const newTicket: EventTicket = {
+            ...ticketData,
+            id: Math.random().toString(36).substr(2, 9),
+            createdAt: new Date().toISOString(),
+            status: 'confirmado',
+            attendance: 'nao_marcado'
+          };
+          
+          const updatedTickets = [...eventTickets, newTicket];
+          setEventTickets(updatedTickets);
+          
+          const updatedEvents = terreiroEvents.map(e => 
+            e.id === event.id && newTicket.status === 'confirmado'
+              ? { ...e, ticketsIssued: e.ticketsIssued + 1 } 
+              : e
+          );
+          setTerreiroEvents(updatedEvents);
+          
+          return newTicket;
+        }}
+      />
     );
   }
 

@@ -50,6 +50,8 @@ const MODULE_MAPPING: Record<string, string> = {
   'cantina': 'cantina',
   'finance': 'financeiro',
   'inventory-root': 'estoque',
+  'events-list': 'gestao_eventos',
+  'events-checkin': 'gestao_eventos',
 };
 
 const DynamicIcon = ({ name, size = 16, className = "", color }: { name: string, size?: number, className?: string, color?: string }) => {
@@ -284,14 +286,14 @@ export const Layout: React.FC<LayoutProps> = ({
     <div className="flex h-screen bg-gray-50 overflow-hidden w-full">
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
 
-      <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
+      <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl md:m-4 md:rounded-3xl md:h-[calc(100vh-2rem)]`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
         <div className="p-6 flex items-center justify-between shrink-0">
           <div className={`flex items-center gap-3 ${isAtDeveloperPortal ? 'justify-center w-full' : ''}`}>
             {isAtDeveloperPortal ? (
               <img src={masterSettings.brandLogo || MASTER_LOGO_URL} className="w-48 h-auto object-contain" />
             ) : (
               <>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-white/20 shadow-xl bg-white/10 backdrop-blur-md">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden shrink-0 bg-white/10">
                   <img src={config.logoUrl || DEFAULT_LOGO_URL} className="w-full h-full object-contain p-1" />
                 </div>
                 <span className="truncate text-[11px] font-black uppercase tracking-widest" style={{ color: config.sidebarTextColor }}>{config.systemName}</span>
@@ -410,9 +412,10 @@ export const Layout: React.FC<LayoutProps> = ({
                   key={item.id}
                   onClick={() => {
                     setActiveTab(item.id);
+                    setExpandedGroupId(null);
                     if (isMobileMenuOpen) setIsMobileMenuOpen(false);
                   }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                     isActive ? '' : 'hover:bg-white/5 opacity-60'
                   }`}
                   style={{ 
@@ -430,7 +433,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
         <div className={`p-4 border-t shrink-0 ${isAtDeveloperPortal ? 'bg-slate-950 border-slate-800' : 'border-white/10'}`}>
           <div className="flex items-center gap-3 mb-4 px-2">
-            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-black text-sm overflow-hidden shrink-0 ${isAtDeveloperPortal ? 'bg-indigo-600 border-indigo-500' : 'bg-white/10 border-white/20'}`}>
+            <div className={`w-10 h-10 rounded-lg border flex items-center justify-center font-black text-sm overflow-hidden shrink-0 ${isAtDeveloperPortal ? 'bg-indigo-600 border-indigo-500' : 'bg-white/10 border-white/10'}`}>
               {user?.photo ? <img src={user.photo} className="w-full h-full object-cover" /> : user?.name?.charAt(0) || '?'}
             </div>
             <div className="flex flex-col min-w-0 flex-1">

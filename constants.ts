@@ -46,6 +46,16 @@ export const MENU_ICONS_CATALOG = [
 export const AVAILABLE_MODULES = [
   { id: 'agenda', label: 'Agenda de Eventos', icon: 'Calendar', description: 'Calendário e gestão de eventos do terreiro' },
   { 
+    id: 'gestao_eventos', 
+    label: 'Giras e Eventos (Avançado)', 
+    icon: 'Calendar', 
+    description: 'Gestão completa de eventos, ingressos e portaria',
+    subModules: [
+      { id: 'eventos_lista', label: 'Gestão de Eventos' },
+      { id: 'eventos_portaria', label: 'Check-in e Portaria' }
+    ]
+  },
+  { 
     id: 'cursos', 
     label: 'Cursos e EAD', 
     icon: 'GraduationCap', 
@@ -105,6 +115,7 @@ export const AVAILABLE_MODULES = [
 export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { id: 'agenda', label: 'Agenda', icon: 'CalendarDays', requiredModule: 'agenda' },
+  { id: 'events-list', label: 'Giras e Eventos', icon: 'Calendar', requiredModule: 'gestao_eventos' },
   { 
     id: 'cursos', 
     label: 'Cursos', 
@@ -191,7 +202,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
 ];
 
 export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
-  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid' },
+  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#10b981' },
   { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket' },
   { id: 'master-menu', label: 'Config. Menu', icon: 'Menu' },
   { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap' },
@@ -273,6 +284,7 @@ const INITIAL_FIXED_EXPENSES: FixedExpense[] = [
 const INITIAL_PERMISSIONS: StaffPermissions = {
   dashboard: { view: true, add: false, edit: false, delete: false },
   agenda: { view: true, add: false, edit: false, delete: false },
+  'events-list': { view: true, add: false, edit: false, delete: false },
   ead: { view: true, add: false, edit: false, delete: false },
   'course-mgmt': { view: false, add: false, edit: false, delete: false },
   members: { view: true, add: false, edit: false, delete: false },
@@ -322,7 +334,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   primaryColor: '#4f46e5',
   sidebarColor: '#020617',
   sidebarTextColor: '#4f46e5',
-  accentColor: '#4f46e5', 
+  accentColor: '#FFD700', 
   dashboardFontSize: 'medium',
   logoUrl: DEFAULT_LOGO_URL,
   spiritualSectionColors: {

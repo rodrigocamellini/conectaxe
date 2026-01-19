@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { FinancialConfig, SystemConfig, FixedExpense } from '../types';
-import { Calculator, Save, Info, Landmark, Plus, Trash2, ReceiptText } from 'lucide-react';
+import { Calculator, Save, Info, Landmark, Plus, Trash2, ReceiptText, QrCode } from 'lucide-react';
 
 interface FinancialConfigProps {
   config: SystemConfig;
@@ -12,7 +12,9 @@ export const FinancialConfigComponent: React.FC<FinancialConfigProps> = ({ confi
   // Inicialização segura para garantir que fixedExpenses sempre seja um array
   const [formData, setFormData] = useState<FinancialConfig>(() => ({
     ...config.financialConfig,
-    fixedExpenses: config.financialConfig.fixedExpenses || []
+    fixedExpenses: config.financialConfig.fixedExpenses || [],
+    pixKey: config.financialConfig.pixKey || '',
+    pixKeyType: config.financialConfig.pixKeyType || 'email'
   }));
 
   const [newExpenseName, setNewExpenseName] = useState('');
@@ -82,6 +84,43 @@ export const FinancialConfigComponent: React.FC<FinancialConfigProps> = ({ confi
         </div>
 
         <div className="p-8 space-y-12">
+          {/* Seção de PIX */}
+          <section className="space-y-6">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+              <QrCode size={14} style={{ color: config.primaryColor }} /> Configuração PIX (Eventos Pagos)
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Chave PIX</label>
+                <input 
+                  type="text"
+                  className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 transition-all font-black text-lg text-gray-700"
+                  style={{ '--tw-ring-color': config.primaryColor } as any}
+                  placeholder="Ex: seu@email.com"
+                  value={formData.pixKey || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Tipo de Chave</label>
+                 <div className="relative">
+                    <select
+                      className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 transition-all font-black text-lg text-gray-700 appearance-none cursor-pointer"
+                      style={{ '--tw-ring-color': config.primaryColor } as any}
+                      value={formData.pixKeyType || 'email'}
+                      onChange={e => setFormData(prev => ({ ...prev, pixKeyType: e.target.value as any }))}
+                    >
+                      <option value="email">E-mail</option>
+                      <option value="cpf">CPF</option>
+                      <option value="cnpj">CNPJ</option>
+                      <option value="phone">Celular</option>
+                      <option value="random">Chave Aleatória</option>
+                    </select>
+                 </div>
+              </div>
+            </div>
+          </section>
+
           {/* Seção de Mensalidades */}
           <section className="space-y-6">
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">

@@ -483,6 +483,8 @@ export interface FinancialConfig {
   mediumValue: number;
   camboneValue: number;
   fixedExpenses: FixedExpense[];
+  pixKey?: string;
+  pixKeyType?: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random';
 }
 
 export interface AuthState {
@@ -533,5 +535,49 @@ export interface Banho {
   target: string;
   purpose: string;
   direction: string;
+  createdAt: string;
+}
+
+export interface TerreiroEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: string; // ISO string
+  time: string;
+  type: 'gira' | 'festa' | 'curso' | 'outros';
+  status: 'agendado' | 'acontecendo' | 'encerrado' | 'cancelado';
+  location?: string;
+  
+  // Capacity & Tickets
+  capacity: number;
+  ticketsIssued: number;
+  
+  // Lists
+  waitingListEnabled: boolean;
+  
+  // Cost
+  isPaid: boolean;
+  price?: number;
+  pixKey?: string;
+  
+  // Advanced
+  allowGuestRegistration: boolean; // Public link allowed?
+}
+
+export interface EventTicket {
+  id: string;
+  eventId: string;
+  userId?: string; // If system user
+  consulenteId?: string; // If consulente
+  guestName?: string; // If external/guest
+  guestPhone?: string;
+  
+  ticketNumber: number;
+  type: 'normal' | 'preferencial';
+  
+  status: 'pendente' | 'confirmado' | 'cancelado' | 'lista_espera';
+  paymentStatus: 'pago' | 'pendente' | 'gratuito';
+  attendance: 'presente' | 'faltou' | 'justificado' | 'nao_marcado';
+  
   createdAt: string;
 }
