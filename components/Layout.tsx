@@ -286,7 +286,7 @@ export const Layout: React.FC<LayoutProps> = ({
     <div className="flex h-screen bg-gray-50 overflow-hidden w-full">
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
 
-      <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl md:m-4 md:rounded-3xl md:h-[calc(100vh-2rem)]`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
+      <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
         <div className="p-6 flex items-center justify-between shrink-0">
           <div className={`flex items-center gap-3 ${isAtDeveloperPortal ? 'justify-center w-full' : ''}`}>
             {isAtDeveloperPortal ? (
@@ -342,29 +342,49 @@ export const Layout: React.FC<LayoutProps> = ({
               if (!isAllowed(item.id)) return null;
               
               // Check if module is enabled in plan
-          if (enabledModules) {
-            const requiredModule = item.requiredModule || MODULE_MAPPING[item.id];
-            if (requiredModule && !enabledModules.includes(requiredModule)) {
-              return null;
-            }
-          }
+              if (enabledModules) {
+                const requiredModule = item.requiredModule || MODULE_MAPPING[item.id];
+                if (requiredModule && !enabledModules.includes(requiredModule)) {
+                  return null;
+                }
+              }
 
               const hasSub = item.subItems && item.subItems.length > 0;
               const isExpanded = expandedGroupId === item.id;
-              const isActive = hasSub ? isExpanded : activeTab === item.id;
-              const itemColor = item.color || (isActive ? config.sidebarColor : config.sidebarTextColor);
+              
+              // REVISED LOGIC based on user feedback:
+              // 1. Group is active if EXPANDED (clicked) - prioritizing the user's interaction.
+              // 2. If no group is expanded, fall back to showing the active tab's group.
+              // 3. Unitary items only active if NO group is expanded (to avoid double emphasis).
+              let isActive = false;
+
+              if (hasSub) {
+                // Group is active if expanded OR (nothing expanded AND contains active tab)
+                isActive = isExpanded || (expandedGroupId === null && item.subItems!.some(sub => sub.id === activeTab));
+              } else {
+                // Unitary item is active only if it matches activeTab AND no group is stealing focus
+                isActive = activeTab === item.id && expandedGroupId === null;
+              }
+
+              // Color Logic: Use specific item color if defined, otherwise accentColor
+              const activeColor = item.color || config.accentColor;
+              const inactiveColor = item.color || config.sidebarTextColor;
+              const currentColor = isActive ? activeColor : inactiveColor;
+              
+              const borderStyle = isActive ? `4px solid ${activeColor}` : '4px solid transparent';
 
               if (hasSub) {
                 return (
                   <div key={item.id} className="space-y-1">
                     <button
                       onClick={() => toggleGroup(item.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-all duration-300 group ${
                         isActive ? '' : 'hover:bg-white/5 opacity-60'
                       }`}
                       style={{ 
-                        color: itemColor,
-                        backgroundColor: isActive ? config.accentColor : 'transparent'
+                        color: currentColor,
+                        borderLeft: borderStyle,
+                        backgroundColor: 'transparent'
                       }}
                     >
                       <div className="flex items-center gap-3">
@@ -386,6 +406,9 @@ export const Layout: React.FC<LayoutProps> = ({
                           }
 
                           const isSubActive = activeTab === sub.id;
+                          // Sub-item emphasis: Text color change to accent color
+                          const subActiveColor = config.accentColor;
+                          
                           return (
                             <button
                               key={sub.id}
@@ -394,8 +417,9 @@ export const Layout: React.FC<LayoutProps> = ({
                                 if (isMobileMenuOpen) setIsMobileMenuOpen(false);
                               }}
                               className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all ${
-                                isSubActive ? 'bg-white/10 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                isSubActive ? 'font-bold' : 'text-slate-400 hover:text-white hover:bg-white/5'
                               }`}
+                              style={isSubActive ? { color: subActiveColor } : {}}
                             >
                               <DynamicIcon name={sub.icon} size={16} />
                               <span>{sub.label}</span>
@@ -415,12 +439,13 @@ export const Layout: React.FC<LayoutProps> = ({
                     setExpandedGroupId(null);
                     if (isMobileMenuOpen) setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 transition-all duration-300 group relative overflow-hidden ${
                     isActive ? '' : 'hover:bg-white/5 opacity-60'
                   }`}
                   style={{ 
-                    color: itemColor,
-                    backgroundColor: isActive ? config.accentColor : 'transparent'
+                    color: currentColor,
+                    borderLeft: borderStyle,
+                    backgroundColor: 'transparent'
                   }}
                 >
                   <DynamicIcon name={item.icon} size={20} className={isActive ? "stroke-[2.5px]" : "stroke-2"} />
