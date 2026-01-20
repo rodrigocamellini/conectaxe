@@ -118,7 +118,7 @@ export function PublicEventRegistration({ event, config, onRegister, existingTic
               </div>
             </div>
 
-            {event.isPaid && generatedTicket.paymentStatus === 'pendente' && (
+                {event.isPaid && generatedTicket.paymentStatus === 'pendente' && (
               <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
                 <p className="text-orange-800 text-sm font-medium mb-2 flex items-center gap-2">
                   <CreditCard size={16} />
@@ -127,7 +127,7 @@ export function PublicEventRegistration({ event, config, onRegister, existingTic
                 <p className="text-orange-600 text-xs mb-3">
                   Para confirmar sua vaga, realize o Pix de <strong>R$ {event.price?.toFixed(2)}</strong> e envie o comprovante.
                 </p>
-                {event.pixKey && (
+                {(event.pixKey || config.financialConfig?.pixKey) && (
                   <button 
                     onClick={copyPix}
                     className="w-full bg-white border border-orange-200 text-orange-700 py-2 px-4 rounded-lg text-sm font-bold hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"

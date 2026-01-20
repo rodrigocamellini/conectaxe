@@ -85,9 +85,13 @@ export interface MasterAuditLog {
   id: string;
   timestamp: string;
   masterEmail: string;
-  clientId: string;
-  clientName: string;
+  clientId?: string;
+  clientName?: string;
   action: string;
+  details?: string;
+  severity: 'info' | 'warning' | 'danger' | 'critical';
+  ip?: string;
+  category: 'security' | 'client_management' | 'financial' | 'system';
 }
 
 export interface GlobalCoupon {

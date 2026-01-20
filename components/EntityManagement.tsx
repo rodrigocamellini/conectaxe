@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SpiritualEntity, ModulePermission, SystemConfig } from '../types';
-import { Plus, Sparkles, X, Home, Layers, Award } from 'lucide-react';
+import { Plus, Sparkles, X, Home, Layers, Award, Sprout, Droplets } from 'lucide-react';
 import { DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface EntityManagementProps {

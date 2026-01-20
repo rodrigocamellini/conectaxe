@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus } from '../types';
+import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus, User } from '../types';
 import { 
   Users, 
   DollarSign, 
@@ -66,7 +66,8 @@ import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
 import { MasterPlanResources } from './MasterPlanResources';
-import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL } from '../constants';
+import { AuditTab } from './AuditTab';
+import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS } from '../constants';
 
 interface DeveloperPortalProps {
   onLogout: () => void;
@@ -90,6 +91,8 @@ interface DeveloperPortalProps {
   coupons: GlobalCoupon[];
   onUpdateCoupons: (c: GlobalCoupon[]) => void;
   auditLogs: MasterAuditLog[];
+  onAddAuditLog: (log: Partial<MasterAuditLog>) => void;
+  onClearAuditLogs: () => void;
 }
 
 const MONTHS_SHORT = [
@@ -120,7 +123,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   onUpdateRoadmap,
   coupons = [],
   onUpdateCoupons,
-  auditLogs = []
+  auditLogs = [],
+  onAddAuditLog,
+  onClearAuditLogs
 }) => {
   const [activeTab, setActiveTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
@@ -367,6 +372,34 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       lastActivity: new Date().toISOString()
     } as SaaSClient;
     onUpdateClients([...clients, client]);
+    
+    onAddAuditLog({
+      clientId: client.id,
+      clientName: client.name,
+      action: 'Criação de Instância',
+      category: 'client_management',
+      severity: 'info',
+      details: `Nova instância criada com plano ${planName}. Admin: ${client.adminEmail}`
+    });
+
+    // Create initial admin user for this client
+    const newAdminUser: User = {
+      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      name: client.adminName || 'Admin',
+      email: client.adminEmail || 'admin@terreiro.com',
+      role: 'admin',
+      password: client.adminPassword || '123456',
+      photo: ''
+    };
+    
+    // Store in client-specific localStorage
+    const clientUsersKey = `terreiro_system_users_${client.id}`;
+    const existingUsersStr = localStorage.getItem(clientUsersKey);
+    // Include INITIAL_USERS (admin and staff) for now as requested
+    const existingUsers: User[] = existingUsersStr ? JSON.parse(existingUsersStr) : [...INITIAL_USERS];
+    const updatedUsers = [...existingUsers, newAdminUser];
+    localStorage.setItem(clientUsersKey, JSON.stringify(updatedUsers));
+
     setShowAddClient(false);
     setNewClient({
       name: '',
@@ -383,6 +416,15 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       adminEstado: 'SP',
       status: 'active'
     });
+  };
+
+  const handleResetAuditLogs = (password: string) => {
+    if (password === masterCreds.password) {
+      onClearAuditLogs();
+      alert('Logs de auditoria foram limpos com sucesso.');
+    } else {
+      alert('Senha de desenvolvedor incorreta.');
+    }
   };
 
   const handleCreateSnapshot = (type: 'manual' | 'automatico' = 'manual') => {
@@ -408,6 +450,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     };
 
     setSnapshots([newSnapshot, ...snapshots]);
+    
+    onAddAuditLog({
+      action: 'Criação de Snapshot',
+      category: 'system',
+      severity: 'info',
+      details: `Snapshot ${type} criado. Tamanho: ${size}`
+    });
+
     alert(`Snapshot ${type} criado com sucesso! Tamanho: ${size}`);
   };
 
@@ -442,8 +492,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
     if (confirm('ATENÇÃO: Isso substituirá TODOS os dados atuais do sistema pelo backup selecionado. Continuar?')) {
       const data = showRestoreConfirm.data;
-      // Preservar o histórico de snapshots na restauração
+      // Preservar o histórico de snapshots e logs de auditoria na restauração
       const currentSnapshots = localStorage.getItem('saas_master_snapshots');
+      const currentAuditLogs = localStorage.getItem('saas_master_audit_logs');
       
       localStorage.clear();
       
@@ -453,6 +504,21 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
       if (currentSnapshots) {
         localStorage.setItem('saas_master_snapshots', currentSnapshots);
+      }
+      
+      // Preservar logs de auditoria atuais + adicionar log de restauração
+      if (currentAuditLogs) {
+        const logs = JSON.parse(currentAuditLogs) as MasterAuditLog[];
+        const restoreLog: MasterAuditLog = {
+            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            timestamp: new Date().toISOString(),
+            masterEmail: masterCreds.email,
+            action: 'Restauração de Sistema',
+            category: 'system',
+            severity: 'critical',
+            details: `Sistema restaurado para o ponto: ${format(new Date(showRestoreConfirm.date), 'dd/MM/yyyy HH:mm')}`
+        };
+        localStorage.setItem('saas_master_audit_logs', JSON.stringify([restoreLog, ...logs]));
       }
 
       alert('Restauração concluída! O sistema será reiniciado.');
@@ -467,6 +533,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   };
 
   const handleUpdateClientPayment = (clientId: string, monthKey: string) => {
+    let newStatus = '';
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
         const currentPayments = client.payments || {};
@@ -477,6 +544,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         else if (currentStatus === 'paid') nextStatus = 'justified';
         else nextStatus = 'unpaid';
 
+        newStatus = nextStatus;
+
         return {
           ...client,
           payments: { ...currentPayments, [monthKey]: nextStatus }
@@ -485,6 +554,28 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       return client;
     });
     onUpdateClients(updatedClients);
+
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+        onAddAuditLog({
+            clientId: client.id,
+            clientName: client.name,
+            action: 'Atualização de Pagamento',
+            category: 'financial',
+            severity: 'info',
+            details: `Mensalidade ${monthKey} alterada para ${newStatus}`
+        });
+    }
+  };
+
+  const handleUpdatePlansWithAudit = (newPlans: SaaSPlan[]) => {
+    onUpdatePlans(newPlans);
+    onAddAuditLog({
+        action: 'Atualização de Planos SaaS',
+        category: 'financial',
+        severity: 'warning',
+        details: `Configuração de planos atualizada. Total de planos: ${newPlans.length}`
+    });
   };
 
   const handleAddBroadcast = () => {
@@ -565,6 +656,15 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     // Remove da lista de clientes
     onUpdateClients(clients.filter(c => c.id !== clientToDelete.id));
     
+    onAddAuditLog({
+      clientId: clientToDelete.id,
+      clientName: clientToDelete.name,
+      action: 'Exclusão de Instância',
+      category: 'client_management',
+      severity: 'critical',
+      details: `Instância removida permanentemente. Dados limpos do localStorage.`
+    });
+
     setShowDeleteClientModal(false);
     setClientToDelete(null);
     setDeleteClientPassword('');
@@ -573,7 +673,19 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   };
 
   const toggleStatus = (id: string, newStatus: SaaSClient['status']) => {
+    const client = clients.find(c => c.id === id);
     onUpdateClients(clients.map(c => c.id === id ? { ...c, status: newStatus } : c));
+    
+    if (client) {
+      onAddAuditLog({
+        clientId: client.id,
+        clientName: client.name,
+        action: 'Alteração de Status',
+        category: 'client_management',
+        severity: newStatus === 'blocked' || newStatus === 'frozen' ? 'warning' : 'info',
+        details: `Status alterado de ${client.status} para ${newStatus}`
+      });
+    }
   };
 
   const clientStats = {
@@ -1383,13 +1495,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
  
             {systemConfigTab === 'planos' && (
               <div className="p-6">
-                <MasterPlansManager plans={plans} onUpdatePlans={onUpdatePlans} />
+                <MasterPlansManager plans={plans} onUpdatePlans={handleUpdatePlansWithAudit} />
               </div>
             )}
 
             {systemConfigTab === 'recursos' && (
               <div className="p-6">
-                <MasterPlanResources plans={plans} onUpdatePlans={onUpdatePlans} />
+                <MasterPlanResources plans={plans} onUpdatePlans={handleUpdatePlansWithAudit} />
               </div>
             )}
           </div>
@@ -1952,7 +2064,16 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
               </div>
 
               <button 
-                onClick={() => onUpdateMaintenance({ ...maintConfig, active: !maintConfig.active })} 
+                onClick={() => {
+                    const newStatus = !maintConfig.active;
+                    onUpdateMaintenance({ ...maintConfig, active: newStatus });
+                    onAddAuditLog({
+                        action: newStatus ? 'Ativação de Manutenção' : 'Desativação de Manutenção',
+                        category: 'system',
+                        severity: 'critical',
+                        details: newStatus ? `Bloqueio estrutural ativado. Motivo: ${maintConfig.message}` : 'Bloqueio estrutural removido.'
+                    });
+                }} 
                 className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-2xl transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-3 ${maintConfig.active ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
               >
                 {maintConfig.active ? <CheckCircle2 size={20} /> : <ShieldAlert size={20} />}
@@ -2032,6 +2153,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
            </div>
         </div>
       )}
+
+      {/* ABA: AUDITORIA */}
+      {activeTab === 'audit' && (
+          <AuditTab 
+            logs={auditLogs} 
+            onReset={handleResetAuditLogs}
+          />
+        )}
 
       {/* MODAL DE RESTAURAÇÃO (Pede Senha Master) */}
       {showRestoreConfirm && (

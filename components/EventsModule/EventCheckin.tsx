@@ -166,6 +166,17 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
                       >
                         <X size={16} />
                       </button>
+                      <button
+                        onClick={() => onUpdateTicket(ticket.id, { attendance: 'justificado' })}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          ticket.attendance === 'justificado' 
+                            ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/20' 
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        }`}
+                        title="Marcar Justificado"
+                      >
+                        <Filter size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>

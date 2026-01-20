@@ -115,7 +115,7 @@ export const AVAILABLE_MODULES = [
 export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { id: 'agenda', label: 'Agenda', icon: 'CalendarDays', requiredModule: 'agenda' },
-  { id: 'events-list', label: 'Giras e Eventos', icon: 'Calendar', requiredModule: 'gestao_eventos' },
+  { id: 'events-list', label: 'Giras e Eventos', icon: 'Sparkles', requiredModule: 'gestao_eventos' },
   { 
     id: 'cursos', 
     label: 'Cursos', 

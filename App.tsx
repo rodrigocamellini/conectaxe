@@ -252,6 +252,23 @@ const App: React.FC = () => {
 
     const savedCanteenOrders = storage.get<CanteenOrder[]>(`terreiro_canteen_orders${suffix}`);
     setCanteenOrders(Array.isArray(savedCanteenOrders) ? savedCanteenOrders : []);
+
+    // Load Client-Specific System Config
+    const savedConfig = storage.get<SystemConfig>(`${STORAGE_KEYS.SYSTEM_CONFIG}${suffix}`);
+    if (savedConfig) {
+      setSystemConfig(prev => ({
+        ...prev,
+        ...savedConfig,
+        license: prev.license, // Preserve license info
+        systemName: prev.systemName // Preserve system name
+      }));
+    } else {
+      setSystemConfig(prev => ({
+        ...DEFAULT_SYSTEM_CONFIG,
+        license: prev.license,
+        systemName: prev.systemName
+      }));
+    }
   }, []);
 
   useEffect(() => {
@@ -558,7 +575,13 @@ const App: React.FC = () => {
     storage.set('saas_global_coupons', coupons);
     storage.set('saas_master_audit_logs', auditLogs);
     storage.set(STORAGE_KEYS.AUTH, auth);
-    storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
+
+    if (activeClientId) {
+      const suffix = `_${activeClientId}`;
+      storage.set(`${STORAGE_KEYS.SYSTEM_CONFIG}${suffix}`, systemConfig);
+    } else {
+      storage.set(STORAGE_KEYS.SYSTEM_CONFIG, systemConfig);
+    }
   }, [systemUsers, members, consulentes, entities, events, courses, enrollments, attendanceRecords, inventoryItems, inventoryCategories, stockLogs, donations, activeClientId, auth.isMasterMode, idCardLogs, canteenItems, canteenOrders, terreiroEvents, eventTickets, pontos, rezas, ervas, banhos, referrals, tickets, clients, plans, broadcasts, safeRoadmap, coupons, auditLogs, auth, systemConfig]);
 
   useEffect(() => {
@@ -576,17 +599,53 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Patch to update menu icons if they differ from code constants (e.g. after update)
+  useEffect(() => {
+    setSystemConfig(prev => {
+      const needsUpdate = prev.menuConfig?.some(item => item.id === 'events-list' && item.icon !== 'Sparkles');
+      if (needsUpdate) {
+        return {
+          ...prev,
+          menuConfig: prev.menuConfig?.map(item => 
+            item.id === 'events-list' ? { ...item, icon: 'Sparkles' } : item
+          )
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleAddAuditLog = (log: Partial<MasterAuditLog>) => {
+    const newLog: MasterAuditLog = {
+      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      timestamp: new Date().toISOString(),
+      masterEmail: auth.user?.email || 'rodrigo@dev.com',
+      clientId: log.clientId || 'SISTEMA',
+      clientName: log.clientName || 'SISTEMA MASTER',
+      action: log.action || 'Ação não especificada',
+      severity: log.severity || 'info',
+      category: log.category || 'system',
+      details: log.details || '',
+      ...log
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
+  const handleClearAuditLogs = () => {
+    setAuditLogs([]);
+    localStorage.removeItem('saas_master_audit_logs');
+  };
+
   const handleEnterClientSystem = (client: SaaSClient) => {
     if (auth.isMasterMode) {
-      const newAudit: MasterAuditLog = {
-        id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-        timestamp: new Date().toISOString(),
-        masterEmail: auth.user?.email || 'rodrigo@dev.com',
+      handleAddAuditLog({
         clientId: client.id,
         clientName: client.name,
-        action: 'Acesso Técnico Master à Instância'
-      };
-      setAuditLogs(prev => [newAudit, ...prev]);
+        action: 'Acesso Técnico Master à Instância',
+        category: 'security',
+        severity: 'warning',
+        details: 'Acesso administrativo via impersonation (painel de desenvolvedor).'
+      });
     }
 
     setSystemConfig(prev => ({
@@ -799,7 +858,7 @@ const App: React.FC = () => {
               window.location.reload();
             }}
           >
-            <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={safeRoadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} />
+            <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={safeRoadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} onAddAuditLog={handleAddAuditLog} onClearAuditLogs={handleClearAuditLogs} />
           </SafeMasterPortal>
         )}
       </Layout>
