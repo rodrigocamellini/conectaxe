@@ -858,7 +858,7 @@ const App: React.FC = () => {
               window.location.reload();
             }}
           >
-            <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={safeRoadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} onAddAuditLog={handleAddAuditLog} onClearAuditLogs={handleClearAuditLogs} />
+            <DeveloperPortal onLogout={() => setAuth({ user: null, isAuthenticated: false })} onEnterClientSystem={handleEnterClientSystem} referrals={referrals} onUpdateReferral={(id, st) => setReferrals(referrals.map(r => r.id === id ? { ...r, status: st } : r))} clients={clients} onUpdateClients={setClients} plans={plans} onUpdatePlans={setPlans} externalTab={activeTab} onTabChange={setActiveTab} maintConfig={globalMaintenance} onUpdateMaintenance={setGlobalMaintenance} tickets={tickets} onUpdateTickets={setTickets} broadcasts={broadcasts} onUpdateBroadcasts={setBroadcasts} roadmap={safeRoadmap} onUpdateRoadmap={setRoadmap} coupons={coupons} onUpdateCoupons={setCoupons} auditLogs={auditLogs} onAddAuditLog={handleAddAuditLog} onClearAuditLogs={handleClearAuditLogs} systemConfig={systemConfig} />
           </SafeMasterPortal>
         )}
       </Layout>

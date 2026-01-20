@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus, User } from '../types';
+import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus, User, SystemConfig } from '../types';
 import { 
   Users, 
   DollarSign, 
@@ -58,7 +58,8 @@ import {
   FileJson,
   RefreshCcw,
   Eye,
-  EyeOff
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -67,7 +68,7 @@ import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
 import { MasterPlanResources } from './MasterPlanResources';
 import { AuditTab } from './AuditTab';
-import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS } from '../constants';
+import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS, DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface DeveloperPortalProps {
   onLogout: () => void;
@@ -93,6 +94,7 @@ interface DeveloperPortalProps {
   auditLogs: MasterAuditLog[];
   onAddAuditLog: (log: Partial<MasterAuditLog>) => void;
   onClearAuditLogs: () => void;
+  systemConfig?: SystemConfig;
 }
 
 const MONTHS_SHORT = [
@@ -125,11 +127,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   onUpdateCoupons,
   auditLogs = [],
   onAddAuditLog,
-  onClearAuditLogs
+  onClearAuditLogs,
+  systemConfig
 }) => {
   const [activeTab, setActiveTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddClient, setShowAddClient] = useState(false);
+  const [editingClient, setEditingClient] = useState<SaaSClient | null>(null);
   const [showMasterSettings, setShowMasterSettings] = useState(false);
   const [billingYear, setBillingYear] = useState(new Date().getFullYear());
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -358,49 +362,106 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     }
   };
 
-  const handleAddClient = (e: React.FormEvent) => {
+  const handleEditClient = (client: SaaSClient) => {
+    setEditingClient(client);
+    setNewClient({
+      name: client.name,
+      plan: client.plan,
+      adminName: client.adminName,
+      adminEmail: client.adminEmail,
+      adminPassword: '', 
+      adminCpf: client.adminCpf || '',
+      adminPhone: client.adminPhone || '',
+      adminCep: client.adminCep || '',
+      adminAddress: client.adminAddress || '',
+      adminBairro: client.adminBairro || '',
+      adminCidade: client.adminCidade || '',
+      adminEstado: client.adminEstado || 'SP',
+      status: client.status
+    });
+    setShowAddClient(true);
+  };
+
+  const handleSaveClient = (e: React.FormEvent) => {
     e.preventDefault();
     const planName = newClient.plan || ((plans && plans[0]?.name) || SAAS_PLANS[0]);
     const { price, expirationDate } = getClientBillingFromPlan(planName);
-    const client: SaaSClient = {
-      ...newClient,
-      id: Math.random().toString(36).substr(2, 6).toUpperCase(),
-      plan: planName,
-      monthlyValue: price,
-      expirationDate,
-      createdAt: new Date().toISOString(),
-      lastActivity: new Date().toISOString()
-    } as SaaSClient;
-    onUpdateClients([...clients, client]);
-    
-    onAddAuditLog({
-      clientId: client.id,
-      clientName: client.name,
-      action: 'Criação de Instância',
-      category: 'client_management',
-      severity: 'info',
-      details: `Nova instância criada com plano ${planName}. Admin: ${client.adminEmail}`
-    });
 
-    // Create initial admin user for this client
-    const newAdminUser: User = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-      name: client.adminName || 'Admin',
-      email: client.adminEmail || 'admin@terreiro.com',
-      role: 'admin',
-      password: client.adminPassword || '123456',
-      photo: ''
-    };
+    if (editingClient) {
+        const updatedClients = clients.map(c => c.id === editingClient.id ? {
+            ...c,
+            ...newClient,
+            id: c.id,
+            monthlyValue: price,
+            expirationDate: (c.plan === planName) ? c.expirationDate : expirationDate,
+            createdAt: c.createdAt,
+            lastActivity: c.lastActivity,
+            adminPassword: newClient.adminPassword || c.adminPassword
+        } as SaaSClient : c);
+        
+        onUpdateClients(updatedClients);
+        
+        onAddAuditLog({
+          clientId: editingClient.id,
+          clientName: newClient.name || editingClient.name,
+          action: 'Atualização de Instância',
+          category: 'client_management',
+          severity: 'info',
+          details: `Instância atualizada. Plano: ${planName}`
+        });
+    } else {
+        const client: SaaSClient = {
+          ...newClient,
+          id: Math.random().toString(36).substr(2, 6).toUpperCase(),
+          plan: planName,
+          monthlyValue: price,
+          expirationDate,
+          createdAt: new Date().toISOString(),
+          lastActivity: new Date().toISOString()
+        } as SaaSClient;
+        onUpdateClients([...clients, client]);
+        
+        onAddAuditLog({
+          clientId: client.id,
+          clientName: client.name,
+          action: 'Criação de Instância',
+          category: 'client_management',
+          severity: 'info',
+          details: `Nova instância criada com plano ${planName}. Admin: ${client.adminEmail}`
+        });
     
-    // Store in client-specific localStorage
-    const clientUsersKey = `terreiro_system_users_${client.id}`;
-    const existingUsersStr = localStorage.getItem(clientUsersKey);
-    // Include INITIAL_USERS (admin and staff) for now as requested
-    const existingUsers: User[] = existingUsersStr ? JSON.parse(existingUsersStr) : [...INITIAL_USERS];
-    const updatedUsers = [...existingUsers, newAdminUser];
-    localStorage.setItem(clientUsersKey, JSON.stringify(updatedUsers));
+        const newAdminUser: User = {
+          id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+          name: client.adminName || 'Admin',
+          email: client.adminEmail || 'admin@terreiro.com',
+          role: 'admin',
+          password: client.adminPassword || '123456',
+          photo: ''
+        };
+        
+        const clientUsersKey = `terreiro_system_users_${client.id}`;
+        const existingUsersStr = localStorage.getItem(clientUsersKey);
+        const existingUsers: User[] = existingUsersStr ? JSON.parse(existingUsersStr) : [...INITIAL_USERS];
+        const updatedUsers = [...existingUsers, newAdminUser];
+        localStorage.setItem(clientUsersKey, JSON.stringify(updatedUsers));
+
+        if (systemConfig) {
+             const clientConfigKey = `terreiro_system_config_${client.id}`;
+             const newClientConfig = {
+                ...DEFAULT_SYSTEM_CONFIG,
+                primaryColor: systemConfig.primaryColor,
+                sidebarColor: systemConfig.sidebarColor,
+                sidebarTextColor: systemConfig.sidebarTextColor,
+                accentColor: systemConfig.accentColor,
+                spiritualSectionColors: systemConfig.spiritualSectionColors,
+                systemName: client.name
+             };
+             localStorage.setItem(clientConfigKey, JSON.stringify(newClientConfig));
+        }
+    }
 
     setShowAddClient(false);
+    setEditingClient(null);
     setNewClient({
       name: '',
       plan: (plans && plans[0]?.name) || SAAS_PLANS[0],
@@ -758,22 +819,22 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
  
           {showAddClient && (
             <div className="bg-slate-900 rounded-[2.5rem] border border-emerald-600/40 shadow-2xl overflow-hidden mb-8">
-              <form onSubmit={handleAddClient} className="p-8 space-y-6">
+              <form onSubmit={handleSaveClient} className="p-8 space-y-6">
                 <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-emerald-500 rounded-2xl text-slate-900 shadow-lg">
                       <Plus size={20} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white uppercase tracking-tight">Novo Terreiro</h3>
+                      <h3 className="text-lg font-black text-white uppercase tracking-tight">{editingClient ? 'Editar Terreiro' : 'Novo Terreiro'}</h3>
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
-                        Cadastro de nova instância do sistema
+                        {editingClient ? 'Atualização de dados da instância' : 'Cadastro de nova instância do sistema'}
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setShowAddClient(false)}
+                    onClick={() => { setShowAddClient(false); setEditingClient(null); }}
                     className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
                   >
                     <X size={18} />
@@ -841,10 +902,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                     <input
                       type="text"
                       className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Defina uma senha para o admin"
+                      placeholder={editingClient ? "Deixe em branco para manter a atual" : "Defina uma senha para o admin"}
                       value={newClient.adminPassword || ''}
                       onChange={e => setNewClient(prev => ({ ...prev, adminPassword: e.target.value }))}
-                      required
+                      required={!editingClient}
                     />
                   </div>
                   <div>
@@ -995,6 +1056,31 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                              </td>
                              <td className="px-8 py-5 text-right">
                                 <div className="flex justify-end gap-2">
+                                   <button 
+                                     onClick={() => {
+                                       setEditingClient(c);
+                                       setNewClient({
+                                         name: c.name,
+                                         plan: c.plan,
+                                         adminName: c.adminName,
+                                         adminEmail: c.adminEmail,
+                                         adminPassword: c.adminPassword,
+                                         adminCpf: c.adminCpf,
+                                         adminPhone: c.adminPhone,
+                                         adminCep: c.adminCep,
+                                         adminAddress: c.adminAddress,
+                                         adminBairro: c.adminBairro,
+                                         adminCidade: c.adminCidade,
+                                         adminEstado: c.adminEstado,
+                                         status: c.status
+                                       });
+                                       setShowAddClient(true);
+                                     }}
+                                     className="p-2.5 bg-slate-800 text-slate-400 hover:text-emerald-400 rounded-xl transition-all shadow-lg" 
+                                     title="Editar Dados"
+                                   >
+                                     <Pencil size={18} />
+                                   </button>
                                    <button onClick={() => onEnterClientSystem(c)} className="p-2.5 bg-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl transition-all shadow-lg" title="Acesso Direto"><ExternalLink size={18} /></button>
                                    <button onClick={() => toggleStatus(c.id, c.status === 'frozen' ? 'active' : 'frozen')} className={`p-2.5 bg-slate-800 rounded-xl transition-all ${c.status === 'frozen' ? 'text-blue-400' : 'text-slate-600 hover:text-blue-400'}`} title="Congelar"><Snowflake size={18} /></button>
                                    <button onClick={() => toggleStatus(c.id, c.status === 'blocked' ? 'active' : 'blocked')} className={`p-2.5 bg-slate-800 rounded-xl transition-all ${c.status === 'blocked' ? 'text-red-500' : 'text-slate-600 hover:text-red-500'}`} title="Bloquear"><Lock size={18} /></button>
