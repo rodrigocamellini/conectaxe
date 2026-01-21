@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Member, SystemConfig, CalendarEvent, ReleaseNote, GlobalBroadcast } from '../types';
+import { Member, SystemConfig, CalendarEvent, ReleaseNote, GlobalBroadcast, TerreiroEvent } from '../types';
 import { format, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { 
@@ -78,7 +78,7 @@ const RenderEventIcon = ({ name, size = 16, className = "" }: { name?: string, s
   return <IconComp size={size} className={className} />;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, roadmap = [], broadcasts = [] }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, terreiroEvents, roadmap = [], broadcasts = [] }) => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   
   // IDs de Novidades (Roadmap) descartadas
@@ -180,7 +180,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, r
     })
     .slice(0, 5);
 
-  const todayEvents = events.filter(e => e.date === todayStr);
+  const todayEvents = [
+    ...events.filter(e => e.date === todayStr),
+    ...terreiroEvents
+      .filter(e => e.date.split('T')[0] === todayStr && e.status !== 'cancelado')
+      .map(e => ({
+        id: e.id,
+        title: e.title,
+        time: e.time,
+        color: config.primaryColor || '#4f46e5',
+        icon: e.type === 'gira' ? 'sparkles' : e.type === 'festa' ? 'party' : 'calendar',
+        date: e.date.split('T')[0],
+        description: e.description
+      } as CalendarEvent))
+  ];
 
   const ranking = members
     .filter(m => m.isMedium || m.isCambone)

@@ -780,11 +780,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         <div className="space-y-8">
            {/* MENU SUPERIOR DE RESUMO */}
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
-                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total de Instâncias</p>
+              <div className="bg-[#1e90ff] p-6 rounded-3xl border border-[#1e90ff]/80 shadow-xl">
+                 <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Total de Instâncias</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.total}</h4>
-                    <LayoutGrid size={24} className="text-indigo-500" />
+                    <LayoutGrid size={24} className="text-white/40" />
                  </div>
               </div>
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
@@ -1076,10 +1076,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                                        });
                                        setShowAddClient(true);
                                      }}
-                                     className="p-2.5 bg-slate-800 text-slate-400 hover:text-emerald-400 rounded-xl transition-all shadow-lg" 
-                                     title="Editar Dados"
+                                     className="px-3 py-2 bg-[#1e90ff] text-white hover:bg-blue-600 rounded-xl transition-all shadow-lg flex items-center gap-2" 
+                                     title="Editar Dados do Terreiro"
                                    >
-                                     <Pencil size={18} />
+                                     <Pencil size={14} />
+                                     <span className="text-[10px] font-black uppercase">Editar</span>
                                    </button>
                                    <button onClick={() => onEnterClientSystem(c)} className="p-2.5 bg-slate-800 text-slate-400 hover:text-indigo-400 rounded-xl transition-all shadow-lg" title="Acesso Direto"><ExternalLink size={18} /></button>
                                    <button onClick={() => toggleStatus(c.id, c.status === 'frozen' ? 'active' : 'frozen')} className={`p-2.5 bg-slate-800 rounded-xl transition-all ${c.status === 'frozen' ? 'text-blue-400' : 'text-slate-600 hover:text-blue-400'}`} title="Congelar"><Snowflake size={18} /></button>

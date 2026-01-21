@@ -120,7 +120,25 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     if (editingId) {
       onUpdateMember(editingId, formData);
     } else {
-      onAddMember(formData);
+      const newMemberId = Math.random().toString(36).substr(2, 9);
+      const memberWithId = { ...formData, id: newMemberId };
+      onAddMember(memberWithId);
+
+      // Auto-provision User Account for Member/Consulente
+      if (formData.email) {
+        const userEvent = new CustomEvent('create-linked-user', {
+          detail: {
+            name: formData.name,
+            email: formData.email,
+            role: mode === 'consulente' ? 'consulente' : 'membro',
+            profileType: mode === 'consulente' ? 'consulente' : 'membro',
+            linkedEntityId: newMemberId,
+            password: 'mudar123', // Temporary password
+            photo: formData.photo
+          }
+        });
+        window.dispatchEvent(userEvent);
+      }
     }
     setShowEditModal(false);
   };

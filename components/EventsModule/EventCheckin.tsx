@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, Search, QrCode, UserCheck, X, Check, Filter } from 'lucide-react';
+import { ArrowLeft, Search, QrCode, UserCheck, X, Check, Filter, Users, UserX, Clock, Ticket } from 'lucide-react';
 import { TerreiroEvent, EventTicket, SystemConfig } from '../../types';
 
 interface EventCheckinProps {
@@ -42,18 +42,18 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
       <div className="flex items-center gap-4">
         <button 
           onClick={onBack}
-          className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             Check-in: {event.title}
-            <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase bg-white/10 text-white/70`}>
+            <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase bg-indigo-100 text-indigo-700`}>
               {event.status}
             </span>
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-gray-500">
             {new Date(event.date).toLocaleDateString()} • {event.time}
           </p>
         </div>
@@ -61,40 +61,63 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <p className="text-xs font-medium text-slate-400 uppercase">Inscritos</p>
-          <p className="text-2xl font-bold text-white">{stats.total}</p>
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Inscritos</p>
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Ticket size={16} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-gray-800">{stats.total}</p>
         </div>
-        <div className="bg-green-900/20 p-4 rounded-xl border border-green-900/50">
-          <p className="text-xs font-medium text-green-400 uppercase">Presentes</p>
-          <p className="text-2xl font-bold text-green-400">{stats.presente}</p>
+        
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Presentes</p>
+            <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+              <UserCheck size={16} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-gray-800">{stats.presente}</p>
         </div>
-        <div className="bg-yellow-900/20 p-4 rounded-xl border border-yellow-900/50">
-          <p className="text-xs font-medium text-yellow-400 uppercase">Pendentes</p>
-          <p className="text-2xl font-bold text-yellow-400">{stats.pendente}</p>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-amber-500 uppercase tracking-wider">Pendentes</p>
+            <div className="p-1.5 bg-amber-50 text-amber-500 rounded-lg">
+              <Clock size={16} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-gray-800">{stats.pendente}</p>
         </div>
-        <div className="bg-red-900/20 p-4 rounded-xl border border-red-900/50">
-          <p className="text-xs font-medium text-red-400 uppercase">Faltas</p>
-          <p className="text-2xl font-bold text-red-400">{stats.faltou}</p>
+
+        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-red-500 uppercase tracking-wider">Faltas</p>
+            <div className="p-1.5 bg-red-50 text-red-500 rounded-lg">
+              <UserX size={16} />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-gray-800">{stats.faltou}</p>
         </div>
       </div>
 
       {/* Search & Actions */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
             placeholder="Buscar por nome ou número da senha..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
           />
         </div>
         
         <div className="flex gap-2">
            {/* Mobile Scanner Button Placeholder */}
-           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm shadow-indigo-200">
              <QrCode size={18} />
              <span className="hidden md:inline">Ler QR Code</span>
            </button>
@@ -102,80 +125,80 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
       </div>
 
       {/* List */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase font-bold">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3">Senha</th>
-                <th className="px-6 py-3">Participante</th>
-                <th className="px-6 py-3">Tipo</th>
-                <th className="px-6 py-3">Pagamento</th>
-                <th className="px-6 py-3 text-right">Presença</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Senha</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Participante</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Pagamento</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Presença</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-gray-50">
               {filteredTickets.map(ticket => (
-                <tr key={ticket.id} className="hover:bg-white/5 transition-colors">
+                <tr key={ticket.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-mono text-lg font-bold text-white">#{ticket.ticketNumber}</span>
+                    <span className="font-mono text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">#{ticket.ticketNumber}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-white">{ticket.guestName || 'Anônimo'}</div>
-                    {ticket.guestPhone && <div className="text-xs text-slate-400">{ticket.guestPhone}</div>}
+                    <div className="font-bold text-gray-800 text-sm">{ticket.guestName || 'Anônimo'}</div>
+                    {ticket.guestPhone && <div className="text-[10px] font-medium text-gray-400 mt-0.5">{ticket.guestPhone}</div>}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                      ticket.type === 'preferencial' ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-700 text-slate-300'
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${
+                      ticket.type === 'preferencial' ? 'bg-purple-50 text-purple-600 border border-purple-100' : 'bg-gray-100 text-gray-500 border border-gray-200'
                     }`}>
                       {ticket.type}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     {event.isPaid ? (
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                        ticket.paymentStatus === 'pago' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${
+                        ticket.paymentStatus === 'pago' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
                       }`}>
                         {ticket.paymentStatus}
                       </span>
                     ) : (
-                      <span className="text-slate-500 text-xs">Gratuito</span>
+                      <span className="text-gray-400 text-xs font-medium italic">Gratuito</span>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <button
                         onClick={() => onUpdateTicket(ticket.id, { attendance: 'presente' })}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                           ticket.attendance === 'presente' 
-                            ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110' 
+                            : 'bg-gray-100 text-gray-400 hover:bg-emerald-100 hover:text-emerald-600'
                         }`}
                         title="Marcar Presente"
                       >
-                        <Check size={16} />
+                        <Check size={16} strokeWidth={2.5} />
                       </button>
                       <button
                         onClick={() => onUpdateTicket(ticket.id, { attendance: 'faltou' })}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                           ticket.attendance === 'faltou' 
-                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' 
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 scale-110' 
+                            : 'bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600'
                         }`}
                         title="Marcar Falta"
                       >
-                        <X size={16} />
+                        <X size={16} strokeWidth={2.5} />
                       </button>
                       <button
                         onClick={() => onUpdateTicket(ticket.id, { attendance: 'justificado' })}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                           ticket.attendance === 'justificado' 
-                            ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/20' 
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            ? 'bg-amber-400 text-white shadow-lg shadow-amber-400/30 scale-110' 
+                            : 'bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600'
                         }`}
                         title="Marcar Justificado"
                       >
-                        <Filter size={16} />
+                        <Filter size={16} strokeWidth={2.5} />
                       </button>
                     </div>
                   </td>

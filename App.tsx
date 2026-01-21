@@ -440,6 +440,76 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
+    const handleCreateLinkedUser = (e: CustomEvent) => {
+      const data = e.detail;
+      
+      setSystemUsers(prev => {
+        // Check if user already exists
+        if (prev.some(u => u.email === data.email)) return prev;
+
+        const newUser: User = {
+          id: Math.random().toString(36).substr(2, 9),
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          password: data.password,
+          photo: data.photo,
+          profileType: data.profileType,
+          linkedEntityId: data.linkedEntityId
+        };
+        
+        const newUsers = [...prev, newUser];
+        
+        // Persist to client-specific storage if active
+        const suffix = activeClientId ? `_${activeClientId}` : '';
+        storage.set(`terreiro_system_users${suffix}`, newUsers);
+        
+        return newUsers;
+      });
+    };
+
+    window.addEventListener('create-linked-user', handleCreateLinkedUser as EventListener);
+    return () => window.removeEventListener('create-linked-user', handleCreateLinkedUser as EventListener);
+  }, [activeClientId]);
+
+  // Handle Profile Update
+  const handleUpdateProfile = (data: Partial<User>) => {
+    if (!auth.user) return;
+    const updatedUser = { ...auth.user, ...data };
+    
+    // Update auth state
+    setAuth(prev => ({ ...prev, user: updatedUser }));
+    storage.set(STORAGE_KEYS.AUTH, { ...auth, user: updatedUser });
+
+    // Update systemUsers
+    setSystemUsers(prev => {
+      const updated = prev.map(u => u.id === updatedUser.id ? updatedUser : u);
+      const suffix = activeClientId ? `_${activeClientId}` : '';
+      storage.set(`terreiro_system_users${suffix}`, updated);
+      return updated;
+    });
+
+    // If linked entity, update it too
+    if (updatedUser.linkedEntityId) {
+      if (updatedUser.profileType === 'membro') {
+        setMembers(prev => {
+          const updated = prev.map(m => m.id === updatedUser.linkedEntityId ? { ...m, name: updatedUser.name, email: updatedUser.email, photo: updatedUser.photo } : m);
+          const suffix = activeClientId ? `_${activeClientId}` : '';
+          storage.set(`${STORAGE_KEYS.MEMBERS}${suffix}`, updated);
+          return updated;
+        });
+      } else if (updatedUser.profileType === 'consulente') {
+        setConsulentes(prev => {
+          const updated = prev.map(c => c.id === updatedUser.linkedEntityId ? { ...c, name: updatedUser.name, email: updatedUser.email, photo: updatedUser.photo } : c);
+          const suffix = activeClientId ? `_${activeClientId}` : '';
+          storage.set(`${STORAGE_KEYS.CONSULENTES}${suffix}`, updated);
+          return updated;
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
     if (!rememberAccess) {
       localStorage.removeItem('saas_login_persist');
       return;
@@ -758,8 +828,9 @@ const App: React.FC = () => {
         isMasterMode={auth.isMasterMode}
         enabledModules={currentPlan?.enabledModules}
         systemVersion={currentSystemVersion}
+        onUpdateProfile={handleUpdateProfile}
       >
-        {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} roadmap={safeRoadmap} broadcasts={broadcasts} />}
+        {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} terreiroEvents={terreiroEvents} roadmap={safeRoadmap} broadcasts={broadcasts} />}
         {/* Módulo Agenda Simples */}
         {(activeTab === 'agenda') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('agenda')) && (
            <AgendaManagement events={events} members={members} config={systemConfig} user={auth.user!} onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} />

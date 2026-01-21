@@ -24,7 +24,9 @@ import {
   CreditCard,
   Code,
   Crown,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  User as UserIcon
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
@@ -37,6 +39,7 @@ interface LayoutProps {
   onLogout: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onUpdateProfile?: (data: Partial<User>) => void;
   isMasterMode?: boolean; 
   enabledModules?: string[];
   systemVersion?: string;
@@ -175,10 +178,13 @@ export const Layout: React.FC<LayoutProps> = ({
   isMasterMode = false,
   enabledModules,
   systemVersion = '1.0.0',
-  children 
+  children,
+  onUpdateProfile 
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', photo: '' });
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [showSystemInfo, setShowSystemInfo] = useState(false);
 
@@ -280,6 +286,33 @@ export const Layout: React.FC<LayoutProps> = ({
   const isAllowed = (tabId: string) => {
     if (user?.role === 'admin' || isRodrigo) return true;
     return config.rolePermissions?.[user?.role || '']?.[tabId]?.view === true;
+  };
+
+  useEffect(() => {
+    if (showProfileModal && user) {
+      setProfileForm({
+        name: user.name,
+        email: user.email,
+        password: '',
+        photo: user.photo || ''
+      });
+    }
+  }, [showProfileModal, user]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateProfile) {
+      const updates: Partial<User> = {
+        name: profileForm.name,
+        email: profileForm.email,
+        photo: profileForm.photo
+      };
+      if (profileForm.password) {
+        updates.password = profileForm.password;
+      }
+      onUpdateProfile(updates);
+      setShowProfileModal(false);
+    }
   };
 
   return (
@@ -457,20 +490,29 @@ export const Layout: React.FC<LayoutProps> = ({
         </nav>
 
         <div className={`p-4 border-t shrink-0 ${isAtDeveloperPortal ? 'bg-slate-950 border-slate-800' : 'border-white/10'}`}>
-          <div className="flex items-center gap-3 mb-4 px-2">
+          <button 
+            onClick={() => setShowProfileModal(true)}
+            className="w-full flex items-center gap-3 mb-4 px-2 hover:bg-white/5 rounded-xl transition-colors text-left group/profile"
+            title="Clique para editar seu perfil"
+          >
             <div className={`w-10 h-10 rounded-lg border flex items-center justify-center font-black text-sm overflow-hidden shrink-0 ${isAtDeveloperPortal ? 'bg-indigo-600 border-indigo-500' : 'bg-white/10 border-white/10'}`}>
               {user?.photo ? <img src={user.photo} className="w-full h-full object-cover" /> : user?.name?.charAt(0) || '?'}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-xs font-black truncate uppercase leading-tight" style={{ color: config.sidebarTextColor }}>{user?.name || 'Visitante'}</p>
+              <p className="text-xs font-black truncate uppercase leading-tight group-hover/profile:text-white transition-colors" style={{ color: config.sidebarTextColor }}>{user?.name || 'Visitante'}</p>
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase text-white mt-1 w-fit shadow-sm" style={{ backgroundColor: isAtDeveloperPortal ? '#4f46e5' : (userRoleConfig?.color || '#64748b') }}>
                 {!isAtDeveloperPortal && <RoleIconComponent name={userRoleConfig?.iconName} size={10} />}
                 {isAtDeveloperPortal ? 'MASTER DEV' : (userRoleConfig?.label || user?.role)}
               </div>
             </div>
-          </div>
-          <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-red-400 bg-red-400/5 hover:bg-red-400/10 border border-red-400/10 transition-colors font-black text-[10px] uppercase">
-            <LogOut size={16} /><span>Sair do Sistema</span>
+          </button>
+          
+          <button 
+            onClick={onLogout}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${isAtDeveloperPortal ? 'bg-slate-900 text-slate-400 hover:bg-red-900/20 hover:text-red-400' : 'bg-white/5 text-slate-300 hover:bg-red-500/20 hover:text-red-200'}`}
+          >
+            <LogOut size={18} />
+            <span>Sair do Sistema</span>
           </button>
         </div>
       </aside>
@@ -587,6 +629,106 @@ export const Layout: React.FC<LayoutProps> = ({
           </ErrorBoundary>
         </div>
       </main>
+
+      {/* Profile Edit Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-black text-lg text-gray-800 uppercase tracking-tight">Editar Perfil</h3>
+              <button onClick={() => setShowProfileModal(false)} className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-lg overflow-hidden relative group cursor-pointer">
+                  {profileForm.photo ? (
+                    <img src={profileForm.photo} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300"><UserIcon size={40} /></div>
+                  )}
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <LucideIcons.Camera className="text-white" />
+                  </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setProfileForm({ ...profileForm, photo: reader.result as string });
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mt-2">Clique para alterar foto</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nome Completo</label>
+                <div className="relative">
+                  <UserIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    value={profileForm.name} 
+                    onChange={e => setProfileForm({...profileForm, name: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-sm text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Email de Acesso</label>
+                <div className="relative">
+                  <LucideIcons.Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="email" 
+                    value={profileForm.email} 
+                    onChange={e => setProfileForm({...profileForm, email: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-sm text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nova Senha (Opcional)</label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="password" 
+                    value={profileForm.password} 
+                    onChange={e => setProfileForm({...profileForm, password: e.target.value})}
+                    placeholder="Deixe em branco para manter"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-sm text-gray-800"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-600 font-black uppercase text-xs rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-xs rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
