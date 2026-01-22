@@ -19,7 +19,7 @@ export interface TerreiroEvent {
   date: string; // ISO
   time: string;
   type: 'gira' | 'festa' | 'curso' | 'outros';
-  status: 'agendado' | 'realizado' | 'cancelado';
+  status: 'agendado' | 'realizado' | 'cancelado' | 'acontecendo' | 'encerrado';
   ticketsTotal: number;
   ticketsIssued: number;
   price?: number;

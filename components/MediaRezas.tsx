@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Reza, SystemConfig } from '../types';
-import { Plus, Trash2, Edit2, Search, Music, Youtube, Mic, BookOpen, X, PlayCircle, Save, Bold, Italic, Underline, Palette, Printer } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, Music, Youtube, Mic, BookOpen, X, PlayCircle, Save, Bold, Italic, Underline, Palette, Printer, Scroll } from 'lucide-react';
 
 interface MediaRezasProps {
   rezas: Reza[];
@@ -249,7 +249,7 @@ export const MediaRezas: React.FC<MediaRezasProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
         <div>
           <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2">
-            <Music className="text-indigo-600" />
+            <Scroll className="text-indigo-600" />
             Livro de Rezas
           </h2>
           <p className="text-gray-500 text-sm mt-1">Organize e consulte as rezas e orações do terreiro.</p>

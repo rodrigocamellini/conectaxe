@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Calendar, Clock, MapPin, Users, MoreVertical, Edit2, Trash2, Link, Copy, CheckCircle, Archive } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, MoreVertical, Edit2, Trash2, Link, Copy, CheckCircle, Archive, RotateCcw } from 'lucide-react';
 import { TerreiroEvent, SystemConfig } from '../../types';
 
 interface EventListProps {
@@ -167,6 +167,15 @@ export function EventList({ events, onEdit, onDelete, onNewEvent, onViewCheckin,
                         className="p-2 text-slate-400 hover:text-green-600 hover:bg-slate-50 rounded-lg transition-colors"
                       >
                         <Archive size={18} />
+                      </button>
+                    )}
+                    {(event.status === 'encerrado' || event.status === 'realizado') && (
+                      <button
+                        onClick={() => onStatusChange(event.id, 'agendado')}
+                        title="Reabrir Evento"
+                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors"
+                      >
+                        <RotateCcw size={18} />
                       </button>
                     )}
                     <button

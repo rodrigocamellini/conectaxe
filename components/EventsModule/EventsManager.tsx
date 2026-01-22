@@ -34,8 +34,8 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
           const dateStr = e.date.includes('T') ? e.date.split('T')[0] : e.date;
           const eventDateTime = new Date(`${dateStr}T${e.time}`);
           
-          // Consider event finished 6 hours after start time
-          const eventEnd = new Date(eventDateTime.getTime() + 6 * 60 * 60 * 1000);
+          // Consider event finished 24 hours after start time
+          const eventEnd = new Date(eventDateTime.getTime() + 24 * 60 * 60 * 1000);
           return eventEnd < now;
         } catch (err) {
           return false;
@@ -50,7 +50,7 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
       // Defer update to avoid render cycle issues if this runs during render
       setTimeout(() => onUpdateEvents(updatedEvents), 0);
     }
-  }, []); // Run once on mount
+  }, [events]); // Run when events change
 
   // Stats Logic
   const upcomingEvents = events.filter(e => e.status === 'agendado' || e.status === 'acontecendo').length;
