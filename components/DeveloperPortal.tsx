@@ -813,11 +813,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                     <LayoutGrid size={24} className="text-white/40" />
                  </div>
               </div>
-              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
-                 <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Terreiros Ativos</p>
+              <div className="bg-[#487ffe] p-6 rounded-3xl border border-[#487ffe]/80 shadow-xl">
+                 <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Terreiros Ativos</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.active}</h4>
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
                  </div>
               </div>
               <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">

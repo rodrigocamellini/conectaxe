@@ -202,7 +202,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
 ];
 
 export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
-  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#10b981' },
+  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#487ffe' },
   { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket' },
   { id: 'master-menu', label: 'Config. Menu', icon: 'Menu' },
   { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap' },
