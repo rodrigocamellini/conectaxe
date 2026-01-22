@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EventList } from './EventList';
 import { EventForm } from './EventForm';
 import { EventCheckin } from './EventCheckin';
@@ -19,6 +19,38 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
   const [showForm, setShowForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<TerreiroEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<TerreiroEvent | null>(null);
+
+  // Auto-finalize past events
+  useEffect(() => {
+    const now = new Date();
+    // Only check if we have events loaded
+    if (events.length === 0) return;
+
+    const updates = events
+      .filter(e => (e.status === 'agendado' || e.status === 'acontecendo'))
+      .filter(e => {
+        try {
+          // Construct date object safely
+          const dateStr = e.date.includes('T') ? e.date.split('T')[0] : e.date;
+          const eventDateTime = new Date(`${dateStr}T${e.time}`);
+          
+          // Consider event finished 6 hours after start time
+          const eventEnd = new Date(eventDateTime.getTime() + 6 * 60 * 60 * 1000);
+          return eventEnd < now;
+        } catch (err) {
+          return false;
+        }
+      });
+
+    if (updates.length > 0) {
+      const updatedEvents = events.map(e => {
+        const shouldUpdate = updates.find(u => u.id === e.id);
+        return shouldUpdate ? { ...e, status: 'encerrado' as const } : e;
+      });
+      // Defer update to avoid render cycle issues if this runs during render
+      setTimeout(() => onUpdateEvents(updatedEvents), 0);
+    }
+  }, []); // Run once on mount
 
   // Stats Logic
   const upcomingEvents = events.filter(e => e.status === 'agendado' || e.status === 'acontecendo').length;
@@ -56,6 +88,10 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
 
   const handleUpdateTicket = (ticketId: string, updates: Partial<EventTicket>) => {
     onUpdateTickets(tickets.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+  };
+
+  const handleStatusChange = (id: string, newStatus: 'agendado' | 'acontecendo' | 'encerrado' | 'cancelado') => {
+    onUpdateEvents(events.map(e => e.id === id ? { ...e, status: newStatus } : e));
   };
 
   if (view === 'checkin' && selectedEvent) {
@@ -143,6 +179,7 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
           setSelectedEvent(event);
           setView('checkin');
         }}
+        onStatusChange={handleStatusChange}
       />
 
       {showForm && (

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Calendar, Clock, MapPin, Users, MoreVertical, Edit2, Trash2, Link, Copy, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, MoreVertical, Edit2, Trash2, Link, Copy, CheckCircle, Archive } from 'lucide-react';
 import { TerreiroEvent, SystemConfig } from '../../types';
 
 interface EventListProps {
@@ -9,10 +9,11 @@ interface EventListProps {
   onDelete: (id: string) => void;
   onNewEvent: () => void;
   onViewCheckin: (event: TerreiroEvent) => void;
+  onStatusChange: (id: string, newStatus: 'agendado' | 'acontecendo' | 'encerrado' | 'cancelado') => void;
   config: SystemConfig;
 }
 
-export function EventList({ events, onEdit, onDelete, onNewEvent, onViewCheckin, config }: EventListProps) {
+export function EventList({ events, onEdit, onDelete, onNewEvent, onViewCheckin, onStatusChange, config }: EventListProps) {
   const [filter, setFilter] = useState<'todos' | 'agendado' | 'encerrado'>('todos');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -159,6 +160,15 @@ export function EventList({ events, onEdit, onDelete, onNewEvent, onViewCheckin,
                     >
                       {copiedId === event.id ? <CheckCircle size={18} className="text-green-500" /> : <Link size={18} />}
                     </button>
+                    {(event.status === 'agendado' || event.status === 'acontecendo') && (
+                      <button
+                        onClick={() => onStatusChange(event.id, 'encerrado')}
+                        title="Finalizar Evento"
+                        className="p-2 text-slate-400 hover:text-green-600 hover:bg-slate-50 rounded-lg transition-colors"
+                      >
+                        <Archive size={18} />
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(event)}
                       title="Editar"

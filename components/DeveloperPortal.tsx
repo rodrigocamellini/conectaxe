@@ -168,7 +168,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [roadmapRestorePassword, setRoadmapRestorePassword] = useState('');
   const [roadmapRestoreError, setRoadmapRestoreError] = useState('');
   const [systemConfigTab, setSystemConfigTab] = useState<'motor' | 'planos' | 'recursos'>('motor');
- 
+
+  // Estado para Confirmação de Congelamento
+  const [freezeConfirm, setFreezeConfirm] = useState<{ id: string; status: 'frozen' | 'active'; name: string } | null>(null);
+  
+  // Estado para Confirmação de Bloqueio
+  const [blockConfirm, setBlockConfirm] = useState<{ id: string; status: 'blocked' | 'active'; name: string } | null>(null);
+
   const getLatestVersion = () => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
     const sortedRoadmap = [...roadmap].sort((a, b) => {
@@ -735,6 +741,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
   const toggleStatus = (id: string, newStatus: SaaSClient['status']) => {
     const client = clients.find(c => c.id === id);
+    if (!client) return;
+
+    if (newStatus === 'frozen' || (client.status === 'frozen' && newStatus === 'active')) {
+      setFreezeConfirm({ id, status: newStatus as 'frozen' | 'active', name: client.name });
+      return;
+    }
+
+    if (newStatus === 'blocked' || (client.status === 'blocked' && newStatus === 'active')) {
+      setBlockConfirm({ id, status: newStatus as 'blocked' | 'active', name: client.name });
+      return;
+    }
+
+    // Para outros status (blocked, active de outros estados), mantém o comportamento direto ou implementa outro fluxo
+    executeStatusChange(id, newStatus);
+  };
+
+  const executeStatusChange = (id: string, newStatus: SaaSClient['status']) => {
+    const client = clients.find(c => c.id === id);
     onUpdateClients(clients.map(c => c.id === id ? { ...c, status: newStatus } : c));
     
     if (client) {
@@ -747,6 +771,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         details: `Status alterado de ${client.status} para ${newStatus}`
       });
     }
+    setFreezeConfirm(null);
+    setBlockConfirm(null);
   };
 
   const clientStats = {
@@ -2286,6 +2312,82 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                     <button type="submit" className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-red-900/20 hover:bg-red-700 transition-all active:scale-95">Executar</button>
                  </div>
               </form>
+           </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE CONGELAMENTO */}
+      {freezeConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] p-4">
+           <div className="bg-slate-900 border border-slate-800 rounded-[3rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+              <div className={`p-8 ${freezeConfirm.status === 'frozen' ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex justify-between items-center`}>
+                 <div className="flex items-center gap-3">
+                    {freezeConfirm.status === 'frozen' ? <Snowflake size={24} /> : <Zap size={24} />}
+                    <h3 className="text-xl font-black uppercase tracking-tight">
+                      {freezeConfirm.status === 'frozen' ? 'Congelar Acesso' : 'Reativar Acesso'}
+                    </h3>
+                 </div>
+                 <button onClick={() => setFreezeConfirm(null)} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={24} /></button>
+              </div>
+              <div className="p-8 space-y-8">
+                 <div className="text-center space-y-2">
+                    <p className={`font-black text-xs uppercase tracking-widest ${freezeConfirm.status === 'frozen' ? 'text-indigo-400' : 'text-emerald-400'}`}>Confirmação de Ação</p>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                      {freezeConfirm.status === 'frozen' 
+                        ? `Você tem certeza que deseja congelar o acesso de ${freezeConfirm.name}? O cliente perderá acesso imediato ao sistema.`
+                        : `Você deseja reativar o acesso de ${freezeConfirm.name}? O cliente poderá logar novamente.`
+                      }
+                    </p>
+                 </div>
+
+                 <div className="flex gap-4">
+                    <button onClick={() => setFreezeConfirm(null)} className="flex-1 py-4 bg-slate-800 text-slate-400 rounded-2xl font-black uppercase text-xs hover:text-white transition-colors">Cancelar</button>
+                    <button 
+                      onClick={() => executeStatusChange(freezeConfirm.id, freezeConfirm.status)} 
+                      className={`flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs shadow-xl transition-all active:scale-95 ${freezeConfirm.status === 'frozen' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-900/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20'}`}
+                    >
+                      Confirmar
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE BLOQUEIO */}
+      {blockConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] p-4">
+           <div className="bg-slate-900 border border-slate-800 rounded-[3rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+              <div className={`p-8 ${blockConfirm.status === 'blocked' ? 'bg-red-600' : 'bg-emerald-600'} text-white flex justify-between items-center`}>
+                 <div className="flex items-center gap-3">
+                    {blockConfirm.status === 'blocked' ? <Lock size={24} /> : <Zap size={24} />}
+                    <h3 className="text-xl font-black uppercase tracking-tight">
+                      {blockConfirm.status === 'blocked' ? 'Bloquear Acesso' : 'Desbloquear Acesso'}
+                    </h3>
+                 </div>
+                 <button onClick={() => setBlockConfirm(null)} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={24} /></button>
+              </div>
+              <div className="p-8 space-y-8">
+                 <div className="text-center space-y-2">
+                    <p className={`font-black text-xs uppercase tracking-widest ${blockConfirm.status === 'blocked' ? 'text-red-400' : 'text-emerald-400'}`}>Confirmação de Ação</p>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                      {blockConfirm.status === 'blocked' 
+                        ? `Você tem certeza que deseja bloquear o acesso de ${blockConfirm.name}? O cliente será impedido de acessar o sistema por inadimplência.`
+                        : `Você deseja desbloquear o acesso de ${blockConfirm.name}? O cliente poderá logar novamente.`
+                      }
+                    </p>
+                 </div>
+
+                 <div className="flex gap-4">
+                    <button onClick={() => setBlockConfirm(null)} className="flex-1 py-4 bg-slate-800 text-slate-400 rounded-2xl font-black uppercase text-xs hover:text-white transition-colors">Cancelar</button>
+                    <button 
+                      onClick={() => executeStatusChange(blockConfirm.id, blockConfirm.status)} 
+                      className={`flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs shadow-xl transition-all active:scale-95 ${blockConfirm.status === 'blocked' ? 'bg-red-600 hover:bg-red-700 shadow-red-900/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20'}`}
+                    >
+                      Confirmar
+                    </button>
+                 </div>
+              </div>
            </div>
         </div>
       )}

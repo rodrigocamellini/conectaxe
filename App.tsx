@@ -580,6 +580,22 @@ const App: React.FC = () => {
     });
   }, [roadmap]);
 
+  const currentSystemVersion = useMemo(() => {
+    if (!safeRoadmap.length) return '0.0.0';
+    const sorted = [...safeRoadmap].sort((a, b) => {
+      const vA = a.version.split('.').map(Number);
+      const vB = b.version.split('.').map(Number);
+      for (let i = 0; i < Math.max(vA.length, vB.length); i++) {
+         const numA = vA[i] || 0;
+         const numB = vB[i] || 0;
+         if (numA > numB) return -1;
+         if (numA < numB) return 1;
+      }
+      return 0;
+    });
+    return sorted[0]?.version || '0.0.0';
+  }, [safeRoadmap]);
+
   const userPermissions = useMemo(() => {
     if (!auth.user) return null;
     if (auth.user.role === 'admin' || auth.isMasterMode) return { view: true, add: true, edit: true, delete: true };
@@ -775,6 +791,11 @@ const App: React.FC = () => {
 
     const user = systemUsers.find(u => u.email.toLowerCase() === loginEmail.toLowerCase() && u.password === loginPassword);
     if (user) {
+      const client = clients.find(c => c.id === activeClientId);
+      if (client && client.status === 'frozen' && user.role !== 'admin') {
+        setLoginError('Acesso negado. Sistema congelado pelo Administrador.');
+        return;
+      }
       setAuth({ user, isAuthenticated: true, isMasterMode: false });
       setActiveTab('dashboard');
     } else { 
@@ -787,35 +808,58 @@ const App: React.FC = () => {
   }
 
   if (!licenseState.valid) {
+    if (licenseState.status === 'frozen' && auth.user) {
+       return (
+        <div className="min-h-screen bg-slate-950 flex flex-col">
+          <div className="bg-indigo-600 p-6 text-white shadow-2xl z-10">
+             <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                   <div className="p-3 bg-white/10 rounded-2xl animate-pulse"><Snowflake size={32} /></div>
+                   <div>
+                      <h1 className="text-2xl font-black uppercase tracking-tight">Sistema Congelado</h1>
+                      <p className="font-medium opacity-90 text-sm">Acesso restrito temporariamente pelo Administrador.</p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-4">
+                   <div className="text-right hidden md:block">
+                      <p className="text-xs font-bold uppercase opacity-75">Usuário Logado</p>
+                      <p className="font-black">{auth.user.name}</p>
+                   </div>
+                   <button onClick={() => setAuth({ user: null, isAuthenticated: false })} className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-black uppercase text-xs hover:bg-indigo-50 transition-colors shadow-lg">Sair do Sistema</button>
+                </div>
+             </div>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-6 md:p-10">
+             <div className="max-w-4xl mx-auto space-y-8">
+                <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl text-center">
+                   <p className="text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto">
+                     Seu sistema está atualmente em modo de congelamento. Todas as funcionalidades operacionais estão suspensas, exceto o canal de comunicação com o suporte.
+                     Utilize a ferramenta abaixo para entrar em contato com a administração e regularizar sua situação.
+                   </p>
+                </div>
+                
+                <TicketSystem 
+                  user={auth.user} 
+                  config={systemConfig} 
+                  tickets={tickets} 
+                  onUpdateTickets={setTickets} 
+                />
+             </div>
+          </div>
+        </div>
+       );
+    }
+
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
         <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-12 text-center">
-          {licenseState.status === 'frozen' ? (
-            <><Snowflake size={64} className="text-blue-400 mx-auto mb-6 animate-pulse" /><h1 className="text-2xl font-black text-slate-800 uppercase mb-4">Acesso Congelado</h1><p className="text-slate-500 mb-8 font-medium">Seu acesso foi temporariamente suspenso a pedido da administração.</p></>
-          ) : (
             <><ShieldAlert size={64} className="text-red-600 mx-auto mb-6" /><h1 className="text-2xl font-black text-slate-800 uppercase mb-4">Acesso Bloqueado</h1><p className="text-slate-500 mb-8 font-medium">Sua licença expirou ou foi suspensa.</p></>
-          )}
           <button onClick={() => setAuth({ user: null, isAuthenticated: false })} className="text-indigo-600 font-bold uppercase text-xs hover:underline">Sair do Sistema</button>
         </div>
       </div>
     );
   }
-
-  const currentSystemVersion = useMemo(() => {
-    if (!safeRoadmap.length) return '0.0.0';
-    const sorted = [...safeRoadmap].sort((a, b) => {
-      const vA = a.version.split('.').map(Number);
-      const vB = b.version.split('.').map(Number);
-      for (let i = 0; i < Math.max(vA.length, vB.length); i++) {
-         const numA = vA[i] || 0;
-         const numB = vB[i] || 0;
-         if (numA > numB) return -1;
-         if (numA < numB) return 1;
-      }
-      return 0;
-    });
-    return sorted[0]?.version || '0.0.0';
-  }, [safeRoadmap]);
 
   if (auth.isAuthenticated) {
     return (
