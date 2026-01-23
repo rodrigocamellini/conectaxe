@@ -28,3 +28,40 @@ export interface TerreiroEvent {
   color?: string;
   icon?: string;
 }
+
+export interface SaaSPlan {
+  id: string;
+  name: string;
+  price: number;
+  durationDays: number | null;
+  description?: string;
+  maxMembers?: number;
+  maxStorage?: number; // MB
+  enabledModules?: string[];
+  limits?: any;
+}
+
+export interface StoredSnapshot {
+  id: string;
+  date: string;
+  type: string;
+  data: any;
+  size: string;
+}
+
+export interface SystemLicense {
+  clientId: string;
+  planName: string;
+  status: 'active' | 'inactive' | 'frozen' | 'blocked';
+  expirationDate: string;
+  affiliateLink?: string;
+}
+
+export interface SystemConfig {
+  systemName: string;
+  logoUrl?: string;
+  license?: SystemLicense;
+  menuConfig?: any[];
+  autoBackupFrequency?: 'disabled' | '7' | '15' | '30';
+  theme?: any;
+}

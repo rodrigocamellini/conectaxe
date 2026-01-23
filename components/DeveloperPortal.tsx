@@ -1678,7 +1678,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
  
             {systemConfigTab === 'planos' && (
           <div className="p-6">
-            <MasterPlansManager plans={plans} onUpdatePlans={handleUpdatePlansWithAudit} onRunAutoBlock={() => runAutoBlock(true)} />
+            <MasterPlansManager 
+              plans={plans} 
+              onUpdatePlans={handleUpdatePlansWithAudit} 
+              onRunAutoBlock={() => runAutoBlock(true)} 
+              clients={clients}
+              masterPassword={masterCreds.password}
+            />
           </div>
         )}
 

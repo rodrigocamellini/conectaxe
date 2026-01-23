@@ -110,6 +110,12 @@ export const AVAILABLE_MODULES = [
       { id: 'estoque_movimentacao', label: 'Entradas e Saídas' }
     ]
   },
+  {
+    id: 'mod_backup_auto',
+    label: 'Backup Automático',
+    icon: 'ShieldCheck',
+    description: 'Sistema de backup automático (7/15/30 dias) e histórico de versões'
+  }
 ];
 
 export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [

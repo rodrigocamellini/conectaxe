@@ -1,14 +1,22 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { SaaSPlan, PlanLimits } from '../types';
-import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play } from 'lucide-react';
+import { SaaSPlan, PlanLimits, SaaSClient } from '../types';
+import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play, ShieldAlert } from 'lucide-react';
 
 interface MasterPlansManagerProps {
   plans: SaaSPlan[];
   onUpdatePlans: (plans: SaaSPlan[]) => void;
   onRunAutoBlock: () => void;
+  clients?: SaaSClient[];
+  masterPassword?: string;
 }
 
-export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, onUpdatePlans, onRunAutoBlock }) => {
+export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ 
+  plans, 
+  onUpdatePlans, 
+  onRunAutoBlock,
+  clients = [],
+  masterPassword = ''
+}) => {
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState(49.9);
   const [newDuration, setNewDuration] = useState(30);
@@ -31,12 +39,18 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     alert('Configuração de bloqueio automático salva!');
   };
 
-  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  // Edit State
+  const [editingPlan, setEditingPlan] = useState<SaaSPlan | null>(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState(0);
   const [editDuration, setEditDuration] = useState(30);
   const [editLifetime, setEditLifetime] = useState(false);
   const [editLimits, setEditLimits] = useState<PlanLimits>({});
+
+  // Delete Confirmation State
+  const [planToDelete, setPlanToDelete] = useState<SaaSPlan | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const totalPlans = plans.length;
   const averagePrice = useMemo(() => {
@@ -71,7 +85,8 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
       name,
       price: newPrice,
-      durationDays: newLifetime ? null : newDuration
+      durationDays: newLifetime ? null : newDuration,
+      enabledModules: [] // Initialize with no modules enabled by default
     };
 
     onUpdatePlans([...plans, plan]);
@@ -82,7 +97,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
   };
 
   const startEdit = (plan: SaaSPlan) => {
-    setEditingPlanId(plan.id);
+    setEditingPlan(plan);
     setEditName(plan.name);
     setEditPrice(plan.price);
     setEditLimits(plan.limits || {});
@@ -96,7 +111,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
   };
 
   const cancelEdit = () => {
-    setEditingPlanId(null);
+    setEditingPlan(null);
     setEditName('');
     setEditPrice(0);
     setEditDuration(30);
@@ -106,13 +121,13 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
 
   const saveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPlanId) return;
+    if (!editingPlan) return;
     const name = editName.trim();
     if (!name) {
       alert('Informe um nome para o plano.');
       return;
     }
-    if (plans.some(p => p.id !== editingPlanId && p.name.toLowerCase() === name.toLowerCase())) {
+    if (plans.some(p => p.id !== editingPlan.id && p.name.toLowerCase() === name.toLowerCase())) {
       alert('Já existe outro plano com este nome.');
       return;
     }
@@ -126,7 +141,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     }
 
     const updated = plans.map(p => {
-      if (p.id !== editingPlanId) return p;
+      if (p.id !== editingPlan.id) return p;
       return {
         ...p,
         name,
@@ -142,12 +157,32 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
     cancelEdit();
   };
 
-  const deletePlan = (id: string) => {
-    if (!confirm('Remover este plano permanentemente?')) return;
-    onUpdatePlans(plans.filter(p => p.id !== id));
-    if (editingPlanId === id) {
+  const handleDeleteClick = (plan: SaaSPlan) => {
+    // Check if plan is in use
+    const isInUse = clients.some(c => c.plan === plan.name);
+    if (isInUse) {
+      alert(`Este plano não pode ser excluído pois existem clientes vinculados a ele.`);
+      return;
+    }
+    setPlanToDelete(plan);
+    setDeletePassword('');
+    setDeleteError('');
+  };
+
+  const confirmDelete = () => {
+    if (!planToDelete) return;
+    
+    if (deletePassword !== masterPassword) {
+      setDeleteError('Senha de desenvolvedor incorreta.');
+      return;
+    }
+
+    onUpdatePlans(plans.filter(p => p.id !== planToDelete.id));
+    // If editing the plan being deleted, close edit modal
+    if (editingPlan?.id === planToDelete.id) {
       cancelEdit();
     }
+    setPlanToDelete(null);
   };
 
   const renderPlanIcon = (plan: SaaSPlan) => {
@@ -170,7 +205,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
   };
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500 relative">
       <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-6 overflow-hidden relative">
         <div className="absolute top-0 right-0 p-8 opacity-5">
           <Settings size={140} className="text-emerald-400" />
@@ -365,7 +400,6 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
               <tbody className="divide-y divide-slate-800">
                 {plans.length > 0 ? (
                   plans.map(plan => {
-                    const isEditing = plan.id === editingPlanId;
                     return (
                       <tr key={plan.id} className="hover:bg-slate-800/30 transition-colors group align-middle">
                         <td className="px-8 py-4">
@@ -374,162 +408,58 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
                               {renderPlanIcon(plan)}
                             </div>
                             <div>
-                              {isEditing ? (
-                                <input
-                                  value={editName}
-                                  onChange={e => setEditName(e.target.value)}
-                                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                                />
-                              ) : (
-                                <p className="text-xs font-black text-white uppercase">
-                                  {plan.name}
-                                </p>
-                              )}
-                              {!isEditing && (
-                                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                                  ID: {plan.id}
-                                </p>
-                              )}
+                              <p className="text-xs font-black text-white uppercase">
+                                {plan.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                ID: {plan.id}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-8 py-4">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              value={editPrice}
-                              onChange={e => setEditPrice(Number(e.target.value))}
-                              className="w-28 p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          ) : (
-                            <p className="text-xs font-black text-emerald-400">
-                              R$ {plan.price.toFixed(2)}
-                            </p>
-                          )}
+                          <p className="text-xs font-black text-emerald-400">
+                            R$ {plan.price.toFixed(2)}
+                          </p>
                         </td>
                         <td className="px-8 py-4">
-                          {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                min={1}
-                                disabled={editLifetime}
-                                value={editLifetime ? '' : editDuration}
-                                onChange={e => setEditDuration(Number(e.target.value))}
-                                className={`w-24 p-2 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500 ${
-                                  editLifetime
-                                    ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
-                                    : 'bg-slate-950 border-slate-800 text-white'
-                                }`}
-                                placeholder="Dias"
-                              />
-                              <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
-                                  checked={editLifetime}
-                                  onChange={e => setEditLifetime(e.target.checked)}
-                                />
-                                Vitalício
-                              </label>
-                            </div>
-                          ) : (
-                            <p className="text-xs font-black text-slate-300">
-                              {formatDuration(plan.durationDays)}
-                            </p>
-                          )}
+                          <p className="text-xs font-black text-slate-300">
+                            {formatDuration(plan.durationDays)}
+                          </p>
                         </td>
                         <td className="px-8 py-4">
-                          {isEditing ? (
-                            <div className="grid grid-cols-2 gap-2 max-w-xs">
-                              <div>
-                                <label className="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-0.5">
-                                  Membros
-                                </label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={editLimits.maxMembers ?? ''}
-                                  onChange={e =>
-                                    setEditLimits({
-                                      ...editLimits,
-                                      maxMembers: e.target.value === '' ? null : Number(e.target.value)
-                                    })
-                                  }
-                                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                                  placeholder="Ilimitado"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[9px] font-black text-slate-500 uppercase mb-1 ml-0.5">
-                                  Consulentes
-                                </label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={editLimits.maxConsulentes ?? ''}
-                                  onChange={e =>
-                                    setEditLimits({
-                                      ...editLimits,
-                                      maxConsulentes: e.target.value === '' ? null : Number(e.target.value)
-                                    })
-                                  }
-                                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                                  placeholder="Ilimitado"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-[11px] text-slate-300 space-y-1">
-                              <p>
-                                <span className="font-black text-slate-500 uppercase mr-1">Membros:</span>
-                                {plan.limits && plan.limits.maxMembers != null
-                                  ? plan.limits.maxMembers
-                                  : 'Ilimitado'}
-                              </p>
-                              <p>
-                                <span className="font-black text-slate-500 uppercase mr-1">Consulentes:</span>
-                                {plan.limits && plan.limits.maxConsulentes != null
-                                  ? plan.limits.maxConsulentes
-                                  : 'Ilimitado'}
-                              </p>
-                            </div>
-                          )}
+                          <div className="text-[11px] text-slate-300 space-y-1">
+                            <p>
+                              <span className="font-black text-slate-500 uppercase mr-1">Membros:</span>
+                              {plan.limits && plan.limits.maxMembers != null
+                                ? plan.limits.maxMembers
+                                : 'Ilimitado'}
+                            </p>
+                            <p>
+                              <span className="font-black text-slate-500 uppercase mr-1">Consulentes:</span>
+                              {plan.limits && plan.limits.maxConsulentes != null
+                                ? plan.limits.maxConsulentes
+                                : 'Ilimitado'}
+                            </p>
+                          </div>
                         </td>
                         <td className="px-8 py-4 text-right">
-                          {isEditing ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={saveEdit}
-                                className="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-900 text-[10px] font-black uppercase flex items-center gap-1 hover:bg-emerald-400 transition-all"
-                              >
-                                <Save size={14} /> Salvar
-                              </button>
-                              <button
-                                onClick={cancelEdit}
-                                className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-[10px] font-black uppercase flex items-center gap-1 hover:bg-slate-700 transition-all"
-                              >
-                                <X size={14} /> Cancelar
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => startEdit(plan)}
-                                className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
-                              >
-                                <Edit2 size={18} />
-                              </button>
-                              <button
-                                onClick={() => deletePlan(plan.id)}
-                                className="p-2 text-slate-600 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => startEdit(plan)}
+                              className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
+                              title="Editar Plano"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(plan)}
+                              className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                              title="Excluir Plano"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -552,6 +482,209 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingPlan && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
+          <div className="bg-slate-900 rounded-[2rem] border border-slate-800 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Edit2 className="text-emerald-500" size={24} />
+                <h3 className="text-lg font-black text-white uppercase">Editar Plano</h3>
+              </div>
+              <button 
+                onClick={cancelEdit}
+                className="p-2 hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={saveEdit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                  Nome do Plano
+                </label>
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                    Valor (R$)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={editPrice}
+                    onChange={e => setEditPrice(Number(e.target.value))}
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                    Duração (Dias)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    disabled={editLifetime}
+                    value={editLifetime ? '' : editDuration}
+                    onChange={e => setEditDuration(Number(e.target.value))}
+                    className={`w-full p-3 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500 ${
+                      editLifetime
+                        ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
+                        : 'bg-slate-950 border-slate-800 text-white'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-lifetime"
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
+                  checked={editLifetime}
+                  onChange={e => setEditLifetime(e.target.checked)}
+                />
+                <label htmlFor="edit-lifetime" className="text-[11px] text-slate-400 cursor-pointer select-none">
+                  Plano vitalício (nunca expira)
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                    Max. Membros
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editLimits.maxMembers ?? ''}
+                    onChange={e =>
+                      setEditLimits({
+                        ...editLimits,
+                        maxMembers: e.target.value === '' ? null : Number(e.target.value)
+                      })
+                    }
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Ilimitado"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                    Max. Consulentes
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editLimits.maxConsulentes ?? ''}
+                    onChange={e =>
+                      setEditLimits({
+                        ...editLimits,
+                        maxConsulentes: e.target.value === '' ? null : Number(e.target.value)
+                      })
+                    }
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Ilimitado"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-black uppercase text-xs hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {planToDelete && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
+          <div className="bg-slate-900 rounded-[2rem] border border-slate-800 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <ShieldAlert className="text-red-500" size={24} />
+                <h3 className="text-lg font-black text-white uppercase">Confirmar Exclusão</h3>
+              </div>
+              <button 
+                onClick={() => setPlanToDelete(null)}
+                className="p-2 hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+                <p className="text-xs text-red-400 leading-relaxed font-medium">
+                  Você está prestes a excluir o plano <span className="text-white font-bold">"{planToDelete.name}"</span>.
+                  Esta ação é irreversível.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                  Senha de Desenvolvedor
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                  <input
+                    type="password"
+                    autoFocus
+                    value={deletePassword}
+                    onChange={e => {
+                      setDeletePassword(e.target.value);
+                      setDeleteError('');
+                    }}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                    placeholder="Digite sua senha..."
+                  />
+                </div>
+                {deleteError && (
+                  <p className="text-[10px] text-red-500 font-bold mt-2 ml-1 animate-in slide-in-from-top-1">
+                    {deleteError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPlanToDelete(null)}
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 rounded-xl font-black uppercase text-xs hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black uppercase text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-900/20"
+                >
+                  Confirmar Exclusão
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

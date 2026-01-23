@@ -13,25 +13,40 @@ import {
   RefreshCcw,
   FileJson,
   History,
-  Info
+  Info,
+  Trash2,
+  Clock,
+  Save
 } from 'lucide-react';
-import { User, SystemConfig } from '../types';
-import { STORAGE_KEYS } from '../services/storage';
+import { User, SystemConfig, StoredSnapshot } from '../types';
+import { backupService } from '../services/backupService';
 
 interface BackupSystemProps {
   user: User;
   config: SystemConfig;
   onRestoreFromBackup: (data: any) => void;
+  onUpdateConfig?: (config: SystemConfig) => void;
+  allowAutoBackup?: boolean;
 }
 
-export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRestoreFromBackup }) => {
+export const BackupSystem: React.FC<BackupSystemProps> = ({ 
+  user, 
+  config, 
+  onRestoreFromBackup, 
+  onUpdateConfig, 
+  allowAutoBackup = false 
+}) => {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null); // ID do backup a deletar
   const [password, setPassword] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
   const [generatedCaptcha, setGeneratedCaptcha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [backupFile, setBackupFile] = useState<any>(null);
+
+  // Snapshots State
+  const [snapshots, setSnapshots] = useState<StoredSnapshot[]>(() => backupService.getSnapshots());
 
   // Função para gerar captcha (reutilizada para consistência)
   const generateCaptcha = useCallback(() => {
@@ -50,77 +65,38 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
     }
   }, [showRestoreModal, generateCaptcha]);
 
-  // Lógica de Backup (Exportar JSON)
-  const handleExportBackup = () => {
-    const data: any = {};
-    // Coleta todas as chaves do localStorage que são relevantes para o sistema
-    // Isso inclui configurações do painel master, clientes, roadmap, etc.
-    const keysToBackup = [
-      // Dados do Terreiro (Single Client Mode)
-      STORAGE_KEYS.MEMBERS,
-      STORAGE_KEYS.ENTITIES,
-      STORAGE_KEYS.SYSTEM_CONFIG,
-      'terreiro_events',
-      'terreiro_courses',
-      'terreiro_enrollments',
-      'terreiro_attendance',
-      'terreiro_inventory_items',
-      'terreiro_inventory_cats',
-      'terreiro_system_users',
-      'terreiro_tickets',
-      
-      // Dados Globais SaaS (Developer Panel)
-      'saas_master_credentials',
-      'saas_clients',
-      'saas_plans',
-      'saas_global_roadmap',
-      'saas_global_broadcasts',
-      'saas_coupons',
-      'saas_tickets',
-      'saas_audit_logs',
-      'saas_referrals',
-      'saas_master_snapshots',
-      'saas_global_maintenance',
-      // Incluir qualquer outra configuração do sistema que possa estar faltando
-      'user_preferences',
-      'theme_config',
-    ];
+  // Gerar Backup e Salvar na Lista
+  const handleGenerateBackup = () => {
+    const newSnapshot = backupService.createSnapshot('Manual');
+    const updatedSnapshots = backupService.saveSnapshot(newSnapshot);
+    setSnapshots(updatedSnapshots);
+    alert('Backup gerado e salvo na lista com sucesso!');
+  };
 
-    // Iterar sobre todas as chaves do localStorage para encontrar dados dinâmicos de clientes
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (
-          key.startsWith('terreiro_') || 
-          key.startsWith('saas_') || 
-          key.startsWith('dismissed_')
-      )) {
-        if (!keysToBackup.includes(key)) {
-          keysToBackup.push(key);
-        }
-      }
-    }
-
-    keysToBackup.forEach(key => {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        try {
-          data[key] = JSON.parse(stored);
-        } catch (e) {
-          data[key] = stored; // Fallback para string simples se não for JSON
-        }
-      }
-    });
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  // Download de um backup da lista
+  const handleDownloadSnapshot = (snapshot: StoredSnapshot) => {
+    const blob = new Blob([JSON.stringify(snapshot.data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = new Date(snapshot.date).toISOString().split('T')[0];
     link.href = url;
-    link.download = `full_system_backup_${config.systemName.replace(/\s+/g, '_')}_${timestamp}.json`;
+    link.download = `backup_terreiro_${config.systemName.replace(/\s+/g, '_')}_${timestamp}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Deletar backup da lista
+  const confirmDeleteSnapshot = (id: string) => {
+    setShowDeleteModal(id);
+  };
+
+  const handleDeleteSnapshot = () => {
+    if (!showDeleteModal) return;
+    const updatedSnapshots = backupService.deleteSnapshot(showDeleteModal);
+    setSnapshots(updatedSnapshots);
+    setShowDeleteModal(null);
   };
 
   // Lógica de Importação de Arquivo
@@ -139,7 +115,6 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
       }
     };
     reader.readAsText(file);
-    // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
     e.target.value = '';
   };
 
@@ -167,7 +142,7 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-8 bg-indigo-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -185,19 +160,19 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
            {/* Card Gerar Backup */}
            <div className="bg-emerald-50 border-2 border-emerald-100 p-8 rounded-[2rem] flex flex-col items-center text-center space-y-6">
               <div className="p-6 bg-white rounded-full text-emerald-600 shadow-xl shadow-emerald-100">
-                 <Download size={48} />
+                 <Save size={48} />
               </div>
               <div className="space-y-2">
-                 <h4 className="text-xl font-black text-emerald-800 uppercase tracking-tight">Gerar Cópia (Backup)</h4>
+                 <h4 className="text-xl font-black text-emerald-800 uppercase tracking-tight">Gerar Novo Backup</h4>
                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                   Crie um arquivo com todos os dados atuais do sistema. Salve este arquivo em um local seguro (Pen Drive ou Nuvem).
+                   Crie uma cópia instantânea de todos os dados do sistema. O arquivo ficará salvo na lista abaixo para download.
                  </p>
               </div>
               <button 
-                onClick={handleExportBackup}
+                onClick={handleGenerateBackup}
                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                <Download size={18} /> Baixar Arquivo de Backup
+                <Save size={18} /> Gerar Backup Agora
               </button>
            </div>
 
@@ -207,32 +182,158 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
                  <Upload size={48} />
               </div>
               <div className="space-y-2">
-                 <h4 className="text-xl font-black text-indigo-800 uppercase tracking-tight">Restaurar Cópia</h4>
+                 <h4 className="text-xl font-black text-indigo-800 uppercase tracking-tight">Restaurar de Arquivo</h4>
                  <p className="text-xs text-indigo-700 font-medium leading-relaxed">
                    Recupere os dados de um arquivo baixado anteriormente. **Aviso: Esta ação substituirá todos os dados atuais.**
                  </p>
               </div>
               <label className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={18} /> Selecionar Arquivo
+                <Upload size={18} /> Selecionar Arquivo JSON
                 <input type="file" className="hidden" accept=".json" onChange={handleFileChange} />
               </label>
            </div>
         </div>
 
-        <div className="p-8 bg-gray-50 border-t border-gray-100">
-           <div className="flex items-start gap-4">
-              <Info className="text-indigo-400 mt-1" size={20} />
-              <div>
-                 <p className="text-xs font-black text-slate-800 uppercase mb-1">Dica Importante</p>
-                 <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Recomendamos realizar um backup manual pelo menos uma vez por semana ou antes de grandes alterações nas configurações espirituais e administrativas do terreiro.
-                 </p>
-              </div>
+        {/* Configuração de Backup Automático */}
+        {allowAutoBackup === true && onUpdateConfig && (
+           <div className="px-8 pb-8">
+             <div className="bg-slate-50 rounded-[2rem] border border-slate-200 p-8">
+               <div className="flex items-center gap-4 mb-6">
+                 <Clock className="text-indigo-600" size={24} />
+                 <div>
+                   <h4 className="text-lg font-black text-slate-800 uppercase">Backup Automático</h4>
+                   <p className="text-xs text-slate-500 font-medium">Configure a frequência de geração automática de cópias de segurança.</p>
+                 </div>
+               </div>
+               
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 {[
+                   { id: 'disabled', label: 'Desativado' },
+                   { id: '7', label: 'A cada 7 dias' },
+                   { id: '15', label: 'A cada 15 dias' },
+                   { id: '30', label: 'A cada 30 dias' }
+                 ].map(opt => (
+                   <button
+                     key={opt.id}
+                     onClick={() => onUpdateConfig({ ...config, autoBackupFrequency: opt.id as any })}
+                     className={`p-4 rounded-xl border-2 transition-all font-bold text-xs uppercase ${
+                       (config.autoBackupFrequency || 'disabled') === opt.id
+                         ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                         : 'bg-white border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'
+                     }`}
+                   >
+                     {opt.label}
+                   </button>
+                 ))}
+               </div>
+             </div>
            </div>
-        </div>
-      </div>
+        )}
 
-      {/* Modal de Confirmação de Restauração */}
+        {/* Lista de Backups */}
+        <div className="border-t border-gray-100">
+          <div className="p-8">
+             <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+               <History size={16} /> Histórico de Backups Gerados
+             </h4>
+             
+             {snapshots.length === 0 ? (
+               <div className="text-center py-12 bg-gray-50 rounded-3xl border border-gray-100 border-dashed">
+                 <Archive className="mx-auto text-gray-300 mb-4" size={48} />
+                 <p className="text-gray-400 font-medium">Nenhum backup gerado ainda.</p>
+               </div>
+             ) : (
+               <div className="space-y-3">
+                 {snapshots.map(snap => (
+                   <div key={snap.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-indigo-200 transition-all shadow-sm group">
+                     <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                         JSON
+                       </div>
+                       <div>
+                         <p className="font-bold text-slate-700 text-sm">Backup {snap.type || 'Manual'}</p>
+                         <p className="text-[10px] text-slate-400 font-medium">
+                           {new Date(snap.date).toLocaleDateString()} às {new Date(snap.date).toLocaleTimeString()} • {snap.size}
+                         </p>
+                       </div>
+                     </div>
+                     
+                     <div className="flex items-center gap-2">
+                       <button 
+                         onClick={() => handleDownloadSnapshot(snap)}
+                         className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                         title="Baixar"
+                       >
+                         <Download size={18} />
+                       </button>
+                       <button 
+                        onClick={() => confirmDeleteSnapshot(snap.id)}
+                        className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-colors hover:text-rose-600"
+                        title="Excluir"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+         </div>
+       </div>
+
+       <div className="p-8 bg-gray-50 border-t border-gray-100">
+          <div className="flex items-start gap-4">
+             <Info className="text-indigo-400 mt-1" size={20} />
+             <div>
+                <p className="text-xs font-black text-slate-800 uppercase mb-1">Dica Importante</p>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                   Recomendamos baixar os arquivos de backup gerados para um dispositivo seguro externo (Pen Drive ou Nuvem). Manter backups apenas aqui não protege contra perda total do dispositivo atual.
+                </p>
+             </div>
+          </div>
+       </div>
+     </div>
+
+     {/* Modal de Confirmação de Exclusão */}
+     {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[130] p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300 border-4 border-rose-100">
+             <div className="p-8 bg-rose-50 border-b border-rose-100 text-rose-800 flex justify-between items-center">
+               <div className="flex items-center gap-3">
+                  <Trash2 size={24} className="text-rose-600" />
+                  <h3 className="text-xl font-black uppercase tracking-tight">Excluir Backup</h3>
+               </div>
+               <button onClick={() => setShowDeleteModal(null)} className="p-2 hover:bg-rose-200/50 rounded-full transition-all text-rose-600">
+                  <X size={24} />
+               </button>
+             </div>
+
+             <div className="p-8 space-y-6">
+                <p className="text-slate-600 font-medium text-center leading-relaxed">
+                  Tem certeza que deseja excluir permanentemente este backup? <br/>
+                  <span className="text-xs text-rose-500 font-bold uppercase mt-2 block">Esta ação não pode ser desfeita.</span>
+                </p>
+
+                <div className="flex gap-4">
+                   <button 
+                      onClick={() => setShowDeleteModal(null)}
+                      className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+                   >
+                      Cancelar
+                   </button>
+                   <button 
+                      onClick={handleDeleteSnapshot}
+                      className="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all active:scale-95"
+                   >
+                      Sim, Excluir
+                   </button>
+                </div>
+             </div>
+          </div>
+        </div>
+     )}
+
+     {/* Modal de Confirmação de Restauração */}
       {showRestoreModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[120] p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
@@ -298,17 +399,12 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({ user, config, onRest
                            />
                         </div>
 
-                        {error && (
-                           <div className="bg-red-50 p-3 rounded-xl border border-red-100 flex items-center justify-center gap-2 animate-bounce">
-                              <ShieldAlert size={14} className="text-red-600" />
-                              <p className="text-[10px] text-red-600 font-black uppercase">{error}</p>
-                           </div>
-                        )}
-                     </div>
-
-                     <div className="pt-4 flex gap-4">
-                        <button type="button" onClick={() => setShowRestoreModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">Desistir</button>
-                        <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">Executar Restauro</button>
+                        <button 
+                           type="submit"
+                           className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                           <RefreshCcw size={18} /> Confirmar e Restaurar
+                        </button>
                      </div>
                   </div>
                </form>

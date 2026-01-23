@@ -34,12 +34,7 @@ export const MasterPlanResources: React.FC<MasterPlanResourcesProps> = ({ plans,
     onUpdatePlans(plans.map(p => p.id === selectedPlan.id ? updatedPlan : p));
   };
 
-  const toggleModule = (moduleId: string, subModulesIds?: string[]) => {
-    if (!selectedPlan) return;
-    
-    // If enabledModules is undefined, it means all are enabled by default.
-    // So we start with all available modules.
-    const getAllModules = () => {
+  const getAllModules = () => {
       const all: string[] = [];
       AVAILABLE_MODULES.forEach(m => {
         all.push(m.id);
@@ -48,8 +43,11 @@ export const MasterPlanResources: React.FC<MasterPlanResourcesProps> = ({ plans,
         }
       });
       return all;
-    };
+  };
 
+  const toggleModule = (moduleId: string, subModulesIds?: string[]) => {
+    if (!selectedPlan) return;
+    
     const currentModules = selectedPlan.enabledModules || getAllModules();
     const isEnabled = currentModules.includes(moduleId);
     
@@ -81,19 +79,60 @@ export const MasterPlanResources: React.FC<MasterPlanResourcesProps> = ({ plans,
     onUpdatePlans(plans.map(p => p.id === selectedPlan.id ? updatedPlan : p));
   };
 
+  const toggleModuleForPlan = (planId: string, moduleId: string) => {
+    const targetPlan = plans.find(p => p.id === planId);
+    if (!targetPlan) return;
+    
+    // Logic to determine if enabled:
+    // If enabledModules is undefined/null, it means ALL modules are enabled (legacy/default).
+    // If enabledModules is an array, check if it includes the moduleId.
+    const isEnabled = !targetPlan.enabledModules || targetPlan.enabledModules.includes(moduleId);
+    
+    let newModules: string[] = [];
+
+    if (targetPlan.enabledModules) {
+        // If it has a defined list, use it
+        newModules = [...targetPlan.enabledModules];
+    } else {
+        // If undefined (all enabled), we must create the list.
+        // Since we are toggling ONE module, we need to know the current state.
+        // If it was "all enabled" (isEnabled=true), and we toggle, we want to DISABLE it.
+        // So new list = All Available - This Module.
+        const all = getAllModules();
+        newModules = [...all];
+    }
+    
+    if (isEnabled) {
+      // Disable it
+      newModules = newModules.filter(m => m !== moduleId);
+      
+      // Remove submodules if any
+      const moduleDef = AVAILABLE_MODULES.find(m => m.id === moduleId);
+      if (moduleDef && (moduleDef as any).subModules) {
+         const subIds = (moduleDef as any).subModules.map((s:any) => s.id);
+         newModules = newModules.filter(m => !subIds.includes(m));
+      }
+    } else {
+      // Enable it
+      if (!newModules.includes(moduleId)) {
+          newModules.push(moduleId);
+      }
+      
+      // Add submodules
+      const moduleDef = AVAILABLE_MODULES.find(m => m.id === moduleId);
+      if (moduleDef && (moduleDef as any).subModules) {
+         (moduleDef as any).subModules.forEach((s:any) => {
+             if(!newModules.includes(s.id)) newModules.push(s.id);
+         });
+      }
+    }
+    
+    const updatedPlan = { ...targetPlan, enabledModules: newModules };
+    onUpdatePlans(plans.map(p => p.id === planId ? updatedPlan : p));
+  };
+
   const toggleSubModule = (subModuleId: string, parentId: string) => {
     if (!selectedPlan) return;
-    
-    const getAllModules = () => {
-      const all: string[] = [];
-      AVAILABLE_MODULES.forEach(m => {
-        all.push(m.id);
-        if ((m as any).subModules) {
-          (m as any).subModules.forEach((s: any) => all.push(s.id));
-        }
-      });
-      return all;
-    };
 
     const currentModules = selectedPlan.enabledModules || getAllModules();
     const isEnabled = currentModules.includes(subModuleId);
@@ -293,6 +332,43 @@ export const MasterPlanResources: React.FC<MasterPlanResourcesProps> = ({ plans,
                                                 isSubEnabled ? 'bg-indigo-500 border-indigo-500' : 'border-slate-600'
                                             }`}>
                                                 {isSubEnabled && <Check size={10} className="text-white" />}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                      )}
+
+                      {/* Lista de Planos para Backup Automático */}
+                      {module.id === 'mod_backup_auto' && (
+                        <div className="px-5 pb-5 pt-0 space-y-2">
+                            <div className="h-px bg-slate-800/50 w-full mb-3" />
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Planos Compatíveis</p>
+                            <div className="grid grid-cols-1 gap-2">
+                                {plans.map(p => {
+                                    const isPEnabled = !p.enabledModules || p.enabledModules.includes(module.id);
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleModuleForPlan(p.id, module.id);
+                                            }}
+                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
+                                                isPEnabled
+                                                    ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                                                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+                                            }`}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${isPEnabled ? 'bg-indigo-400' : 'bg-slate-600'}`} />
+                                                {p.name}
+                                            </span>
+                                            <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                                                isPEnabled ? 'bg-indigo-500 border-indigo-500' : 'border-slate-600'
+                                            }`}>
+                                                {isPEnabled && <Check size={10} className="text-white" />}
                                             </div>
                                         </button>
                                     );

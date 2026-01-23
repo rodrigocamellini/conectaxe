@@ -603,6 +603,37 @@ const App: React.FC = () => {
     return systemConfig.rolePermissions?.[auth.user.role]?.[activeTab] || { view: false, add: false, edit: false, delete: false };
   }, [auth.user, activeTab, systemConfig.rolePermissions, auth.isMasterMode]);
 
+  // Auto Backup Logic
+  useEffect(() => {
+    const checkAutoBackup = () => {
+      // Only run if authenticated, not in master mode, and we have a current plan
+      if (!auth.isAuthenticated || auth.isMasterMode || !currentPlan) return;
+
+      // Check if auto backup is enabled for this plan
+      const hasAutoBackup = !currentPlan.enabledModules || currentPlan.enabledModules.includes('mod_backup_auto');
+      if (!hasAutoBackup) return;
+
+      // Check if system config has a valid frequency
+      if (!systemConfig.autoBackupFrequency || systemConfig.autoBackupFrequency === 'disabled') return;
+
+      // Check if we should run backup
+      if (backupService.shouldRunAutoBackup(systemConfig.autoBackupFrequency)) {
+        try {
+          const newSnapshot = backupService.createSnapshot('Auto');
+          backupService.saveSnapshot(newSnapshot);
+          console.log('Backup automático realizado com sucesso.');
+        } catch (error) {
+          console.error('Falha no backup automático:', error);
+        }
+      }
+    };
+
+    // Run check on mount and when dependencies change
+    // We use a timeout to avoid blocking the main thread immediately on load
+    const timer = setTimeout(checkAutoBackup, 5000);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, auth.isMasterMode, currentPlan, systemConfig.autoBackupFrequency]);
+
   useEffect(() => {
     if (activeClientId) {
       const suffix = `_${activeClientId}`;
@@ -934,7 +965,7 @@ const App: React.FC = () => {
         {activeTab === 'entities' && <EntityManagement entities={entities} permissions={userPermissions!} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: Math.random().toString(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />}
         {activeTab === 'entity-images' && <EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={(id, data) => setEntities(entities.map(e => e.id === id ? { ...e, ...data } : e))} />}
         {activeTab === 'permissions' && <PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />}
-        {activeTab === 'backup' && <BackupSystem user={auth.user!} config={systemConfig} onRestoreFromBackup={d => { Object.keys(d).forEach(k => localStorage.setItem(k, JSON.stringify(d[k]))); window.location.reload(); }} />}
+        {activeTab === 'backup' && <BackupSystem user={auth.user!} config={systemConfig} onRestoreFromBackup={d => { Object.keys(d).forEach(k => localStorage.setItem(k, JSON.stringify(d[k]))); window.location.reload(); }} allowAutoBackup={!currentPlan?.enabledModules || currentPlan.enabledModules.includes('mod_backup_auto')} onUpdateConfig={setSystemConfig} />}
         {activeTab === 'restore-system' && <RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => { localStorage.clear(); window.location.reload(); }} />}
         {activeTab === 'saas-manager' && <SaaSManager config={systemConfig} onUpdateConfig={setSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />}
         {activeTab === 'indicacoes' && <AffiliateSystem config={systemConfig} referrals={referrals.filter(r => r.referrerId === (systemConfig.license?.affiliateLink?.split('ref=')[1] || ''))} />}
