@@ -388,8 +388,22 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     setShowAddClient(true);
   };
 
+  const formatPhone = (value: string) => {
+    const v = value.replace(/\D/g, '');
+    if (v.length > 10) {
+      return v.replace(/^(\d\d)(\d{5})(\d{4}).*/, '($1) $2-$3');
+    }
+    return v.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+  };
+
   const handleSaveClient = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (newClient.adminEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newClient.adminEmail)) {
+      alert("Formato de e-mail inválido. Use o formato: email@email.com");
+      return;
+    }
+
     const planName = newClient.plan || ((plans && plans[0]?.name) || SAAS_PLANS[0]);
     const { price, expirationDate } = getClientBillingFromPlan(planName);
 
@@ -942,9 +956,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                       <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
                       <input
                         className="w-full pl-9 p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="DDD + Número"
+                        placeholder="(00) 00000-0000"
                         value={newClient.adminPhone || ''}
-                        onChange={e => setNewClient(prev => ({ ...prev, adminPhone: e.target.value }))}
+                        onChange={e => setNewClient(prev => ({ ...prev, adminPhone: formatPhone(e.target.value) }))}
                       />
                     </div>
                   </div>

@@ -92,6 +92,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      alert("Formato de e-mail inválido. Use o formato: email@email.com");
+      return;
+    }
+
     if (editingId) {
       const dataToSave = { ...formData };
       if (!dataToSave.password) delete dataToSave.password;

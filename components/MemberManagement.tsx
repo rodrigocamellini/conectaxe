@@ -7,6 +7,58 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 // Fix: Import BRAZILIAN_STATES from constants to avoid duplication and fix scope issues
 import { DEFAULT_LOGO_URL, BRAZILIAN_STATES, SCHOOLING_LEVELS } from '../constants';
 
+// Validation Helpers
+const formatCPF = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .replace(/(-\d{2})\d+?$/, '$1');
+};
+
+const formatRG = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{1,2})(\d{3})/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .replace(/(-\d{1})\d+?$/, '$1');
+};
+
+const formatPhone = (value: string) => {
+  const v = value.replace(/\D/g, '');
+  if (v.length > 10) {
+    return v.replace(/^(\d\d)(\d{5})(\d{4}).*/, '($1) $2-$3');
+  }
+  return v.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+};
+
+const formatCEP = (value: string) => {
+  return value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+};
+
+const validateCPF = (cpf: string) => {
+  cpf = cpf.replace(/[^\d]+/g, '');
+  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+  let soma = 0;
+  let resto;
+  for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+  resto = (soma * 10) % 11;
+  if ((resto === 10) || (resto === 11)) resto = 0;
+  if (resto !== parseInt(cpf.substring(9, 10))) return false;
+  soma = 0;
+  for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+  resto = (soma * 10) % 11;
+  if ((resto === 10) || (resto === 11)) resto = 0;
+  if (resto !== parseInt(cpf.substring(10, 11))) return false;
+  return true;
+};
+
+const validateEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 interface MemberManagementProps {
   members: Member[];
   entities: SpiritualEntity[];
@@ -58,20 +110,38 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const [formData, setFormData] = useState<Partial<Member>>({
     name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
-    address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '',
-    status: 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '',
+    address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '', 
+    status: mode === 'consulente' ? 'consulente' : 'ativo', paiCabecaId: '', maeCabecaId: '', guiaFrenteId: '', 
     cargoId: '', photo: '', houseRoles: [], 
     nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
     spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
     childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
-    observations: '', isMedium: false, isCambone: false, isConsulente: false
+    observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente'
   });
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name?.trim()) errors.name = 'required';
+    if (!formData.birthDate) errors.birthDate = 'required';
+    if (formData.email && !validateEmail(formData.email)) errors.email = 'invalid';
+    if (formData.cpf) {
+      if (!validateCPF(formData.cpf)) errors.cpf = 'invalid';
+    }
+    if (formData.phone) {
+      const clean = formData.phone.replace(/\D/g, '');
+      if (clean.length < 10 || clean.length > 11) errors.phone = 'invalid';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleOpenCreate = () => {
     setEditingId(null);
+    setFormErrors({});
     setFormData({
       name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
       address: '', bairro: '', cidade: '', estado: 'SP', cep: '', birthDate: '', 
@@ -117,6 +187,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     if (editingId) {
       onUpdateMember(editingId, formData);
     } else {
@@ -343,12 +415,12 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                     )}
                   </div>
                   <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+                    <div className="md:col-span-2"><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input required className={`w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 font-bold text-sm ${formErrors.name ? 'border-red-500' : 'border-gray-200'}`} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
                     
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nascimento</label><input type="date" required className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} /></div>
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CPF</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cpf} onChange={e => setFormData({...formData, cpf: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nascimento</label><input type="date" required className={`w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 font-bold text-sm ${formErrors.birthDate ? 'border-red-500' : 'border-gray-200'}`} value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CPF</label><input className={`w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 font-bold text-sm ${formErrors.cpf ? 'border-red-500' : 'border-gray-200'}`} value={formData.cpf} onChange={e => setFormData({...formData, cpf: formatCPF(e.target.value)})} placeholder="000.000.000-00" maxLength={14} /></div>
                     
-                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">RG</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.rg} onChange={e => setFormData({...formData, rg: e.target.value})} /></div>
+                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">RG</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.rg} onChange={e => setFormData({...formData, rg: formatRG(e.target.value)})} placeholder="00.000.000-0" maxLength={13} /></div>
                     {mode === 'member' && (
                       <>
                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nacionalidade</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.nationality} onChange={e => setFormData({...formData, nationality: e.target.value})} /></div>
@@ -431,11 +503,11 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
 
               {activeTab === 'contato' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail</label><input type="email" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone Principal</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone de Emergência</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.emergencyPhone} onChange={e => setFormData({...formData, emergencyPhone: e.target.value})} /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail</label><input type="email" className={`w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 font-bold text-sm ${formErrors.email ? 'border-red-500' : 'border-gray-200'}`} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="email@email.com" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone Principal</label><input className={`w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 font-bold text-sm ${formErrors.phone ? 'border-red-500' : 'border-gray-200'}`} value={formData.phone} onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} placeholder="(00) 00000-0000" maxLength={15} /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Telefone de Emergência</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.emergencyPhone} onChange={e => setFormData({...formData, emergencyPhone: formatPhone(e.target.value)})} placeholder="(00) 00000-0000" maxLength={15} /></div>
                   
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CEP</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cep} onChange={e => setFormData({...formData, cep: e.target.value})} placeholder="00000-000" /></div>
+                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">CEP</label><input className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.cep} onChange={e => setFormData({...formData, cep: formatCEP(e.target.value)})} placeholder="00000-000" maxLength={9} /></div>
                   <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label>
                     <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 font-bold text-sm" value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value})}>
                       {BRAZILIAN_STATES.map(uf => <option key={uf} value={uf}>{uf}</option>)}
