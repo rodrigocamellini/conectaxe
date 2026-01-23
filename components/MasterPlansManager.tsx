@@ -1,17 +1,35 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { SaaSPlan, PlanLimits } from '../types';
-import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play } from 'lucide-react';
 
 interface MasterPlansManagerProps {
   plans: SaaSPlan[];
   onUpdatePlans: (plans: SaaSPlan[]) => void;
+  onRunAutoBlock: () => void;
 }
 
-export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, onUpdatePlans }) => {
+export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, onUpdatePlans, onRunAutoBlock }) => {
   const [newName, setNewName] = useState('');
   const [newPrice, setNewPrice] = useState(49.9);
   const [newDuration, setNewDuration] = useState(30);
   const [newLifetime, setNewLifetime] = useState(false);
+
+  // Auto Block Config
+  const [autoBlockConfig, setAutoBlockConfig] = useState<{enabled: boolean, days: number}>({ enabled: false, days: 5 });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('saas_auto_block_config');
+    if (saved) {
+      try {
+        setAutoBlockConfig(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
+  const handleSaveAutoBlock = () => {
+    localStorage.setItem('saas_auto_block_config', JSON.stringify(autoBlockConfig));
+    alert('Configuração de bloqueio automático salva!');
+  };
 
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -195,7 +213,8 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl h-fit space-y-6">
+        <div className="lg:col-span-4 space-y-6">
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl h-fit space-y-6">
           <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
             <Plus size={14} /> Cadastrar novo plano
           </h3>
@@ -260,6 +279,67 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({ plans, o
               <Plus size={16} /> Salvar Plano
             </button>
           </form>
+        </div>
+
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl h-fit space-y-6">
+           <h3 className="text-xs font-black text-red-400 uppercase tracking-widest flex items-center gap-2">
+            <Lock size={14} /> Bloqueio Automático
+          </h3>
+          <div className="space-y-4">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+              <div className="flex items-start gap-3">
+                 <AlertTriangle className="text-amber-500 shrink-0" size={16} />
+                 <p className="text-[10px] text-slate-400 leading-relaxed">
+                   O sistema verificará diariamente clientes com pagamentos atrasados e bloqueará o acesso automaticamente.
+                 </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                Dias de tolerância após vencimento
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={autoBlockConfig.days}
+                onChange={e => setAutoBlockConfig(prev => ({ ...prev, days: Number(e.target.value) }))}
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-red-500 focus:ring-red-500"
+                checked={autoBlockConfig.enabled}
+                onChange={e => setAutoBlockConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+              />
+              Ativar bloqueio automático
+            </label>
+
+            <button
+              type="button"
+              onClick={handleSaveAutoBlock}
+              className="w-full py-3 mt-2 bg-slate-800 text-white rounded-2xl font-black uppercase text-xs shadow-xl hover:bg-slate-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <Save size={16} /> Salvar Configuração
+            </button>
+
+            <div className="pt-2 border-t border-slate-800">
+               <button
+                type="button"
+                onClick={onRunAutoBlock}
+                className="w-full py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-2xl font-black uppercase text-xs hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Play size={16} /> Executar Verificação Agora
+              </button>
+              <p className="text-[9px] text-center text-slate-500 mt-2">
+                Isso forçará a verificação de inadimplência imediatamente para todos os clientes ativos.
+              </p>
+            </div>
+          </div>
+        </div>
         </div>
 
         <div className="lg:col-span-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden">

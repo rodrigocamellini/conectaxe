@@ -61,7 +61,7 @@ import {
   EyeOff,
   Pencil
 } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
@@ -214,6 +214,62 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       setCalculatedVersion(`${latestVersion}.1`);
     }
   }, [roadmap, updateType]);
+
+  useEffect(() => {
+    const runAutoBlock = () => {
+      const configStr = localStorage.getItem('saas_auto_block_config');
+      if (!configStr) return;
+      
+      let config;
+      try {
+        config = JSON.parse(configStr);
+      } catch {
+        return;
+      }
+
+      if (!config.enabled) return;
+
+      const today = new Date();
+      let hasUpdates = false;
+      const updatedClients = clients.map(client => {
+        if (client.status !== 'active') return client; 
+        
+        const expiryDate = new Date(client.expirationDate + 'T23:59:59');
+        if (isNaN(expiryDate.getTime())) return client;
+
+        const toleranceDays = config.days || 0;
+        const blockDate = addDays(expiryDate, toleranceDays);
+        
+        if (isAfter(today, blockDate)) {
+          hasUpdates = true;
+          return { ...client, status: 'blocked' as const };
+        }
+        return client;
+      });
+
+      if (hasUpdates) {
+        onUpdateClients(updatedClients);
+        
+        updatedClients.forEach((c, index) => {
+          const original = clients[index];
+          if (original.status === 'active' && c.status === 'blocked') {
+            onAddAuditLog({
+              clientId: c.id,
+              clientName: c.name,
+              action: 'Bloqueio Automático',
+              category: 'financial',
+              severity: 'warning',
+              details: `Cliente bloqueado automaticamente por inadimplência. Vencimento: ${c.expirationDate}, Tolerância: ${config.days} dias.`
+            });
+          }
+        });
+        
+        alert(`ATENÇÃO: ${updatedClients.filter((c, i) => clients[i].status === 'active' && c.status === 'blocked').length} clientes foram bloqueados automaticamente por falta de pagamento.`);
+      }
+    };
+
+    runAutoBlock();
+  }, [clients]);
 
   const handleExportRoadmap = () => {
     const data = JSON.stringify(roadmap, null, 2);
@@ -1621,10 +1677,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
             )}
  
             {systemConfigTab === 'planos' && (
-              <div className="p-6">
-                <MasterPlansManager plans={plans} onUpdatePlans={handleUpdatePlansWithAudit} />
-              </div>
-            )}
+          <div className="p-6">
+            <MasterPlansManager plans={plans} onUpdatePlans={handleUpdatePlansWithAudit} onRunAutoBlock={() => runAutoBlock(true)} />
+          </div>
+        )}
 
             {systemConfigTab === 'recursos' && (
               <div className="p-6">
