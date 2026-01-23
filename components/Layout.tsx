@@ -44,6 +44,7 @@ interface LayoutProps {
   enabledModules?: string[];
   systemVersion?: string;
   children: React.ReactNode;
+  isSimulation?: boolean;
 }
 
 const MODULE_MAPPING: Record<string, string> = {
@@ -179,7 +180,8 @@ export const Layout: React.FC<LayoutProps> = ({
   enabledModules,
   systemVersion = '1.0.0',
   children,
-  onUpdateProfile 
+  onUpdateProfile,
+  isSimulation = false
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -337,7 +339,7 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
         
         <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-          {isRodrigo && !isAtDeveloperPortal && (
+          {(isRodrigo || isMasterMode) && !isAtDeveloperPortal && !isSimulation && (
             <button onClick={() => setActiveTab('developer-portal')} className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl transition-all bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95">
               <ShieldCheck size={18} className="shrink-0" /><span>Painel Master</span>
             </button>

@@ -39,7 +39,7 @@ import { MediaPontos } from './components/MediaPontos';
 import { MediaRezas } from './components/MediaRezas';
 import { MediaErvasBanhos } from './components/MediaErvasBanhos';
 import { PublicEventRegistration } from './components/EventsModule/PublicEventRegistration';
-import { LogIn, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
+import { LogIn, LogOut, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
 class SafeMasterPortal extends React.Component<{ children: React.ReactNode, onReset: () => void }, { hasError: boolean, error: Error | null }> {
@@ -95,6 +95,7 @@ const App: React.FC = () => {
   const [rememberAccess, setRememberAccess] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSimulation, setIsSimulation] = useState(false);
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
   const [publicEventId, setPublicEventId] = useState<string | null>(null);
   
@@ -724,6 +725,7 @@ const App: React.FC = () => {
 
   const handleEnterClientSystem = (client: SaaSClient) => {
     if (auth.isMasterMode) {
+      setIsSimulation(true);
       handleAddAuditLog({
         clientId: client.id,
         clientName: client.name,
@@ -873,7 +875,16 @@ const App: React.FC = () => {
         enabledModules={currentPlan?.enabledModules}
         systemVersion={currentSystemVersion}
         onUpdateProfile={handleUpdateProfile}
+        isSimulation={isSimulation}
       >
+        {isSimulation && (
+          <button
+            onClick={() => window.location.reload()}
+            className="fixed bottom-6 right-6 z-[9999] px-6 py-4 bg-red-600 text-white rounded-full font-black uppercase text-xs shadow-2xl hover:bg-red-700 transition-all flex items-center gap-2 animate-bounce border-4 border-white/20"
+          >
+            <LogOut size={16} /> Sair da Simulação
+          </button>
+        )}
         {activeTab === 'dashboard' && <Dashboard members={members} config={systemConfig} events={events} terreiroEvents={terreiroEvents} roadmap={safeRoadmap} broadcasts={broadcasts} />}
         {/* Módulo Agenda Simples */}
         {(activeTab === 'agenda') && (!currentPlan?.enabledModules || currentPlan.enabledModules.includes('agenda')) && (
