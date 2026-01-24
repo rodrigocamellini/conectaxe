@@ -40,7 +40,7 @@ export const MENU_ICONS_CATALOG = [
   'Archive', 'RefreshCw', 'UserRoundPlus', 'ShieldEllipsis', 'Ticket',
   'Crown', 'Sparkles', 'Star', 'Flame', 'Zap', 'Bell', 'Info', 'Code',
   'MoonStar', 'Church', 'Candles', 'CloudMoon', 'Flower2', 'Waves',
-  'Sword', 'Axe', 'Shield', 'Hammer', 'Drumstick', 'Droplets', 'Wind', 'Feather'
+  'Sword', 'Axe', 'Shield', 'Hammer', 'Drumstick', 'Droplets', 'Wind', 'Feather', 'LifeBuoy'
 ];
 
 export const AVAILABLE_MODULES = [

@@ -26,7 +26,8 @@ import {
   Crown,
   AlertCircle,
   Lock,
-  User as UserIcon
+  User as UserIcon,
+  LifeBuoy
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
@@ -544,6 +545,14 @@ export const Layout: React.FC<LayoutProps> = ({
               >
                 <Info size={14} />
                 <span>Info</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('help-center')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-[10px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-100 hover:border-indigo-200 transition-colors"
+              >
+                <LifeBuoy size={14} />
+                <span>Ajuda</span>
               </button>
               <button
                 type="button"

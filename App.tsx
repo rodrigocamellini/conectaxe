@@ -39,6 +39,8 @@ import { MediaPontos } from './components/MediaPontos';
 import { MediaRezas } from './components/MediaRezas';
 import { MediaErvasBanhos } from './components/MediaErvasBanhos';
 import { PublicEventRegistration } from './components/EventsModule/PublicEventRegistration';
+import { HelpCenter } from './components/HelpCenter';
+import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { LogIn, LogOut, ShieldAlert, Snowflake, Layers, Wrench, Clock, AlertCircle } from 'lucide-react';
 import { isAfter, format, isValid } from 'date-fns';
 
@@ -98,6 +100,35 @@ const App: React.FC = () => {
   const [isSimulation, setIsSimulation] = useState(false);
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
   const [publicEventId, setPublicEventId] = useState<string | null>(null);
+  const [runTour, setRunTour] = useState(false);
+
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunTour(false);
+    }
+  };
+
+  const TOUR_STEPS: Step[] = [
+    {
+      target: 'body',
+      content: <div className="text-center">
+        <h3 className="font-bold text-lg mb-2">Bem-vindo ao Sistema!</h3>
+        <p>Vamos fazer um tour rápido pelas principais funcionalidades?</p>
+      </div>,
+      placement: 'center',
+    },
+    {
+      target: '[data-tour="sidebar"]',
+      content: 'Este é o Menu Principal. Aqui você navega entre todos os módulos do sistema, como Cadastros, Financeiro e Estoque.',
+      placement: 'right',
+    },
+    {
+      target: '[data-tour="header-user"]',
+      content: 'Aqui você gerencia seu perfil, visualiza notificações e faz logout do sistema.',
+      placement: 'left',
+    }
+  ];
   
   const [members, setMembers] = useState<Member[]>(() => storage.get<Member[]>(STORAGE_KEYS.MEMBERS) || []);
   const [consulentes, setConsulentes] = useState<Consulente[]>(() => storage.get<Consulente[]>(STORAGE_KEYS.CONSULENTES) || []);
@@ -896,19 +927,55 @@ const App: React.FC = () => {
 
   if (auth.isAuthenticated) {
     return (
-      <Layout 
-        user={auth.user!} 
-        config={systemConfig} 
-        onLogout={() => setAuth({ user: null, isAuthenticated: false })} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        isMasterMode={auth.isMasterMode}
-        enabledModules={currentPlan?.enabledModules}
-        systemVersion={currentSystemVersion}
-        onUpdateProfile={handleUpdateProfile}
-        isSimulation={isSimulation}
-      >
-        {isSimulation && (
+      <>
+        <Joyride
+          steps={TOUR_STEPS}
+          run={runTour}
+          continuous
+          showSkipButton
+          showProgress
+          disableOverlayClose
+          spotlightClicks
+          styles={{
+            options: {
+              primaryColor: '#4f46e5',
+              zIndex: 10000,
+            },
+            tooltipContainer: {
+              textAlign: 'left'
+            },
+            buttonNext: {
+              backgroundColor: '#4f46e5'
+            },
+            buttonBack: {
+              color: '#64748b'
+            }
+          }}
+          callback={handleJoyrideCallback}
+          locale={{
+            back: 'Voltar',
+            close: 'Fechar',
+            last: 'Finalizar',
+            next: 'Próximo',
+            skip: 'Pular'
+          }}
+        />
+        <Layout 
+          user={auth.user!} 
+          config={systemConfig} 
+          onLogout={() => setAuth({ user: null, isAuthenticated: false })} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          isMasterMode={auth.isMasterMode}
+          enabledModules={currentPlan?.enabledModules}
+          systemVersion={currentSystemVersion}
+          onUpdateProfile={handleUpdateProfile}
+          isSimulation={isSimulation}
+        >
+          {activeTab === 'help-center' && (
+            <HelpCenter onStartTour={() => setRunTour(true)} />
+          )}
+          {isSimulation && (
           <button
             onClick={() => window.location.reload()}
             className="fixed bottom-6 right-6 z-[9999] px-6 py-4 bg-red-600 text-white rounded-full font-black uppercase text-xs shadow-2xl hover:bg-red-700 transition-all flex items-center gap-2 animate-bounce border-4 border-white/20"
@@ -1019,6 +1086,7 @@ const App: React.FC = () => {
           </SafeMasterPortal>
         )}
       </Layout>
+      </>
     );
   }
 
