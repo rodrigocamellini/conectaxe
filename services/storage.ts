@@ -8,7 +8,9 @@ const STORAGE_KEYS = {
   BANHOS: 'terreiro_banhos',
   CONSULENTES: 'terreiro_consulentes',
   AUTH: 'terreiro_auth',
-  SYSTEM_CONFIG: 'terreiro_system_config'
+  SYSTEM_CONFIG: 'terreiro_system_config',
+  TRANSACTIONS: 'terreiro_transactions',
+  MASTER_CONFIG: 'terreiro_master_config'
 };
 export const storage = {
   get: <T,>(key: string): T | null => {

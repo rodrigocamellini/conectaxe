@@ -62,7 +62,7 @@ const MONTHS = [
   { id: '12', name: 'Dezembro' },
 ];
 
-export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, donations, canteenOrders = [], config }) => {
+export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, donations, canteenOrders = [], config, transactions }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [showPreview, setShowPreview] = useState(false);
@@ -71,26 +71,43 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, don
   const payers = members.filter(m => m.isMedium || m.isCambone);
   
   const memberIncome = payers.reduce((acc, member) => {
-    const status = member.monthlyPayments?.[currentMonthKey] || 'unpaid';
+    // Calculate expected value based on CURRENT config
     const values = [];
     if (member.isMedium) values.push(config.financialConfig.mediumValue);
     if (member.isCambone) values.push(config.financialConfig.camboneValue);
-    const value = values.length > 0 ? Math.max(...values) : 0;
+    const expectedValue = values.length > 0 ? Math.max(...values) : 0;
+
+    let status = 'unpaid';
+    let collectedValue = 0;
+
+    if (transactions) {
+       const tx = transactions.find(t => t.memberId === member.id && t.monthReference === currentMonthKey && t.type === 'mensalidade' && t.status === 'paid');
+       if (tx) {
+         status = 'paid';
+         collectedValue = tx.amount;
+       } else {
+         // Fallback to legacy for 'justified' status preservation during migration
+         if (member.monthlyPayments?.[currentMonthKey] === 'justified') status = 'justified';
+       }
+    } else {
+       status = member.monthlyPayments?.[currentMonthKey] || 'unpaid';
+       if (status === 'paid') collectedValue = expectedValue;
+    }
 
     if (status === 'paid') {
       acc.paidCount += 1;
-      acc.totalCollected += value;
-      acc.paidMembers.push({ name: member.name, value, status: 'Pago' });
+      acc.totalCollected += collectedValue;
+      acc.paidMembers.push({ name: member.name, value: collectedValue, status: 'Pago' });
     } else if (status === 'justified') {
       acc.justifiedCount += 1;
-      acc.totalJustified += value;
-      acc.unpaidMembers.push({ name: member.name, value, status: 'Justificado' });
+      acc.totalJustified += expectedValue;
+      acc.unpaidMembers.push({ name: member.name, value: expectedValue, status: 'Justificado' });
     } else {
       acc.pendingCount += 1;
-      acc.totalPending += value;
-      acc.unpaidMembers.push({ name: member.name, value, status: 'Pendente' });
+      acc.totalPending += expectedValue;
+      acc.unpaidMembers.push({ name: member.name, value: expectedValue, status: 'Pendente' });
     }
-    acc.totalExpected += value;
+    acc.totalExpected += expectedValue;
     return acc;
   }, { 
     paidCount: 0, 

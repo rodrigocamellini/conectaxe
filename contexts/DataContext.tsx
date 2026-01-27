@@ -91,6 +91,13 @@ interface DataContextType {
   licenseState: { valid: boolean; status: 'active' | 'expired' | 'blocked' | 'frozen' };
   userPermissions: StaffPermissions | undefined;
 
+  // Phase 2 Exports
+  transactions: FinancialTransaction[];
+  setTransactions: React.Dispatch<React.SetStateAction<FinancialTransaction[]>>;
+  addTransaction: (transaction: FinancialTransaction) => void;
+  masterGlobalConfig: MasterGlobalConfig | null;
+  setMasterGlobalConfig: React.Dispatch<React.SetStateAction<MasterGlobalConfig | null>>;
+
   // Actions
   addMember: (data: Partial<Member>, isConsulente?: boolean) => void;
   updateMember: (id: string, data: Partial<Member>) => void;
@@ -268,6 +275,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = storage.get<GlobalMaintenanceConfig>('saas_global_maintenance');
     return saved || { active: false, message: '' };
   });
+
+  // --- Phase 2: Ledger & Config Implementation ---
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>(() => {
+    return storage.get<FinancialTransaction[]>(STORAGE_KEYS.TRANSACTIONS) || [];
+  });
+
+  const [masterGlobalConfig, setMasterGlobalConfig] = useState<MasterGlobalConfig | null>(() => {
+    return storage.get<MasterGlobalConfig>(STORAGE_KEYS.MASTER_CONFIG) || null;
+  });
+
+  const addTransaction = (transaction: FinancialTransaction) => {
+    setTransactions(prev => {
+      const updated = [...prev, transaction];
+      storage.set(STORAGE_KEYS.TRANSACTIONS, updated);
+      return updated;
+    });
+  };
+
+  // Migration Effect: Convert Member Payments to Transactions
+  useEffect(() => {
+    const hasTransactions = transactions.length > 0;
+    const hasMembers = members.length > 0;
+    
+    if (!hasTransactions && hasMembers) {
+      console.log('Running one-time migration: Member Payments -> Ledger Transactions');
+      const newTransactions: FinancialTransaction[] = [];
+      
+      members.forEach(member => {
+        if (member.monthlyPayments) {
+          Object.entries(member.monthlyPayments).forEach(([key, status]) => {
+             if (status === 'paid') {
+               // Determine value based on current config (best effort)
+               const isMedium = member.isMedium;
+               const isCambone = member.isCambone;
+               let amount = 0;
+               if (isMedium) amount = systemConfig.financialConfig?.mediumValue || 0;
+               else if (isCambone) amount = systemConfig.financialConfig?.camboneValue || 0;
+               
+               newTransactions.push({
+                 id: crypto.randomUUID(),
+                 memberId: member.id,
+                 memberName: member.name,
+                 type: 'mensalidade',
+                 amount: amount,
+                 date: `${key}-05`, // Assume 5th of the month
+                 monthReference: key, // YYYY-MM
+                 status: 'paid',
+                 paymentMethod: 'legacy_migration',
+                 notes: 'Migrado automaticamente do sistema antigo'
+               });
+             }
+          });
+        }
+      });
+      
+      if (newTransactions.length > 0) {
+        setTransactions(newTransactions);
+        storage.set(STORAGE_KEYS.TRANSACTIONS, newTransactions);
+        console.log(`Migration complete. Created ${newTransactions.length} transactions.`);
+      }
+    }
+  }, [members, transactions.length, systemConfig]); // Run once when members are loaded
 
   const [isSimulation, setIsSimulation] = useState(false);
 
@@ -762,7 +831,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSimulation,
     setIsSimulation,
     licenseState,
-    userPermissions
+    userPermissions,
+    
+    // Phase 2 Exports
+    transactions,
+    setTransactions,
+    addTransaction,
+    masterGlobalConfig,
+    setMasterGlobalConfig
   }}>
       {children}
     </DataContext.Provider>

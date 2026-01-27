@@ -209,7 +209,8 @@ export interface SaaSClient {
   phone?: string;
   document?: string;
   createdAt?: string;
-  [key: string]: any;
+  payments?: Record<string, string>;
+  metadata?: Record<string, any>;
 }
 
 export interface PaymentStatus {

@@ -120,7 +120,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     rezas, setRezas,
     ervas, setErvas,
     banhos, setBanhos,
-    referrals
+    referrals,
+    transactions,
+    addTransaction
   } = useData();
 
   // Helpers for Plan Limits
@@ -374,9 +376,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {/* Financeiro */}
         {hasModule('financeiro') && (
             <>
-                {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} />} />}
+                {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} transactions={transactions} onAddTransaction={addTransaction} />} />}
                 {hasModule('financeiro_doacoes') && <Route path="/donations" element={<DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />} />}
-                {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} canteenOrders={canteenOrders} config={systemConfig} />} />}
+                {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} canteenOrders={canteenOrders} config={systemConfig} transactions={transactions} />} />}
                 {hasModule('financeiro_config') && <Route path="/finance-config" element={<FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />} />}
             </>
         )}
