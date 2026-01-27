@@ -17,8 +17,16 @@ import {
   Trash2,
   Lock
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+
+// Helper to safely format dates
+const formatSafe = (dateStr: string, formatStr: string, options?: any) => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (!isValid(date)) return '-';
+  return format(date, formatStr, options);
+};
 
 interface AuditTabProps {
   logs: MasterAuditLog[];
@@ -44,7 +52,13 @@ export const AuditTab: React.FC<AuditTabProps> = ({ logs, onReset }) => {
     const matchesCategory = filterCategory === 'all' || log.category === filterCategory;
 
     return matchesSearch && matchesSeverity && matchesCategory;
-  }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }).sort((a, b) => {
+    const dateA = new Date(a.timestamp);
+    const dateB = new Date(b.timestamp);
+    const validA = isValid(dateA) ? dateA.getTime() : 0;
+    const validB = isValid(dateB) ? dateB.getTime() : 0;
+    return validB - validA;
+  });
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -68,8 +82,8 @@ export const AuditTab: React.FC<AuditTabProps> = ({ logs, onReset }) => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Data,Hora,Ação,Categoria,Severidade,Autor,Cliente,Detalhes\n"
       + filteredLogs.map(log => {
-          const date = format(new Date(log.timestamp), 'dd/MM/yyyy');
-          const time = format(new Date(log.timestamp), 'HH:mm:ss');
+          const date = formatSafe(log.timestamp, 'dd/MM/yyyy');
+          const time = formatSafe(log.timestamp, 'HH:mm:ss');
           return `"${date}","${time}","${log.action}","${log.category}","${log.severity}","${log.masterEmail}","${log.clientName || '-'}","${log.details || '-'}"`;
         }).join("\n");
 
@@ -220,11 +234,11 @@ export const AuditTab: React.FC<AuditTabProps> = ({ logs, onReset }) => {
                     <td className="p-4">
                       <div className="flex flex-col">
                         <span className="text-slate-200 font-medium text-sm">
-                          {format(new Date(log.timestamp), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                          {formatSafe(log.timestamp, "dd 'de' MMM, yyyy", { locale: ptBR })}
                         </span>
                         <span className="text-slate-500 text-xs flex items-center gap-1">
                           <Calendar size={10} />
-                          {format(new Date(log.timestamp), "HH:mm:ss")}
+                          {formatSafe(log.timestamp, "HH:mm:ss")}
                         </span>
                       </div>
                     </td>
@@ -316,7 +330,7 @@ export const AuditTab: React.FC<AuditTabProps> = ({ logs, onReset }) => {
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Data e Hora</label>
                   <p className="text-white font-medium">
-                    {format(new Date(selectedLog.timestamp), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+                    {selectedLog && formatSafe(selectedLog.timestamp, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
                   </p>
                 </div>
                 <div>

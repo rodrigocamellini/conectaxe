@@ -8,6 +8,7 @@ interface MediaPontosProps {
   onAddPonto: (ponto: Ponto) => void;
   onUpdatePonto: (id: string, ponto: Partial<Ponto>) => void;
   onDeletePonto: (id: string) => void;
+  activeTab?: string;
 }
 
 const DEFAULT_TYPES = [
@@ -51,7 +52,8 @@ export const MediaPontos: React.FC<MediaPontosProps> = ({
   config,
   onAddPonto,
   onUpdatePonto,
-  onDeletePonto
+  onDeletePonto,
+  activeTab
 }) => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'form' | 'index'>('index');
   const [searchQuery, setSearchQuery] = useState('');

@@ -37,6 +37,16 @@ class GlobalErrorBoundary extends React.Component<{}, { hasError: boolean; error
                 {this.state.error.message}
               </pre>
             )}
+            {this.state.error?.stack && (
+              <div className="text-left mb-6">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  Stack técnico
+                </p>
+                <pre className="text-[11px] text-slate-700 bg-slate-50 border border-slate-100 rounded-2xl p-4 overflow-auto whitespace-pre-wrap break-words">
+                  {this.state.error.stack}
+                </pre>
+              </div>
+            )}
             <button
               onClick={this.handleReload}
               className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-colors"

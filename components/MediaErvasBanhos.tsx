@@ -12,6 +12,7 @@ interface MediaErvasBanhosProps {
   onAddBanho: (banho: Banho) => void;
   onUpdateBanho: (id: string, banho: Partial<Banho>) => void;
   onDeleteBanho: (id: string) => void;
+  activeTab?: string;
 }
 
 const DEFAULT_ERVA_AREAS = [

@@ -112,26 +112,31 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   clients = [],
   onUpdateClients,
   plans = [],
-  onUpdatePlans,
+  onUpdatePlans = () => {},
   externalTab,
   onTabChange,
-  maintConfig,
-  onUpdateMaintenance,
+  maintConfig = { active: false, message: '' },
+  onUpdateMaintenance = () => {},
   tickets = [],
-  onUpdateTickets,
+  onUpdateTickets = () => {},
   broadcasts = [],
-  onUpdateBroadcasts,
+  onUpdateBroadcasts = () => {},
   roadmap = [],
-  onUpdateRoadmap,
+  onUpdateRoadmap = () => {},
   coupons = [],
-  onUpdateCoupons,
+  onUpdateCoupons = () => {},
   auditLogs = [],
-  onAddAuditLog,
-  onClearAuditLogs,
+  onAddAuditLog = () => {},
+  onClearAuditLogs = () => {},
   systemConfig
 }) => {
   const [activeTab, setActiveTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sync with externalTab prop if provided
+  // Removed duplicate useEffect that was causing conflicts
+  // The mapping logic at line 396 handles this correctly
+
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState<SaaSClient | null>(null);
   const [showMasterSettings, setShowMasterSettings] = useState(false);
@@ -390,17 +395,18 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     if (externalTab) {
       const tabMap: Record<string, string> = {
         'master-payments': 'payments',
-        'master-affiliates': 'affiliates',
-        'system-maintenance': 'maintenance',
-        'master-backups': 'backups',
-        'master-audit': 'audit',
-        'tickets': 'tickets',
-        'master-broadcast': 'broadcast',
-        'master-roadmap': 'roadmap',
-        'master-system-config': 'system-config',
-        'master-coupons': 'coupons',
-        'developer-portal': 'clients'
-      };
+  'master-affiliates': 'affiliates',
+  'system-maintenance': 'maintenance',
+  'master-backups': 'backups',
+  'master-audit': 'audit',
+  'tickets': 'tickets',
+  'master-broadcast': 'broadcast',
+  'master-roadmap': 'roadmap',
+  'master-system-config': 'system-config',
+  'master-coupons': 'coupons',
+  'developer-portal': 'clients',
+  'master-menu': 'master-menu'
+};
       setActiveTab(tabMap[externalTab] || 'clients');
     }
   }, [externalTab]);

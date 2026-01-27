@@ -45,7 +45,8 @@ export const MediaRezas: React.FC<MediaRezasProps> = ({
   config,
   onAddReza,
   onUpdateReza,
-  onDeleteReza
+  onDeleteReza,
+  activeTab
 }) => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'form' | 'index'>('index');
   const [searchQuery, setSearchQuery] = useState('');

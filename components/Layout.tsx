@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu,
   X,
@@ -31,7 +32,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
-import { DEFAULT_LOGO_URL, MASTER_LOGO_URL, INITIAL_MASTER_MENU_CONFIG } from '../constants';
+import { DEFAULT_LOGO_URL, MASTER_LOGO_URL, INITIAL_MASTER_MENU_CONFIG, INITIAL_MENU_CONFIG } from '../constants';
 import { RoleIconComponent } from './UserManagement';
 
 interface LayoutProps {
@@ -175,8 +176,6 @@ export const Layout: React.FC<LayoutProps> = ({
   user, 
   config,
   onLogout, 
-  activeTab, 
-  setActiveTab, 
   isMasterMode = false,
   enabledModules,
   systemVersion = '1.0.0',
@@ -184,6 +183,11 @@ export const Layout: React.FC<LayoutProps> = ({
   onUpdateProfile,
   isSimulation = false
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = location.pathname.substring(1).split('/')[0] || 'dashboard';
+  const setActiveTab = (tab: string) => navigate('/' + tab);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -191,19 +195,115 @@ export const Layout: React.FC<LayoutProps> = ({
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [showSystemInfo, setShowSystemInfo] = useState(false);
 
-  const isAtDeveloperPortal = ['developer-portal', 'tickets', 'master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-broadcast', 'master-roadmap', 'master-system-config', 'master-coupons', 'master-audit', 'master-menu'].includes(activeTab);
+  const masterMenuItems: MenuItemConfig[] = useMemo(() => {
+    const saved = config.masterMenuConfig && config.masterMenuConfig.length > 0
+      ? config.masterMenuConfig
+      : INITIAL_MASTER_MENU_CONFIG;
+
+    const map = new Map<string, MenuItemConfig>();
+    saved.forEach(item => {
+      map.set(item.id, item);
+    });
+
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      if (!map.has(def.id)) {
+        map.set(def.id, def);
+      }
+    });
+
+    const ordered: MenuItemConfig[] = [];
+    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
+      const item = map.get(def.id);
+      if (item) {
+        ordered.push(item);
+      }
+    });
+
+    saved.forEach(item => {
+      if (!INITIAL_MASTER_MENU_CONFIG.find(def => def.id === item.id)) {
+        if (!ordered.find(o => o.id === item.id)) {
+          ordered.push(item);
+        }
+      }
+    });
+
+    return ordered;
+  }, [config.masterMenuConfig]);
+
+  // Merge user menu config with initial config to ensure new items appear
+  const mainMenuItems: MenuItemConfig[] = useMemo(() => {
+    // Import INITIAL_MENU_CONFIG from constants if not available in scope (it is imported)
+    const saved = config.menuConfig && config.menuConfig.length > 0
+      ? config.menuConfig
+      : INITIAL_MENU_CONFIG;
+
+    // If using default, just return it
+    if (saved === INITIAL_MENU_CONFIG) return saved;
+
+    // Otherwise merge logic similar to master menu
+    // We want to preserve user order/customization but add missing system items
+    
+    // 1. Create map of existing user items
+    const map = new Map<string, MenuItemConfig>();
+    saved.forEach(item => {
+      map.set(item.id, item);
+    });
+
+    // 2. Identify missing items from INITIAL_MENU_CONFIG
+    const missingItems: MenuItemConfig[] = [];
+    INITIAL_MENU_CONFIG.forEach(def => {
+      if (!map.has(def.id)) {
+        missingItems.push(def);
+      } else {
+        // Also check for missing SUB-ITEMS if the group exists
+        const userItem = map.get(def.id)!;
+        if (def.subItems && def.subItems.length > 0) {
+           const userSubMap = new Set(userItem.subItems?.map(s => s.id) || []);
+           const missingSubs = def.subItems.filter(s => !userSubMap.has(s.id));
+           
+           if (missingSubs.length > 0) {
+             // Create a new item with merged subitems
+             const mergedSubItems = [...(userItem.subItems || []), ...missingSubs];
+             map.set(def.id, { ...userItem, subItems: mergedSubItems });
+           }
+        }
+      }
+    });
+
+    // 3. Reconstruct list
+    // If user has a config, we respect their order, and append missing items at the end?
+    // Or do we try to interleave?
+    // Appending at the end is safest to respect user choice.
+    const result = [...saved.map(item => map.get(item.id)!)];
+    missingItems.forEach(item => {
+      result.push(item);
+    });
+
+    return result;
+  }, [config.menuConfig]);
+
+  const isAtDeveloperPortal = useMemo(() => {
+    return masterMenuItems.some(item => item.id === activeTab) || activeTab === 'developer-portal';
+  }, [activeTab, masterMenuItems]);
   const isRodrigo = user?.email?.toLowerCase().includes('rodrigo');
 
   useEffect(() => {
-    const parentGroup = config.menuConfig?.find(item => 
+    // Update expansion state when activeTab changes or config loads
+    // We prioritize showing the group of the current active tab
+    const parentGroup = mainMenuItems.find(item => 
       item.subItems?.some(sub => sub.id === activeTab)
     );
+    
     if (parentGroup) {
       setExpandedGroupId(parentGroup.id);
-    } else if (!config.menuConfig?.find(i => i.id === activeTab)?.subItems) {
-      setExpandedGroupId(null);
+    } else if (!mainMenuItems.find(i => i.id === activeTab)?.subItems) {
+      // Only close if we are on a top-level item that is NOT a group
+      // This allows keeping groups open if we are on a page not in the menu
+      if (mainMenuItems.some(i => i.id === activeTab)) {
+         setExpandedGroupId(null);
+      }
     }
-  }, [activeTab, config.menuConfig]);
+  }, [activeTab, mainMenuItems]);
 
   const toggleGroup = (id: string) => {
     setExpandedGroupId(prev => prev === id ? null : id);
@@ -248,41 +348,6 @@ export const Layout: React.FC<LayoutProps> = ({
       return fallback;
     }
   }, []);
-
-  const masterMenuItems: MenuItemConfig[] = useMemo(() => {
-    const saved = config.masterMenuConfig && config.masterMenuConfig.length > 0
-      ? config.masterMenuConfig
-      : INITIAL_MASTER_MENU_CONFIG;
-
-    const map = new Map<string, MenuItemConfig>();
-    saved.forEach(item => {
-      map.set(item.id, item);
-    });
-
-    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
-      if (!map.has(def.id)) {
-        map.set(def.id, def);
-      }
-    });
-
-    const ordered: MenuItemConfig[] = [];
-    INITIAL_MASTER_MENU_CONFIG.forEach(def => {
-      const item = map.get(def.id);
-      if (item) {
-        ordered.push(item);
-      }
-    });
-
-    saved.forEach(item => {
-      if (!INITIAL_MASTER_MENU_CONFIG.find(def => def.id === item.id)) {
-        if (!ordered.find(o => o.id === item.id)) {
-          ordered.push(item);
-        }
-      }
-    });
-
-    return ordered;
-  }, [config.masterMenuConfig]);
 
   const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
 
@@ -374,7 +439,7 @@ export const Layout: React.FC<LayoutProps> = ({
               </button>
             </div>
           ) : (
-            (config.menuConfig || []).map((item) => {
+            mainMenuItems.map((item) => {
               if (!isAllowed(item.id)) return null;
               
               // Check if module is enabled in plan

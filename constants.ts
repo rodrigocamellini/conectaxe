@@ -445,3 +445,13 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   menuConfig: INITIAL_MENU_CONFIG,
   masterMenuConfig: INITIAL_MASTER_MENU_CONFIG
 };
+
+export const INITIAL_SAAS_PLANS: SaaSPlan[] = [
+  { id: 'p_teste', name: 'Plano de Teste', price: 0, durationDays: 10 },
+  { id: 'p_mensal', name: 'Plano Mensal', price: 49.90, durationDays: 30 },
+  { id: 'p_trimestral', name: 'Plano Trimestral', price: 135.00, durationDays: 90 },
+  { id: 'p_semestral', name: 'Plano Semestral', price: 250.00, durationDays: 180 },
+  { id: 'p_anual', name: 'Plano Anual', price: 450.00, durationDays: 365 },
+  { id: 'p_vitalicio', name: 'Plano Vitalício', price: 1500.00, durationDays: null },
+  { id: 'p_cortesia', name: 'Plano Cortesia', price: 0, durationDays: 30 },
+];

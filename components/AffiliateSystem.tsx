@@ -26,9 +26,10 @@ import { DEFAULT_LOGO_URL } from '../constants';
 interface AffiliateSystemProps {
   config: SystemConfig;
   referrals: Referral[];
+  activeTab?: string;
 }
 
-export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referrals }) => {
+export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referrals, activeTab }) => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [activeTableFilter, setActiveTableFilter] = useState<'todos' | 'aguardando' | 'aprovada' | 'reprovada'>('todos');
   

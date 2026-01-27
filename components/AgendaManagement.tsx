@@ -147,13 +147,18 @@ export const AgendaManagement: React.FC<AgendaManagementProps> = ({
     setDraggedEventId(eventId);
     e.dataTransfer.setData('text/plain', eventId);
     e.dataTransfer.effectAllowed = 'move';
-    document.body.classList.add('is-dragging-event');
+    // Adiciona classe dragging ao body para feedback visual global
+    if (document.body && document.body.classList) {
+      document.body.classList.add('is-dragging-event');
+    }
   };
 
   const onDragEnd = () => {
     setDraggedEventId(null);
     setDragOverDate(null);
-    document.body.classList.remove('is-dragging-event');
+    if (document.body?.classList) {
+      document.body.classList.remove('is-dragging-event');
+    }
   };
 
   const onDrop = (e: React.DragEvent, date: Date) => {

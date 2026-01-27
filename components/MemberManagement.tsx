@@ -217,7 +217,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
 
   const handleConfirmDelete = () => {
     if (!memberToDelete) return;
-    if (!permissions.delete) {
+    if (!permissions?.delete) {
       setDeleteError('Você não tem permissão para excluir membros.');
       return;
     }
@@ -239,7 +239,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
 
   const toggleHouseRole = (roleId: string) => {
     setFormData(prev => {
-      const current = prev.houseRoles || [];
+      const current = Array.isArray(prev.houseRoles) ? prev.houseRoles : [];
       const isSelected = current.includes(roleId);
       let newRoles: string[];
       
@@ -316,7 +316,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        {permissions.add && (
+        {permissions?.add && (
           <button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all">
             <Plus size={20} /> {mode === 'consulente' ? 'Novo Consulente' : 'Novo Membro'}
           </button>
