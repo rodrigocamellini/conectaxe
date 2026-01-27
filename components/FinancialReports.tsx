@@ -292,15 +292,17 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, don
               <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-gray-100" strokeWidth="4" />
               <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-indigo-600" strokeWidth="4" strokeDasharray={`${(memberIncome.totalCollected / totalArrecadado) * 100 || 0} 100`} />
               <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-[#ADFF2F]" strokeWidth="4" strokeDasharray={`${(totalDonationsAmount / totalArrecadado) * 100 || 0} 100`} strokeDashoffset={`-${(memberIncome.totalCollected / totalArrecadado) * 100 || 0}`} />
+              <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-amber-500" strokeWidth="4" strokeDasharray={`${(totalCanteenRevenue / totalArrecadado) * 100 || 0} 100`} strokeDashoffset={`-${((memberIncome.totalCollected + totalDonationsAmount) / totalArrecadado) * 100 || 0}`} />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <p className="text-4xl font-black text-slate-800">R$ {totalArrecadado.toFixed(0)}</p>
               <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Total Bruto</p>
             </div>
           </div>
-          <div className="w-full grid grid-cols-2 gap-4">
-             <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center"><p className="text-[10px] font-black text-indigo-600 uppercase mb-1">Mensalidades</p><p className="text-xl font-black text-slate-800">R$ {memberIncome.totalCollected.toFixed(2)}</p></div>
-             <div className="p-5 bg-gray-50 rounded-[2rem] border border-gray-100 text-center"><p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Doações</p><p className="text-xl font-black text-slate-800">R$ {totalDonationsAmount.toFixed(2)}</p></div>
+          <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="p-4 bg-gray-50 rounded-[2rem] border border-gray-100 text-center"><p className="text-[10px] font-black text-indigo-600 uppercase mb-1">Mensalidades</p><p className="text-lg font-black text-slate-800">R$ {memberIncome.totalCollected.toFixed(2)}</p></div>
+             <div className="p-4 bg-gray-50 rounded-[2rem] border border-gray-100 text-center"><p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Doações</p><p className="text-lg font-black text-slate-800">R$ {totalDonationsAmount.toFixed(2)}</p></div>
+             <div className="p-4 bg-gray-50 rounded-[2rem] border border-gray-100 text-center"><p className="text-[10px] font-black text-amber-600 uppercase mb-1">Cantina</p><p className="text-lg font-black text-slate-800">R$ {totalCanteenRevenue.toFixed(2)}</p></div>
           </div>
         </div>
 
@@ -443,6 +445,14 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, don
                         </span>
                         <span className="text-[13px] font-black text-gray-800">
                           R$ {totalDonationsAmount.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-gray-500 uppercase">
+                          Vendas da Cantina
+                        </span>
+                        <span className="text-[13px] font-black text-gray-800">
+                          R$ {totalCanteenRevenue.toFixed(2)}
                         </span>
                       </div>
                     </div>

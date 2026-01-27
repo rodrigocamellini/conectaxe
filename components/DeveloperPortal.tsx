@@ -68,6 +68,7 @@ import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
 import { MasterPlanResources } from './MasterPlanResources';
 import { AuditTab } from './AuditTab';
+import { MenuManager } from './MenuManager';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS, DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface DeveloperPortalProps {
@@ -882,36 +883,36 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         <div className="space-y-8">
            {/* MENU SUPERIOR DE RESUMO */}
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-[#1e90ff] p-6 rounded-3xl border border-[#1e90ff]/80 shadow-xl">
+              <div className="bg-orange-500 p-6 rounded-3xl border border-orange-500/80 shadow-xl">
                  <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Total de Instâncias</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.total}</h4>
                     <LayoutGrid size={24} className="text-white/40" />
                  </div>
               </div>
-              <div className="bg-[#487ffe] p-6 rounded-3xl border border-[#487ffe]/80 shadow-xl">
-                 <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Terreiros Ativos</p>
+              <div className="bg-emerald-400 p-6 rounded-3xl border border-emerald-400/80 shadow-xl">
+                 <p className="text-[9px] font-black text-emerald-950/70 uppercase tracking-widest mb-1">Terreiros Ativos</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.active}</h4>
-                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <div className="w-3 h-3 rounded-full bg-emerald-900 animate-pulse" />
                  </div>
               </div>
-              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
-                 <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Inadimplentes</p>
+              <div className="bg-red-600 p-6 rounded-3xl border border-red-600/80 shadow-xl">
+                 <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Inadimplentes</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.blocked}</h4>
-                    <Lock size={20} className="text-red-500" />
+                    <Lock size={20} className="text-white/40" />
                  </div>
               </div>
-              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
-                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Congelados</p>
+              <div className="bg-blue-500 p-6 rounded-3xl border border-blue-500/80 shadow-xl">
+                 <p className="text-[9px] font-black text-white/80 uppercase tracking-widest mb-1">Congelados</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-3xl font-black text-white">{clientStats.frozen}</h4>
-                    <Snowflake size={20} className="text-blue-400" />
+                    <Snowflake size={20} className="text-white/40" />
                  </div>
               </div>
-              <div className="bg-indigo-600 p-6 rounded-3xl shadow-xl shadow-indigo-600/20">
-                 <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest mb-1">MRR Acumulado</p>
+              <div className="bg-purple-600 p-6 rounded-3xl shadow-xl shadow-purple-600/20">
+                 <p className="text-[9px] font-black text-purple-200 uppercase tracking-widest mb-1">MRR Acumulado</p>
                  <div className="flex items-center justify-between">
                     <h4 className="text-2xl font-black text-white">R$ {clientStats.totalMRR.toFixed(2)}</h4>
                     <TrendingUp size={20} className="text-[#ADFF2F]" />
@@ -2475,6 +2476,19 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       )}
 
       {activeTab === 'tickets' && <MasterTicketManager tickets={tickets} onUpdateTickets={onUpdateTickets} clients={clients} />}
+
+      {activeTab === 'master-menu' && (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+             <MenuManager 
+               config={systemConfig || DEFAULT_SYSTEM_CONFIG}
+               onUpdateConfig={(updatedConfig) => {
+                 localStorage.setItem('terreiro_system_config', JSON.stringify(updatedConfig));
+                 alert('Configuração de menu salva com sucesso!');
+                 window.location.reload();
+               }}
+             />
+        </div>
+      )}
     </div>
   );
 };

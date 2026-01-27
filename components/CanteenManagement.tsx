@@ -20,7 +20,9 @@ import {
   X,
   Edit,
   Image as ImageIcon,
-  AlertTriangle
+  AlertTriangle,
+  QrCode,
+  Banknote
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -60,6 +62,27 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<CanteenItem>>({ name: '', price: 0, stock: 0, category: 'Comida', image: '' });
+  const [showReportPreview, setShowReportPreview] = useState(false);
+  
+  // Date filter logic
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  const filteredOrders = orders.filter(order => {
+    const orderDate = new Date(order.date);
+    return orderDate.getMonth() === selectedDate.getMonth() && 
+           orderDate.getFullYear() === selectedDate.getFullYear();
+  });
+
+  const previousMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const nextMonth = () => setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  
+  // Report calculations
+  const totalRevenue = filteredOrders.reduce((acc, o) => acc + o.total, 0);
+  const revenueByMethod = filteredOrders.reduce((acc, order) => {
+    const method = order.paymentMethod || 'Pix';
+    acc[method] = (acc[method] || 0) + order.total;
+    return acc;
+  }, {} as Record<string, number>);
 
   // PDV Logic
   const addToCart = (item: CanteenItem) => {
@@ -230,34 +253,118 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
       )}
 
       {activeTab === 'cantina_historico' && (
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-           <table className="w-full text-left">
-              <thead>
-                 <tr className="bg-gray-50 text-[9px] font-black text-gray-400 uppercase">
-                    <th className="px-8 py-4">Data / ID</th>
-                    <th className="px-8 py-4">Operador</th>
-                    <th className="px-8 py-4">Pagamento</th>
-                    <th className="px-8 py-4 text-right">Valor Total</th>
-                    <th className="px-8 py-4 text-right">Ação</th>
-                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                 {[...orders].reverse().map(order => (
-                    <tr key={order.id} className="hover:bg-slate-50 transition-all">
-                       <td className="px-8 py-4">
-                          <p className="font-mono text-[10px] font-black text-indigo-600">#{order.id}</p>
-                          <p className="text-[9px] font-bold text-gray-400">{format(new Date(order.date), 'dd/MM/yy HH:mm')}</p>
-                       </td>
-                       <td className="px-8 py-4 font-black text-gray-700 uppercase text-[10px]">{order.responsible}</td>
-                       <td className="px-8 py-4 font-bold text-gray-500 uppercase text-[10px]">{order.paymentMethod || 'Pix'}</td>
-                       <td className="px-8 py-4 text-right font-black text-indigo-900 text-xs">R$ {order.total.toFixed(2)}</td>
-                       <td className="px-8 py-4 text-right">
-                          <button onClick={() => handleDeleteOrderClick(order.id)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16} /></button>
-                       </td>
-                    </tr>
-                 ))}
-              </tbody>
-           </table>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+             <div className="flex items-center gap-3">
+               <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><History size={20} /></div>
+               <div>
+                 <h3 className="text-sm font-black text-gray-800 uppercase">Histórico de Vendas</h3>
+                 <p className="text-[10px] text-gray-400 font-bold uppercase">Registro completo de operações</p>
+               </div>
+             </div>
+             
+             <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
+               <button onClick={previousMonth} className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-indigo-600 transition-all"><Minus size={14} /></button>
+               <span className="px-4 text-xs font-black uppercase text-gray-700 min-w-[140px] text-center">
+                 {format(selectedDate, 'MMMM yyyy', { locale: ptBR })}
+               </span>
+               <button onClick={nextMonth} className="p-2 hover:bg-white hover:shadow-sm rounded-lg text-gray-400 hover:text-indigo-600 transition-all"><Plus size={14} /></button>
+             </div>
+
+             <button onClick={() => setShowReportPreview(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">
+               <Printer size={16} /> Relatório / Imprimir
+             </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+             {/* Total Geral - Agora à esquerda */}
+             <div className="bg-zinc-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-2 text-white order-first">
+                <div className="p-3 bg-white/20 rounded-xl">
+                   <DollarSign size={20} />
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] font-bold text-zinc-300 uppercase">Total Geral</p>
+                   <p className="text-lg font-black">R$ {totalRevenue.toFixed(2)}</p>
+                </div>
+             </div>
+
+             {/* Dinheiro */}
+             <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+                   <Banknote size={20} />
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] font-bold text-emerald-600/70 uppercase">Dinheiro</p>
+                   <p className="text-lg font-black text-emerald-900">R$ {(revenueByMethod['Dinheiro'] || 0).toFixed(2)}</p>
+                </div>
+             </div>
+
+             {/* Pix */}
+             <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                <div className="p-3 bg-pink-100 text-pink-600 rounded-xl">
+                   <QrCode size={20} />
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] font-bold text-pink-600/70 uppercase">Pix</p>
+                   <p className="text-lg font-black text-pink-900">R$ {(revenueByMethod['Pix'] || 0).toFixed(2)}</p>
+                </div>
+             </div>
+
+             {/* Cartão de Débito */}
+             <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                   <CreditCard size={20} />
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] font-bold text-blue-600/70 uppercase">Débito</p>
+                   <p className="text-lg font-black text-blue-900">R$ {(revenueByMethod['Cartão de Débito'] || 0).toFixed(2)}</p>
+                </div>
+             </div>
+
+             {/* Cartão de Crédito */}
+             <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 shadow-sm flex flex-col items-center justify-center gap-2">
+                <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
+                   <CreditCard size={20} />
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] font-bold text-orange-600/70 uppercase">Crédito</p>
+                   <p className="text-lg font-black text-orange-900">R$ {(revenueByMethod['Cartão de Crédito'] || 0).toFixed(2)}</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+             <table className="w-full text-left">
+                <thead>
+                   <tr className="bg-gray-50 text-[9px] font-black text-gray-400 uppercase">
+                      <th className="px-8 py-4">Data / ID</th>
+                      <th className="px-8 py-4">Operador</th>
+                      <th className="px-8 py-4">Pagamento</th>
+                      <th className="px-8 py-4 text-right">Valor Total</th>
+                      <th className="px-8 py-4 text-right">Ação</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                   {filteredOrders.length === 0 ? (
+                      <tr><td colSpan={5} className="px-8 py-8 text-center text-xs text-gray-400 font-bold uppercase">Nenhuma venda registrada neste mês</td></tr>
+                   ) : (
+                      [...filteredOrders].reverse().map(order => (
+                      <tr key={order.id} className="hover:bg-slate-50 transition-all">
+                         <td className="px-8 py-4">
+                            <p className="font-mono text-[10px] font-black text-indigo-600">#{order.id}</p>
+                            <p className="text-[9px] font-bold text-gray-400">{format(new Date(order.date), 'dd/MM/yy HH:mm')}</p>
+                         </td>
+                         <td className="px-8 py-4 font-black text-gray-700 uppercase text-[10px]">{order.responsible}</td>
+                         <td className="px-8 py-4 font-bold text-gray-500 uppercase text-[10px]">{order.paymentMethod || 'Pix'}</td>
+                         <td className="px-8 py-4 text-right font-black text-indigo-900 text-xs">R$ {order.total.toFixed(2)}</td>
+                         <td className="px-8 py-4 text-right">
+                            <button onClick={() => handleDeleteOrderClick(order.id)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16} /></button>
+                         </td>
+                      </tr>
+                   )))}
+                </tbody>
+             </table>
+          </div>
         </div>
       )}
       {showAddModal && (
@@ -377,6 +484,113 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {showReportPreview && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              #canteen-print-area, #canteen-print-area * { visibility: visible; }
+              #canteen-print-area { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                padding: 1cm;
+                background: white;
+              }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 no-print">
+                <div>
+                   <h3 className="text-lg font-black text-gray-800 uppercase flex items-center gap-2"><Printer size={20} className="text-indigo-600" /> Relatório de Vendas - Cantina</h3>
+                   <p className="text-xs text-gray-400 font-bold uppercase">Visualização de Impressão</p>
+                </div>
+                <div className="flex gap-3">
+                   <button onClick={() => setShowReportPreview(false)} className="px-6 py-2 border border-gray-200 rounded-xl text-xs font-black text-gray-500 uppercase hover:bg-gray-100 transition-all">Fechar</button>
+                   <button onClick={() => window.print()} className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2"><Printer size={16} /> Imprimir Agora</button>
+                </div>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto p-8 bg-gray-100/50 flex justify-center">
+                <div id="canteen-print-area" className="bg-white w-full max-w-[21cm] min-h-[29.7cm] p-12 shadow-xl border border-gray-100">
+                   {/* Header */}
+                   <div className="flex justify-between items-center border-b-2 border-gray-100 pb-8 mb-8">
+                      <div className="flex items-center gap-6">
+                         {config.logoUrl && <img src={config.logoUrl} className="w-20 h-20 object-contain" />}
+                         <div>
+                            <h1 className="text-2xl font-black uppercase tracking-tight text-gray-900">{config.systemName}</h1>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Relatório Geral de Vendas - Cantina</p>
+                         </div>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-[10px] font-black uppercase text-gray-400">Gerado em</p>
+                         <p className="text-xs font-bold text-gray-800">{format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                      </div>
+                   </div>
+
+                   {/* Summary */}
+                   <div className="grid grid-cols-2 gap-6 mb-8">
+                      <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                         <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Total Arrecadado ({format(selectedDate, 'MMMM/yyyy', { locale: ptBR })})</p>
+                         <p className="text-3xl font-black text-indigo-600">R$ {totalRevenue.toFixed(2)}</p>
+                      </div>
+                      <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                         <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Quantidade de Vendas</p>
+                         <p className="text-3xl font-black text-gray-800">{filteredOrders.length}</p>
+                      </div>
+                   </div>
+
+                   {/* Payment Methods Summary */}
+                   <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                      <p className="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest">Total por Forma de Pagamento</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                         {Object.entries(revenueByMethod).map(([method, total]) => (
+                            <div key={method} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                               <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{method}</p>
+                               <p className="text-lg font-black text-indigo-900">R$ {total.toFixed(2)}</p>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+
+                   {/* Table */}
+                   <table className="w-full text-left">
+                      <thead>
+                         <tr className="border-b border-gray-200">
+                            <th className="py-3 text-[10px] font-black uppercase text-gray-400">Data</th>
+                            <th className="py-3 text-[10px] font-black uppercase text-gray-400">Responsável</th>
+                            <th className="py-3 text-[10px] font-black uppercase text-gray-400">Itens</th>
+                            <th className="py-3 text-[10px] font-black uppercase text-gray-400 text-right">Valor</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                         {[...filteredOrders].reverse().map(order => (
+                            <tr key={order.id}>
+                               <td className="py-3 text-[10px] font-bold text-gray-600">
+                                  {format(new Date(order.date), 'dd/MM/yy HH:mm')}
+                               </td>
+                               <td className="py-3 text-[10px] font-bold text-gray-800 uppercase">{order.responsible}</td>
+                               <td className="py-3 text-[10px] font-medium text-gray-500 max-w-[200px] truncate">
+                                  {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                               </td>
+                               <td className="py-3 text-[10px] font-black text-gray-800 text-right">R$ {order.total.toFixed(2)}</td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                   
+                   {/* Footer */}
+                   <div className="mt-12 pt-6 border-t border-gray-100 text-center">
+                      <p className="text-[9px] font-bold text-gray-300 uppercase">Documento gerado eletronicamente pelo sistema {config.systemName}</p>
+                   </div>
+                </div>
+             </div>
+          </div>
         </div>
       )}
     </div>
