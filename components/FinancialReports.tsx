@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Member, SystemConfig, Donation } from '../types';
+import { Member, SystemConfig, Donation, CanteenOrder } from '../types';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -33,7 +33,8 @@ import {
   PieChart,
   Target,
   ShieldCheck,
-  Layers
+  Layers,
+  ShoppingCart
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -42,6 +43,7 @@ import { DEFAULT_LOGO_URL } from '../constants';
 interface FinancialReportsProps {
   members: Member[];
   donations: Donation[];
+  canteenOrders?: CanteenOrder[];
   config: SystemConfig;
 }
 
@@ -60,7 +62,7 @@ const MONTHS = [
   { id: '12', name: 'Dezembro' },
 ];
 
-export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, donations, config }) => {
+export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, donations, canteenOrders = [], config }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [showPreview, setShowPreview] = useState(false);
@@ -104,7 +106,11 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, don
 
   const monthDonations = donations.filter(d => d.type === 'money' && d.date.startsWith(currentMonthKey));
   const totalDonationsAmount = monthDonations.reduce((acc, d) => acc + (d.value || 0), 0);
-  const totalArrecadado = memberIncome.totalCollected + totalDonationsAmount;
+
+  const monthCanteenOrders = (canteenOrders || []).filter(o => (o.status === 'paid' || o.status === 'delivered') && o.date.startsWith(currentMonthKey));
+  const totalCanteenRevenue = monthCanteenOrders.reduce((acc, o) => acc + (o.total || 0), 0);
+
+  const totalArrecadado = memberIncome.totalCollected + totalDonationsAmount + totalCanteenRevenue;
   const fixedExpenses = config.financialConfig.fixedExpenses || [];
   const totalFixedExpenses = fixedExpenses.reduce((acc, exp) => acc + exp.value, 0);
   const netBalance = totalArrecadado - totalFixedExpenses;
@@ -159,6 +165,12 @@ export const FinancialReports: React.FC<FinancialReportsProps> = ({ members, don
             <div>
                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Arrecadação Total</p>
                <h3 className="text-3xl font-black text-slate-800">R$ {totalArrecadado.toFixed(2)}</h3>
+               {totalCanteenRevenue > 0 && (
+                 <div className="flex items-center gap-1 mt-2 text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg w-fit">
+                   <ShoppingCart size={10} />
+                   <span className="text-[9px] font-black uppercase">+ R$ {totalCanteenRevenue.toFixed(2)} (Cantina)</span>
+                 </div>
+               )}
             </div>
          </div>
          <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl flex flex-col justify-between group hover:border-rose-200 transition-all">

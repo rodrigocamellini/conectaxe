@@ -161,9 +161,9 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
     icon: 'ShoppingCart',
     requiredModule: 'cantina',
     subItems: [
-      { id: 'canteen-pdv', label: 'Ponto de Venda (PDV)', icon: 'ShoppingCart', requiredModule: 'cantina_pdv' },
-      { id: 'canteen-mgmt', label: 'Cardápio e Preços', icon: 'Coffee', requiredModule: 'cantina_gestao' },
-      { id: 'canteen-history', label: 'Vendas Realizadas', icon: 'List', requiredModule: 'cantina_historico' }
+      { id: 'cantina_pdv', label: 'Ponto de Venda (PDV)', icon: 'ShoppingCart', requiredModule: 'cantina_pdv' },
+      { id: 'cantina_gestao', label: 'Cardápio e Preços', icon: 'Coffee', requiredModule: 'cantina_gestao' },
+      { id: 'cantina_historico', label: 'Vendas Realizadas', icon: 'List', requiredModule: 'cantina_historico' }
     ]
   },
   { 

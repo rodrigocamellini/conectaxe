@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -84,6 +84,8 @@ const ProtectedLayout: React.FC = () => {
 };
 
 export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour }) => {
+  const navigate = useNavigate();
+  const handleTabChange = (tab: string) => navigate('/' + tab);
   const auth = useAuth();
   const { setAuth } = auth;
   const { 
@@ -210,6 +212,20 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     setCanteenItems(updatedItems);
   };
 
+  const handleDeleteCanteenOrder = (id: string) => {
+    const order = canteenOrders.find(o => o.id === id);
+    if (!order) return;
+    
+    // Restore stock
+    const updatedItems = canteenItems.map(item => {
+        const soldItem = order.items.find(si => si.itemId === item.id);
+        if(soldItem) return {...item, stock: item.stock + soldItem.quantity};
+        return item;
+    });
+    setCanteenItems(updatedItems);
+    setCanteenOrders(canteenOrders.filter(o => o.id !== id));
+  };
+
   // Check Module Helper
   const hasModule = (module: string) => {
     // Priority: Client Specific Modules -> Plan Modules -> System Config
@@ -290,18 +306,18 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
 
         {/* Cantina */}
         {hasModule('cantina_pdv') && (
-             <Route path="/canteen-pdv" element={
-                <CanteenManagement activeTab="canteen-pdv" setActiveTab={() => {}} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} />
+             <Route path="/cantina_pdv" element={
+                <CanteenManagement activeTab="cantina_pdv" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_gestao') && (
-             <Route path="/canteen-mgmt" element={
-                <CanteenManagement activeTab="canteen-mgmt" setActiveTab={() => {}} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} />
+             <Route path="/cantina_gestao" element={
+                <CanteenManagement activeTab="cantina_gestao" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_historico') && (
-             <Route path="/canteen-history" element={
-                <CanteenManagement activeTab="canteen-history" setActiveTab={() => {}} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} />
+             <Route path="/cantina_historico" element={
+                <CanteenManagement activeTab="cantina_historico" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
 
@@ -360,7 +376,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             <>
                 {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} />} />}
                 {hasModule('financeiro_doacoes') && <Route path="/donations" element={<DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />} />}
-                {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} config={systemConfig} />} />}
+                {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} canteenOrders={canteenOrders} config={systemConfig} />} />}
                 {hasModule('financeiro_config') && <Route path="/finance-config" element={<FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />} />}
             </>
         )}

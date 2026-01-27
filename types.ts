@@ -335,6 +335,7 @@ export interface CanteenOrder {
   status: 'paid' | 'pending' | 'cancelled';
   paymentMethod?: string;
   buyerName?: string;
+  responsible?: string;
 }
 
 export interface Ponto {

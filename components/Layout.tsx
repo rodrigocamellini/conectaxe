@@ -251,6 +251,8 @@ export const Layout: React.FC<LayoutProps> = ({
 
     // 2. Identify missing items from INITIAL_MENU_CONFIG
     const missingItems: MenuItemConfig[] = [];
+    const OBSOLETE_IDS = ['canteen-pdv', 'canteen-mgmt', 'canteen-history'];
+    
     INITIAL_MENU_CONFIG.forEach(def => {
       if (!map.has(def.id)) {
         missingItems.push(def);
@@ -261,9 +263,15 @@ export const Layout: React.FC<LayoutProps> = ({
            const userSubMap = new Set(userItem.subItems?.map(s => s.id) || []);
            const missingSubs = def.subItems.filter(s => !userSubMap.has(s.id));
            
-           if (missingSubs.length > 0) {
-             // Create a new item with merged subitems
-             const mergedSubItems = [...(userItem.subItems || []), ...missingSubs];
+           // Always cleanup obsolete IDs if we are processing this group
+           const currentSubItems = userItem.subItems || [];
+           const hasObsolete = currentSubItems.some(s => OBSOLETE_IDS.includes(s.id));
+           
+           if (missingSubs.length > 0 || hasObsolete) {
+             // Create a new item with merged subitems and filter out obsolete ones
+             const mergedSubItems = [...currentSubItems, ...missingSubs]
+               .filter(s => !OBSOLETE_IDS.includes(s.id));
+             
              map.set(def.id, { ...userItem, subItems: mergedSubItems });
            }
         }
