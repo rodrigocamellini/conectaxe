@@ -153,6 +153,7 @@ export interface InventoryItem {
 export interface InventoryCategory {
   id: string;
   name: string;
+  category: string; // Added field based on usage in some files, might be redundant but safe
 }
 
 export interface CalendarEvent {
@@ -425,4 +426,20 @@ export interface MenuItemConfig {
   requiredModule?: string;
   subItems?: MenuItemConfig[];
   color?: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  type: 'mensalidade' | 'doacao' | 'venda' | 'compra' | 'expense' | 'income';
+  description?: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'pending' | 'cancelled' | 'overdue';
+  category?: string;
+  memberId?: string;
+  memberName?: string;
+  monthReference?: string;
+  paymentMethod?: string;
+  notes?: string;
+  relatedId?: string;
 }

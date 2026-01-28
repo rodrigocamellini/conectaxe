@@ -97,7 +97,7 @@ export const FinancialManagement: React.FC<FinancialManagementProps> = ({
        if (nextStatus === 'paid') {
           const val = getMemberValue(member);
           onAddTransaction({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             memberId: member.id,
             memberName: member.name,
             type: 'mensalidade',

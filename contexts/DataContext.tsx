@@ -12,6 +12,7 @@ import {
   INITIAL_USERS, DEFAULT_SYSTEM_CONFIG, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, 
   INITIAL_SAAS_PLANS 
 } from '../constants';
+import { generateUUID } from '../utils/ids';
 import { useAuth } from './AuthContext';
 
 interface DataContextType {
@@ -95,6 +96,8 @@ interface DataContextType {
   transactions: FinancialTransaction[];
   setTransactions: React.Dispatch<React.SetStateAction<FinancialTransaction[]>>;
   addTransaction: (transaction: FinancialTransaction) => void;
+  updateTransaction: (id: string, data: Partial<FinancialTransaction>) => void;
+  deleteTransaction: (id: string) => void;
   masterGlobalConfig: MasterGlobalConfig | null;
   setMasterGlobalConfig: React.Dispatch<React.SetStateAction<MasterGlobalConfig | null>>;
 
@@ -293,6 +296,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const updateTransaction = (id: string, data: Partial<FinancialTransaction>) => {
+    setTransactions(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, ...data } : t);
+      storage.set(STORAGE_KEYS.TRANSACTIONS, updated);
+      return updated;
+    });
+  };
+
+  const deleteTransaction = (id: string) => {
+    setTransactions(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      storage.set(STORAGE_KEYS.TRANSACTIONS, updated);
+      return updated;
+    });
+  };
+
   // Migration Effect: Convert Member Payments to Transactions
   useEffect(() => {
     const hasTransactions = transactions.length > 0;
@@ -314,7 +333,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                else if (isCambone) amount = systemConfig.financialConfig?.camboneValue || 0;
                
                newTransactions.push({
-                 id: crypto.randomUUID(),
+                 id: generateUUID(),
                  memberId: member.id,
                  memberName: member.name,
                  type: 'mensalidade',
@@ -390,8 +409,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0);
-    const newId = (lastId + 1).toString();
+    const newId = generateUUID();
     const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png';
     const baseStatus = isConsulente ? (m.status && m.status.trim() !== '' ? m.status : 'consulente') : (m.status || 'ativo');
     
@@ -451,7 +469,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, activeClientId, isAuthenticated, isMasterMode, setAuth]);
 
   const addInventoryItem = useCallback((item: InventoryItem) => {
-    setInventoryItems(prev => [...prev, { ...item, id: Math.random().toString() }]);
+    setInventoryItems(prev => [...prev, { ...item, id: generateUUID() }]);
   }, []);
 
   const updateInventoryItem = useCallback((id: string, data: Partial<InventoryItem>) => {
@@ -527,7 +545,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newTicket: EventTicket = {
       ...ticketData,
-      id: Math.random().toString(36).substr(2, 9),
+      id: generateUUID(),
       createdAt: new Date().toISOString(),
       status: 'confirmado',
       attendance: 'nao_marcado'
@@ -699,6 +717,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     root.style.setProperty('--primary-color', systemConfig.primaryColor);
     root.style.setProperty('--sidebar-color', systemConfig.sidebarColor);
     root.style.setProperty('--accent-color', systemConfig.accentColor);
+
+    // Apply Dashboard Font Size
+    if (systemConfig.dashboardFontSize) {
+      if (systemConfig.dashboardFontSize === 'small') {
+        root.style.fontSize = '14px';
+      } else if (systemConfig.dashboardFontSize === 'medium') {
+        root.style.fontSize = '16px';
+      } else if (systemConfig.dashboardFontSize === 'large') {
+        root.style.fontSize = '18px';
+      }
+    } else {
+      root.style.fontSize = '16px'; // Default
+    }
   }, [systemConfig]);
 
   // Persistence Effect
@@ -837,6 +868,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     transactions,
     setTransactions,
     addTransaction,
+    updateTransaction,
+    deleteTransaction,
     masterGlobalConfig,
     setMasterGlobalConfig
   }}>

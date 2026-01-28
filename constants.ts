@@ -184,6 +184,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
     requiredModule: 'financeiro',
     subItems: [
       { id: 'mensalidades', label: 'Mensalidades', icon: 'DollarSign', requiredModule: 'financeiro_mensalidades' },
+      { id: 'cash-flow', label: 'Fluxo de Caixa', icon: 'ArrowRightLeft', requiredModule: 'financeiro_fluxo' },
       { id: 'donations', label: 'Doações', icon: 'Heart', requiredModule: 'financeiro_doacoes' },
       { id: 'finance-reports', label: 'Relatórios Financeiros', icon: 'BarChart3', requiredModule: 'financeiro_relatorios' },
       { id: 'finance-config', label: 'Config. Financeira', icon: 'Calculator', requiredModule: 'financeiro_config' }

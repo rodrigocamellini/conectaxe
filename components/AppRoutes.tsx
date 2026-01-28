@@ -22,6 +22,7 @@ import { InventoryDashboard } from './InventoryDashboard';
 import { SystemConfigManagement } from './SystemConfigManagement';
 import { UserManagement } from './UserManagement';
 import { FinancialManagement } from './FinancialManagement';
+import { FinancialLedger } from './FinancialLedger';
 import { FinancialConfigComponent } from './FinancialConfig';
 import { FinancialReports } from './FinancialReports';
 import { PermissionManagement } from './PermissionManagement';
@@ -83,6 +84,10 @@ const ProtectedLayout: React.FC = () => {
   );
 };
 
+import { generateUUID } from '../utils/ids';
+import { MemberService } from '../services/memberService';
+import { InventoryService } from '../services/inventoryService';
+
 export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour }) => {
   const navigate = useNavigate();
   const handleTabChange = (tab: string) => navigate('/' + tab);
@@ -122,13 +127,15 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     banhos, setBanhos,
     referrals,
     transactions,
-    addTransaction
+    addTransaction,
+    updateTransaction,
+    deleteTransaction
   } = useData();
 
   // Helpers for Plan Limits
   const currentPlan = plans.find(p => p.name === systemConfig.license?.planName);
 
-  const handleAddMember = (m: Partial<Member>) => {
+  const handleAddMember = async (m: Partial<Member>) => {
     const isConsulente = m.status === 'consulente' || m.isConsulente;
     const limits = currentPlan?.limits;
     
@@ -149,14 +156,11 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       }
     }
     
-    const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0);
-    const newId = (lastId + 1).toString();
-    const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png';
-    
-    setMembers([{ ...m, id: newId, photo, createdAt: new Date().toISOString() } as Member, ...members]);
+    const newMember = await MemberService.createMember(m, members, false);
+    setMembers([newMember, ...members]);
   };
 
-  const handleAddConsulente = (m: Partial<Member>) => {
+  const handleAddConsulente = async (m: Partial<Member>) => {
     // Similar logic but specifically for Consulentes route
     const limits = currentPlan?.limits;
     if (!auth.isMasterMode && limits && limits.maxConsulentes != null) {
@@ -166,39 +170,18 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           return;
         }
     }
-    const lastId = members.reduce((max, cur) => Math.max(max, parseInt(cur.id) || 0), 0);
-    const newId = (lastId + 1).toString();
-    const baseStatus = m.status && m.status.trim() !== '' ? m.status : 'consulente';
-    const photo = m.photo && m.photo.trim() !== '' ? m.photo : '/images/membro.png';
     
-    setMembers([{ ...m, id: newId, photo, status: baseStatus, isConsulente: true, createdAt: new Date().toISOString() } as Member, ...members]);
+    const newConsulente = await MemberService.createMember(m, members, true);
+    setMembers([newConsulente, ...members]);
   };
 
   const handleAddCourse = (c: Partial<Course>) => {
-    const newId = `CR-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const newId = generateUUID();
     setCourses([{ ...c, id: newId, createdAt: new Date().toISOString() } as Course, ...courses]);
   };
 
   const handleInventoryEntrySave = (up: StockUpdate[]) => {
-      const newLogs: StockLog[] = [];
-      const updatedItems = inventoryItems.map(i => {
-        const u = up.find(x => x.id === i.id);
-        if (u && u.currentStock !== i.currentStock) {
-          newLogs.push({
-            id: Math.random().toString(36).substr(2, 9),
-            itemId: i.id,
-            itemName: i.name,
-            previousStock: i.currentStock,
-            newStock: u.currentStock,
-            change: u.currentStock - i.currentStock,
-            date: new Date().toISOString(),
-            responsible: auth.user?.name || 'Sistema',
-            type: u.currentStock > i.currentStock ? 'entrada' : 'saida'
-          });
-          return { ...i, currentStock: u.currentStock };
-        }
-        return i;
-      });
+      const { updatedItems, newLogs } = InventoryService.processStockUpdates(up, inventoryItems, auth.user?.name || 'Sistema');
       setInventoryItems(updatedItems);
       setStockLogs([...newLogs, ...stockLogs]);
       if (newLogs.length > 0) alert(`${newLogs.length} movimentações registradas!`);
@@ -283,7 +266,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                             courses={courses} 
                             enrollments={enrollments} 
                             config={systemConfig} 
-                            onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: Math.random().toString(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} 
+                            onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: generateUUID(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} 
                             onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} 
                             onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} 
                         />
@@ -309,17 +292,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {/* Cantina */}
         {hasModule('cantina_pdv') && (
              <Route path="/cantina_pdv" element={
-                <CanteenManagement activeTab="cantina_pdv" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_pdv" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_gestao') && (
              <Route path="/cantina_gestao" element={
-                <CanteenManagement activeTab="cantina_gestao" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_gestao" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_historico') && (
              <Route path="/cantina_historico" element={
-                <CanteenManagement activeTab="cantina_historico" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: Math.random().toString(36).substr(2,9)} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_historico" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
 
@@ -368,7 +351,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {hasModule('estoque') && (
             <>
                 {hasModule('estoque_dashboard') && <Route path="/inventory-dashboard" element={<InventoryDashboard items={inventoryItems} categories={inventoryCategories} config={systemConfig} />} />}
-                {hasModule('estoque_gestao') && <Route path="/inventory" element={<InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={(name) => setInventoryCategories([...inventoryCategories, { id: Math.random().toString(), name }])} onDeleteItem={(id) => setInventoryItems(inventoryItems.filter(i => i.id !== id))} onAddItem={(item) => setInventoryItems([...inventoryItems, { ...item, id: Math.random().toString() } as InventoryItem])} />} />}
+                {hasModule('estoque_gestao') && <Route path="/inventory" element={<InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={(name) => setInventoryCategories([...inventoryCategories, { id: generateUUID(), name }])} onDeleteItem={(id) => setInventoryItems(inventoryItems.filter(i => i.id !== id))} onAddItem={(item) => setInventoryItems([...inventoryItems, InventoryService.createItem(item)])} />} />}
                 {hasModule('estoque_movimentacao') && <Route path="/inventory-entry" element={<InventoryEntry items={inventoryItems} categories={inventoryCategories} onSaveUpdates={handleInventoryEntrySave} />} />}
             </>
         )}
@@ -377,6 +360,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {hasModule('financeiro') && (
             <>
                 {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} transactions={transactions} onAddTransaction={addTransaction} />} />}
+                {hasModule('financeiro_fluxo') && <Route path="/cash-flow" element={<FinancialLedger transactions={transactions} onAddTransaction={addTransaction} onUpdateTransaction={updateTransaction} onDeleteTransaction={deleteTransaction} config={systemConfig} />} />}
                 {hasModule('financeiro_doacoes') && <Route path="/donations" element={<DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />} />}
                 {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} canteenOrders={canteenOrders} config={systemConfig} transactions={transactions} />} />}
                 {hasModule('financeiro_config') && <Route path="/finance-config" element={<FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />} />}
@@ -391,7 +375,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 <MediaPontos 
                   pontos={pontos} 
                   config={systemConfig} 
-                  onAddPonto={p => setPontos([...pontos, { ...p, id: Math.random().toString(36).substr(2, 9) }])} 
+                  onAddPonto={p => setPontos([...pontos, { ...p, id: generateUUID() }])} 
                   onUpdatePonto={(id, data) => setPontos(pontos.map(p => p.id === id ? { ...p, ...data } : p))} 
                   onDeletePonto={id => setPontos(pontos.filter(p => p.id !== id))} 
                   activeTab="media-pontos"
@@ -403,7 +387,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 <MediaRezas 
                   rezas={rezas} 
                   config={systemConfig} 
-                  onAddReza={r => setRezas([...rezas, { ...r, id: Math.random().toString(36).substr(2, 9) }])} 
+                  onAddReza={r => setRezas([...rezas, { ...r, id: generateUUID() }])} 
                   onUpdateReza={(id, data) => setRezas(rezas.map(r => r.id === id ? { ...r, ...data } : r))} 
                   onDeleteReza={id => setRezas(rezas.filter(r => r.id !== id))} 
                   activeTab="media-rezas"
@@ -416,10 +400,10 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                   ervas={ervas} 
                   banhos={banhos} 
                   config={systemConfig} 
-                  onAddErva={e => setErvas([...ervas, { ...e, id: Math.random().toString(36).substr(2, 9) }])} 
+                  onAddErva={e => setErvas([...ervas, { ...e, id: generateUUID() }])} 
                   onUpdateErva={(id, data) => setErvas(ervas.map(e => e.id === id ? { ...e, ...data } : e))} 
                   onDeleteErva={id => setErvas(ervas.filter(e => e.id !== id))} 
-                  onAddBanho={b => setBanhos([...banhos, { ...b, id: Math.random().toString(36).substr(2, 9) }])} 
+                  onAddBanho={b => setBanhos([...banhos, { ...b, id: generateUUID() }])} 
                   onUpdateBanho={(id, data) => setBanhos(banhos.map(b => b.id === id ? { ...b, ...data } : b))} 
                   onDeleteBanho={id => setBanhos(banhos.filter(b => b.id !== id))} 
                   activeTab="media-ervas"
@@ -437,7 +421,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {/* Configurações e Admin */}
         <Route path="/layout" element={<SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={u => setSystemUsers([...systemUsers, u as User])} onUpdateUser={(id, data) => setSystemUsers(systemUsers.map(u => u.id === id ? { ...u, ...data } : u))} onDeleteUser={id => setSystemUsers(systemUsers.filter(u => u.id !== id))} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: Math.random().toString(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />} />
+        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: generateUUID(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />} />
         <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={(id, data) => setEntities(entities.map(e => e.id === id ? { ...e, ...data } : e))} />} />
         <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         

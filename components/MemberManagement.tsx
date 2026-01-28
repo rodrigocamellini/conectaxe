@@ -6,58 +6,7 @@ import { format, differenceInYears, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 // Fix: Import BRAZILIAN_STATES from constants to avoid duplication and fix scope issues
 import { DEFAULT_LOGO_URL, BRAZILIAN_STATES, SCHOOLING_LEVELS } from '../constants';
-
-// Validation Helpers
-const formatCPF = (value: string) => {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-    .replace(/(-\d{2})\d+?$/, '$1');
-};
-
-const formatRG = (value: string) => {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{1,2})(\d{3})/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-    .replace(/(-\d{1})\d+?$/, '$1');
-};
-
-const formatPhone = (value: string) => {
-  const v = value.replace(/\D/g, '');
-  if (v.length > 10) {
-    return v.replace(/^(\d\d)(\d{5})(\d{4}).*/, '($1) $2-$3');
-  }
-  return v.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
-};
-
-const formatCEP = (value: string) => {
-  return value.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-};
-
-const validateCPF = (cpf: string) => {
-  cpf = cpf.replace(/[^\d]+/g, '');
-  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
-  let soma = 0;
-  let resto;
-  for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
-  resto = (soma * 10) % 11;
-  if ((resto === 10) || (resto === 11)) resto = 0;
-  if (resto !== parseInt(cpf.substring(9, 10))) return false;
-  soma = 0;
-  for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
-  resto = (soma * 10) % 11;
-  if ((resto === 10) || (resto === 11)) resto = 0;
-  if (resto !== parseInt(cpf.substring(10, 11))) return false;
-  return true;
-};
-
-const validateEmail = (email: string) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-};
+import { formatCPF, formatRG, formatPhone, formatCEP, validateCPF, validateEmail } from '../utils/validators';
 
 interface MemberManagementProps {
   members: Member[];
@@ -192,7 +141,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     if (editingId) {
       onUpdateMember(editingId, formData);
     } else {
-      const newMemberId = Math.random().toString(36).substr(2, 9);
+      const newMemberId = generateUUID();
       const memberWithId = { ...formData, id: newMemberId };
       onAddMember(memberWithId);
 
