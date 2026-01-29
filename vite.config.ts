@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'autoUpdate',
           manifest: {
-            name: 'Conecta Axé',
-            short_name: 'Conecta Axé',
+            name: 'ConectaAxé',
+            short_name: 'ConectaAxé',
             description: 'Sistema de Gestão para Terreiros',
             theme_color: '#ffffff',
             icons: [
