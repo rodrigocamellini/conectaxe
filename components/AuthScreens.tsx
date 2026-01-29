@@ -16,13 +16,19 @@ import { MASTER_LOGO_URL } from '../constants';
 
 export const LoginScreen: React.FC = () => {
   const { setAuth } = useAuth();
-  const { clients, systemUsers, globalMaintenance, loadClientData, setClients } = useData();
+  const { clients, systemUsers, globalMaintenance, loadClientData, setClients, roadmap } = useData();
   
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberAccess, setRememberAccess] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
+
+  const latestVersion = React.useMemo(() => {
+    if (!roadmap || roadmap.length === 0) return '0.0.0';
+    const sorted = [...roadmap].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return sorted[0]?.version || '0.0.0';
+  }, [roadmap]);
 
   // Master Settings (Local for Login)
   const masterSettings = React.useMemo(() => {
@@ -167,7 +173,9 @@ export const LoginScreen: React.FC = () => {
               </span>
             </label>
             <button type="submit" className="w-full py-5 bg-indigo-900 text-white font-black rounded-2xl shadow-lg uppercase text-xs tracking-widest hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95">Entrar no Painel</button>
-            <button type="button" onClick={() => setShowEcosystemConcept(true)} className="w-full py-3 mt-4 bg-slate-50 text-slate-400 border border-slate-100 rounded-2xl font-black text-[9px] uppercase hover:bg-slate-100 transition-all flex items-center justify-center gap-2"><Layers size={14} /> Ver Conceito SaaS</button>
+            <div className="w-full py-3 mt-4 text-slate-400 font-black text-[9px] uppercase flex items-center justify-center gap-2">
+              Versão do Sistema ConectAxé {latestVersion}
+            </div>
         </form>
       </div>
     </div>

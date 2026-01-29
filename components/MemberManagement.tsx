@@ -777,7 +777,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             <div className="bg-gray-50 px-16 pt-20 border-b border-gray-100 flex gap-8">
                <button onClick={() => setViewProfileTab('perfil')} className={`pb-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-4 ${viewProfileTab === 'perfil' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>Ficha Cadastral</button>
                {(selectedMemberForView.isMedium || selectedMemberForView.isCambone) && (
-                 <button onClick={() => setViewProfileTab('financeiro')} className={`pb-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-4 ${viewProfileTab === 'financeiro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>Histórico Financeiro</button>
+                 <>
+                   <button onClick={() => setViewProfileTab('financeiro')} className={`pb-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-4 ${viewProfileTab === 'financeiro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>Histórico Financeiro</button>
+                   <button onClick={() => setViewProfileTab('espiritual')} className={`pb-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-4 ${viewProfileTab === 'espiritual' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>Caminhada & Obrigações</button>
+                 </>
                )}
             </div>
 
@@ -964,6 +967,70 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                             </div>
                          );
                       })}
+                   </div>
+                </div>
+              )}
+
+              {viewProfileTab === 'espiritual' && (
+                <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                      <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl shadow-inner"><Award size={24} /></div>
+                      <div>
+                         <h4 className="text-lg font-black text-gray-800 uppercase tracking-tight">Caminhada & Obrigações</h4>
+                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Histórico evolutivo e obrigações realizadas</p>
+                      </div>
+                   </div>
+
+                   <div className="space-y-8 mt-8">
+                     <div className="space-y-4">
+                        <h5 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16} /> Marcos da Caminhada</h5>
+                        {(selectedMemberForView.spiritualMilestones || []).length === 0 ? (
+                          <div className="p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-center">
+                            <p className="text-xs text-gray-400 font-medium italic">Nenhum marco registrado.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-4">
+                            {(selectedMemberForView.spiritualMilestones || []).map(m => (
+                               <div key={m.id} className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col gap-2 hover:border-indigo-100 transition-colors">
+                                  <div className="flex justify-between items-start">
+                                     <span className="font-bold text-gray-800 text-sm">{m.title}</span>
+                                     <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-wide">{formatSafeDate(m.date, "dd/MM/yyyy")}</span>
+                                  </div>
+                                  {m.description && <p className="text-xs text-gray-500 leading-relaxed">{m.description}</p>}
+                               </div>
+                            ))}
+                          </div>
+                        )}
+                     </div>
+
+                     <div className="space-y-4 pt-6 border-t border-gray-100">
+                        <h5 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Award size={16} /> Histórico de Obrigações</h5>
+                        {(selectedMemberForView.spiritualObligations || []).length === 0 ? (
+                          <div className="p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 text-center">
+                            <p className="text-xs text-gray-400 font-medium italic">Nenhuma obrigação registrada.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-4">
+                            {(selectedMemberForView.spiritualObligations || []).map(o => (
+                               <div key={o.id} className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col gap-2 hover:border-indigo-100 transition-colors">
+                                  <div className="flex justify-between items-start">
+                                     <div className="flex flex-col gap-1">
+                                        <span className="font-bold text-gray-800 text-sm">{o.type}</span>
+                                        <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest">{o.location === 'casa' ? 'Na Casa' : 'Fora/Outro Terreiro'}</span>
+                                     </div>
+                                     <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-wide">{formatSafeDate(o.date, "dd/MM/yyyy")}</span>
+                                  </div>
+                                  {(o.responsible || o.notes) && (
+                                     <div className="text-xs text-gray-500 border-t border-gray-50 pt-3 mt-2 space-y-2">
+                                        {o.responsible && <p><span className="font-bold text-gray-700">Responsável:</span> {o.responsible}</p>}
+                                        {o.notes && <p className="italic">"{o.notes}"</p>}
+                                     </div>
+                                  )}
+                               </div>
+                            ))}
+                          </div>
+                        )}
+                     </div>
                    </div>
                 </div>
               )}

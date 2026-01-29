@@ -45,7 +45,10 @@ export const EcosystemPreview: React.FC<{ onBack: () => void }> = ({ onBack }) =
           <span>Depoimentos</span>
           <span>Preços</span>
         </div>
-        <button className="px-5 py-2 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase shadow-lg shadow-indigo-100">Testar Grátis</button>
+        <div className="flex gap-3">
+          <button onClick={onBack} className="px-5 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors rounded-full text-[10px] font-black uppercase">Área do Cliente</button>
+          <button className="px-5 py-2 bg-indigo-600 text-white rounded-full text-[10px] font-black uppercase shadow-lg shadow-indigo-100">Testar Grátis</button>
+        </div>
       </nav>
       
       <main className="flex-1 p-10 flex flex-col items-center text-center justify-center space-y-8 animate-in fade-in slide-in-from-bottom-4">
@@ -61,15 +64,21 @@ export const EcosystemPreview: React.FC<{ onBack: () => void }> = ({ onBack }) =
           <button className="px-8 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-sm uppercase">Ver Demonstração</button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 w-full max-w-4xl mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mt-12">
           {[
-            { icon: Users, label: 'Gestão de Corrente', color: 'bg-indigo-50 text-indigo-600' },
-            { icon: CreditCard, label: 'Arrecadação Automática', color: 'bg-emerald-50 text-emerald-600' },
-            { icon: BookOpen, label: 'Plataforma EAD', color: 'bg-purple-50 text-purple-600' }
+            { icon: Users, label: 'Gestão de Corrente', desc: 'Controle total de membros e hierarquia do terreiro.', color: 'bg-indigo-50 text-indigo-600' },
+            { icon: TrendingUp, label: 'Caminhada Mediúnica', desc: 'Acompanhe a evolução espiritual e desenvolvimento de cada médium.', color: 'bg-blue-50 text-blue-600' },
+            { icon: Sparkles, label: 'Obrigações do Médium', desc: 'Histórico completo de rituais, consagrações e obrigações.', color: 'bg-amber-50 text-amber-600' },
+            { icon: CreditCard, label: 'Arrecadação Automática', desc: 'Gestão financeira transparente, mensalidades e doações.', color: 'bg-emerald-50 text-emerald-600' },
+            { icon: BookOpen, label: 'Plataforma EAD', desc: 'Ambiente de ensino à distância para estudos e doutrina.', color: 'bg-purple-50 text-purple-600' },
+            { icon: Layout, label: 'Painel do Médium', desc: 'App exclusivo para membros acompanharem sua jornada.', color: 'bg-pink-50 text-pink-600' }
           ].map((feat, i) => (
-            <div key={i} className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm text-left space-y-3">
+            <div key={i} className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm text-left space-y-3 hover:shadow-md transition-shadow">
               <div className={`p-3 w-fit rounded-xl ${feat.color}`}><feat.icon size={24} /></div>
-              <h4 className="font-black text-slate-800 text-sm">{feat.label}</h4>
+              <div>
+                <h4 className="font-black text-slate-800 text-sm">{feat.label}</h4>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{feat.desc}</p>
+              </div>
             </div>
           ))}
         </div>

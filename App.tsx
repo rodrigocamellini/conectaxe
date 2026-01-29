@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { AppRoutes } from './components/AppRoutes';
 import { LoginScreen, MaintenanceScreen, FrozenScreen } from './components/AuthScreens';
 import { TourGuide } from './components/TourGuide';
+import LandingPage from './components/landing/LandingPage';
 
 const AppContent: React.FC = () => {
   const auth = useAuth();
@@ -17,7 +18,14 @@ const AppContent: React.FC = () => {
       // Maintenance Screen allows Master Bypass
       return <MaintenanceScreen />;
     }
-    return <LoginScreen />;
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/register" element={<LoginScreen />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   // Authenticated State Checks
