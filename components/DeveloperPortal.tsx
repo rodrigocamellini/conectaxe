@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus, User, SystemConfig } from '../types';
+import { HomepageConfig } from './HomepageConfig';
 import { 
   Users, 
   DollarSign, 
@@ -29,6 +30,7 @@ import {
   Tag,
   Code,
   Settings,
+  Monitor,
   Key,
   MessageSquare,
   Banknote,
@@ -403,8 +405,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   'tickets': 'tickets',
   'master-broadcast': 'broadcast',
   'master-roadmap': 'roadmap',
-  'master-system-config': 'system-config',
-  'master-coupons': 'coupons',
+        'master-homepage': 'homepage-config',
+        'master-system-config': 'system-config',
+        'master-coupons': 'coupons',
   'developer-portal': 'clients',
   'master-menu': 'master-menu'
 };
@@ -878,6 +881,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       
+
+      {/* ABA: CONFIGURAÇÕES DA HOMEPAGE */}
+      {activeTab === 'homepage-config' && (
+        <HomepageConfig />
+      )}
+
       {/* ABA: TERREIROS ATIVOS */}
       {activeTab === 'clients' && (
         <div className="space-y-8">

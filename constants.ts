@@ -220,6 +220,7 @@ export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'master-audit', label: 'Auditoria', icon: 'History' },
   { id: 'master-coupons', label: 'Cupons', icon: 'Tag' },
   { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList' },
+  { id: 'master-homepage', label: 'Configs. da Homepage', icon: 'Monitor' },
   { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings' }
 ];
 

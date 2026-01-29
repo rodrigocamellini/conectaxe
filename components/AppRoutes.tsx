@@ -476,7 +476,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           />
         } />
         {/* Map other master menu items to DeveloperPortal with externalTab */}
-        {['master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-audit', 'tickets', 'master-broadcast', 'master-roadmap', 'master-system-config', 'master-coupons', 'master-menu'].map(path => (
+        {['master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-audit', 'tickets', 'master-broadcast', 'master-roadmap', 'master-homepage', 'master-system-config', 'master-coupons', 'master-menu'].map(path => (
           <Route key={path} path={`/${path}`} element={
             <DeveloperPortal 
               onLogout={() => {
@@ -512,7 +512,11 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         ))}
         
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={
+          auth.isMasterMode 
+            ? <Navigate to="/developer-portal" replace /> 
+            : <Navigate to="/dashboard" replace />
+        } />
       </Route>
     </Routes>
   );
