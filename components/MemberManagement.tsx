@@ -6,6 +6,7 @@ import { format, differenceInYears, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 // Fix: Import BRAZILIAN_STATES from constants to avoid duplication and fix scope issues
 import { DEFAULT_LOGO_URL, BRAZILIAN_STATES, SCHOOLING_LEVELS } from '../constants';
+import { generateUUID } from '../utils/ids';
 import { formatCPF, formatRG, formatPhone, formatCEP, validateCPF, validateEmail } from '../utils/validators';
 
 interface MemberManagementProps {
@@ -51,7 +52,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'pessoal' | 'contato' | 'espiritual' | 'observacoes'>('pessoal');
+  const [activeTab, setActiveTab] = useState<'pessoal' | 'contato' | 'espiritual' | 'evolution' | 'observacoes'>('pessoal');
   const [viewProfileTab, setViewProfileTab] = useState<'perfil' | 'financeiro'>('perfil');
   const [financeYear, setFinanceYear] = useState(new Date().getFullYear());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,8 +70,61 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
     spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
     childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
-    observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente'
+    observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente',
+    spiritualMilestones: [], spiritualObligations: []
   });
+
+  const handleAddMilestone = () => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualMilestones: [
+        ...(prev.spiritualMilestones || []),
+        { id: generateUUID(), date: '', title: '', description: '' }
+      ]
+    }));
+  };
+
+  const handleRemoveMilestone = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualMilestones: (prev.spiritualMilestones || []).filter(m => m.id !== id)
+    }));
+  };
+
+  const handleUpdateMilestone = (id: string, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualMilestones: (prev.spiritualMilestones || []).map(m => 
+        m.id === id ? { ...m, [field]: value } : m
+      )
+    }));
+  };
+
+  const handleAddObligation = () => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualObligations: [
+        ...(prev.spiritualObligations || []),
+        { id: generateUUID(), date: '', type: '', location: 'casa', responsible: '', notes: '' }
+      ]
+    }));
+  };
+
+  const handleRemoveObligation = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualObligations: (prev.spiritualObligations || []).filter(o => o.id !== id)
+    }));
+  };
+
+  const handleUpdateObligation = (id: string, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      spiritualObligations: (prev.spiritualObligations || []).map(o => 
+        o.id === id ? { ...o, [field]: value } : o
+      )
+    }));
+  };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -99,7 +153,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
       nationality: 'Brasileira', birthPlace: '', maritalStatus: 'solteiro',
       spouseName: '', education: '', profession: '', isWorking: false, hasChildren: false,
       childrenNames: [], isBaptized: false, baptismDate: '', baptismLocation: '',
-      observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente'
+      observations: '', isMedium: false, isCambone: false, isConsulente: mode === 'consulente',
+      spiritualMilestones: [], spiritualObligations: []
     });
     setActiveTab('pessoal');
     setShowEditModal(true);
@@ -110,7 +165,9 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
     setFormData({ 
       ...member,
       childrenNames: member.childrenNames || [],
-      houseRoles: member.houseRoles || []
+      houseRoles: member.houseRoles || [],
+      spiritualMilestones: member.spiritualMilestones || [],
+      spiritualObligations: member.spiritualObligations || []
     });
     setActiveTab('pessoal');
     setShowEditModal(true);
@@ -339,7 +396,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               {[
                 { id: 'pessoal', label: 'Dados Pessoais', icon: UserCircle },
                 { id: 'contato', label: 'Contato e Endereço', icon: MapPin },
-                ...(mode === 'member' ? [{ id: 'espiritual', label: 'Vida Espiritual', icon: Sparkles }] : []),
+                ...(mode === 'member' ? [
+                  { id: 'espiritual', label: 'Vida Espiritual', icon: Sparkles },
+                  { id: 'evolution', label: 'Caminhada & Obrigações', icon: Award }
+                ] : []),
                 { id: 'observacoes', label: 'Observações', icon: MessageSquare }
               ].map(tab => (
                 <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as any)} className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-indigo-600 text-indigo-600 bg-white' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
@@ -523,6 +583,103 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                           <Info size={16} className="text-indigo-600 shrink-0" />
                           <p className="text-[10px] text-indigo-900 font-medium leading-relaxed">As funções marcadas definem as permissões e o valor da mensalidade no módulo financeiro.</p>
                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'evolution' && mode === 'member' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  {/* Milestones Section */}
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                       <h4 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Award size={16} /> Caminhada do Médium (Evolução)</h4>
+                       <button type="button" onClick={handleAddMilestone} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                         <Plus size={14} /> Adicionar Marco
+                       </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {(formData.spiritualMilestones || []).length === 0 && (
+                        <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                          <p className="text-xs text-gray-400 font-medium">Nenhum marco registrado na caminhada espiritual.</p>
+                        </div>
+                      )}
+                      
+                      {(formData.spiritualMilestones || []).map((milestone, index) => (
+                        <div key={milestone.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 relative group">
+                          <button type="button" onClick={() => handleRemoveMilestone(milestone.id)} className="absolute top-2 right-2 p-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Data</label>
+                              <input type="date" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={milestone.date} onChange={e => handleUpdateMilestone(milestone.id, 'date', e.target.value)} />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Título / Evento</label>
+                              <input className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={milestone.title} onChange={e => handleUpdateMilestone(milestone.id, 'title', e.target.value)} placeholder="Ex: Iniciação, Consagração, Mudança de Cargo..." />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Descrição / Detalhes</label>
+                            <textarea rows={2} className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-medium resize-none" value={milestone.description || ''} onChange={e => handleUpdateMilestone(milestone.id, 'description', e.target.value)} placeholder="Detalhes sobre este marco na caminhada..." />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Obligations Section */}
+                  <div className="space-y-6 pt-6 border-t border-gray-100">
+                    <div className="flex justify-between items-center">
+                       <h4 className="text-xs font-black text-indigo-900 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16} /> Histórico de Obrigações</h4>
+                       <button type="button" onClick={handleAddObligation} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors">
+                         <Plus size={14} /> Adicionar Obrigação
+                       </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {(formData.spiritualObligations || []).length === 0 && (
+                        <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                          <p className="text-xs text-gray-400 font-medium">Nenhuma obrigação registrada.</p>
+                        </div>
+                      )}
+                      
+                      {(formData.spiritualObligations || []).map((obligation, index) => (
+                        <div key={obligation.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 relative group">
+                          <button type="button" onClick={() => handleRemoveObligation(obligation.id)} className="absolute top-2 right-2 p-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Data</label>
+                              <input type="date" className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={obligation.date} onChange={e => handleUpdateObligation(obligation.id, 'date', e.target.value)} />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Tipo de Obrigação</label>
+                              <input className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={obligation.type} onChange={e => handleUpdateObligation(obligation.id, 'type', e.target.value)} placeholder="Ex: Bori, Feitura, Obrigação de 7 anos..." />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Local</label>
+                              <select className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={obligation.location} onChange={e => handleUpdateObligation(obligation.id, 'location', e.target.value)}>
+                                <option value="casa">Na Casa</option>
+                                <option value="fora">Fora / Outro Terreiro</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                             <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Responsável / Pai/Mãe de Santo</label>
+                             <input className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-bold" value={obligation.responsible || ''} onChange={e => handleUpdateObligation(obligation.id, 'responsible', e.target.value)} placeholder="Quem realizou a obrigação?" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Observações</label>
+                            <textarea rows={2} className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm font-medium resize-none" value={obligation.notes || ''} onChange={e => handleUpdateObligation(obligation.id, 'notes', e.target.value)} placeholder="Observações adicionais..." />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

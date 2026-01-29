@@ -125,7 +125,25 @@ export interface Member {
   profession?: string;
   maritalStatus?: string;
   gender?: string;
+  spiritualMilestones?: SpiritualMilestone[];
+  spiritualObligations?: SpiritualObligation[];
   [key: string]: any;
+}
+
+export interface SpiritualMilestone {
+  id: string;
+  date: string;
+  title: string;
+  description?: string;
+}
+
+export interface SpiritualObligation {
+  id: string;
+  date: string;
+  type: string;
+  location: 'casa' | 'fora';
+  responsible?: string;
+  notes?: string;
 }
 
 export interface Consulente extends Member {}
