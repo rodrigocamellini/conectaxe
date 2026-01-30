@@ -825,6 +825,15 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         
         {/* Ajuda */}
         <Route path="/help-center" element={<HelpCenter onStartTour={onStartTour || (() => {})} />} />
+        
+        <Route path="/support-client" element={
+          <TicketSystem 
+            user={auth.user!} 
+            config={systemConfig} 
+            tickets={tickets} 
+            onUpdateTickets={setTickets} 
+          />
+        } />
 
         {/* Central de Avisos e Novidades */}
         <Route path="/news-announcements" element={
@@ -863,11 +872,12 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             onUpdateCoupons={setCoupons}
             auditLogs={auditLogs}
             onAddAuditLog={log => setAuditLogs([log as any, ...auditLogs])}
-            onClearAuditLogs={() => setAuditLogs([])}
-            systemConfig={systemConfig}
-            externalTab="clients"
-          />
-        } />
+              onClearAuditLogs={() => setAuditLogs([])}
+              systemConfig={systemConfig}
+              onUpdateSystemConfig={setSystemConfig}
+              externalTab="clients"
+            />
+          } />
         {/* Map other master menu items to DeveloperPortal with externalTab */}
         {['master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-audit', 'tickets', 'master-broadcast', 'master-roadmap', 'master-homepage', 'master-system-config', 'master-coupons', 'master-menu'].map(path => (
           <Route key={path} path={`/${path}`} element={
@@ -898,6 +908,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
               onAddAuditLog={log => setAuditLogs([log as any, ...auditLogs])}
               onClearAuditLogs={() => setAuditLogs([])}
               systemConfig={systemConfig}
+              onUpdateSystemConfig={setSystemConfig}
               externalTab={path}
             />
           } />

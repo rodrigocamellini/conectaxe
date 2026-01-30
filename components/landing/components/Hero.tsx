@@ -1,7 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Hero: React.FC = () => {
+interface HeroProps {
+  title?: string;
+  subtitle?: string;
+  backgroundImage?: string;
+  dashboardImage?: string;
+}
+
+const Hero: React.FC<HeroProps> = ({ 
+  title = "Gestão com Axé, Organização com Fé.", 
+  subtitle = "Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.", 
+  backgroundImage = "https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=2070",
+  dashboardImage = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426"
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -9,7 +21,7 @@ const Hero: React.FC = () => {
       {/* Background with overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=2070" 
+          src={backgroundImage} 
           alt="Spiritual background" 
           className="w-full h-full object-cover"
         />
@@ -21,12 +33,10 @@ const Hero: React.FC = () => {
           <div className="inline-block px-4 py-1.5 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-200 text-sm font-medium mb-4">
             ✨ O Software #1 para Gestão de Terreiros
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight">
-            Gestão com Axé, <br />
-            <span className="text-orange-400 italic">Organização</span> com Fé.
+          <h1 className="text-5xl md:text-7xl font-bold leading-tight" dangerouslySetInnerHTML={{ __html: title.replace(/\n/g, '<br/>') }}>
           </h1>
           <p className="text-xl text-slate-100/80 max-w-lg leading-relaxed">
-            Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a <strong>ConectAxé</strong>.
+            {subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <button 
@@ -52,7 +62,7 @@ const Hero: React.FC = () => {
         <div className="hidden md:block relative">
           <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl">
              <img 
-               src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426" 
+               src={dashboardImage}
                alt="Dashboard Preview" 
                className="rounded-2xl shadow-lg"
              />

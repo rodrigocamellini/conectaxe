@@ -442,7 +442,8 @@ export const HomepageConfig: React.FC = () => {
           landing_page_hero: {
             title: heroTitle,
             subtitle: heroSubtitle,
-            backgroundImage: heroBackground
+            backgroundImage: heroBackground,
+            dashboardImage: heroDashboard
           }
         };
         await LandingPageService.saveConfig(config);
@@ -830,6 +831,21 @@ export const HomepageConfig: React.FC = () => {
             {heroBackground && (
               <div className="mt-2 h-32 w-full rounded-lg overflow-hidden border border-slate-700">
                 <img src={heroBackground} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Imagem do Dashboard (URL)</label>
+            <input
+              type="text"
+              value={heroDashboard}
+              onChange={e => setHeroDashboard(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="/images/hero-dashboard.png ou URL"
+            />
+            {heroDashboard && (
+              <div className="mt-2 h-32 w-full rounded-lg overflow-hidden border border-slate-700 bg-slate-900 flex items-center justify-center">
+                <img src={heroDashboard} alt="Dashboard Preview" className="h-full w-auto object-contain" />
               </div>
             )}
           </div>

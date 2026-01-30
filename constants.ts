@@ -209,19 +209,19 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
 ];
 
 export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
-  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#487ffe' },
-  { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket' },
-  { id: 'master-menu', label: 'Config. Menu', icon: 'Menu' },
-  { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap' },
+  { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#3d77ff' },
+  { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket', color: '#3Bbeff' },
+  { id: 'master-menu', label: 'Config. Menu', icon: 'Menu', color: '#3dffe8' },
+  { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap',  color: '#00ff88' },
   { id: 'master-affiliates', label: 'Afiliados', icon: 'Crown', color: '#ADFF2F' },
-  { id: 'master-payments', label: 'Faturamento', icon: 'DollarSign' },
-  { id: 'system-maintenance', label: 'Manutenção', icon: 'Wrench' },
-  { id: 'master-backups', label: 'Snapshots', icon: 'Database' },
-  { id: 'master-audit', label: 'Auditoria', icon: 'History' },
-  { id: 'master-coupons', label: 'Cupons', icon: 'Tag' },
-  { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList' },
-  { id: 'master-homepage', label: 'Configs. da Homepage', icon: 'Monitor' },
-  { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings' }
+  { id: 'master-payments', label: 'Faturamento', icon: 'DollarSign', color: '#0ed600' },
+  { id: 'system-maintenance', label: 'Manutenção', icon: 'Wrench', color: '#e1ff00' },
+  { id: 'master-backups', label: 'Snapshots', icon: 'Database', color: '#b9b079' },
+  { id: 'master-audit', label: 'Auditoria', icon: 'History', color: '#ffa55c'},
+  { id: 'master-coupons', label: 'Cupons', icon: 'Tag', color: '#ff7300' },
+  { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList', color: '#f264a1' },
+  { id: 'master-homepage', label: 'Configs. da Homepage', icon: 'Monitor', color: '#ff7070'  },
+  { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings', color: '#d494ff' }
 ];
 
 export const INITIAL_USERS: User[] = [
@@ -340,8 +340,8 @@ export const DEFAULT_IDCARD_CONFIG: IDCardConfig = {
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   systemName: 'Sistema Terreiro 1.0',
   primaryColor: '#4f46e5',
-  sidebarColor: '#020617',
-  sidebarTextColor: '#4f46e5',
+  sidebarColor: '#020617', // Default from Master Panel
+  sidebarTextColor: '#ffffffff', // Default from Master Panel
   accentColor: '#FFD700', 
   dashboardFontSize: 'medium',
   logoUrl: DEFAULT_LOGO_URL,

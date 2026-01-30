@@ -17,6 +17,7 @@ export interface LandingPageConfig {
     title?: string;
     subtitle?: string;
     backgroundImage?: string;
+    dashboardImage?: string;
   };
 }
 

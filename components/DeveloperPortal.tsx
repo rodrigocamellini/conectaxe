@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SaaSClient, SaaSPlan, GlobalMaintenanceConfig, SupportTicket, MasterAuditLog, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterCredentials, StoredSnapshot, Referral, ReferralStatus, User, SystemConfig } from '../types';
 import { HomepageConfig } from './HomepageConfig';
+import { SystemConfigManagement } from './SystemConfigManagement';
 import { 
   Users, 
   DollarSign, 
@@ -99,6 +100,7 @@ interface DeveloperPortalProps {
   onAddAuditLog: (log: Partial<MasterAuditLog>) => void;
   onClearAuditLogs: () => void;
   systemConfig?: SystemConfig;
+  onUpdateSystemConfig?: (config: SystemConfig) => void;
 }
 
 const MONTHS_SHORT = [
@@ -132,7 +134,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   auditLogs = [],
   onAddAuditLog = () => {},
   onClearAuditLogs = () => {},
-  systemConfig
+  systemConfig,
+  onUpdateSystemConfig
 }) => {
   const [activeTab, setActiveTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
@@ -2442,16 +2445,49 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                    
                    // Determine clientId. If systemConfig has a license.clientId, use it.
                    const targetClientId = updatedConfig.license?.clientId;
-                   
-                   await SystemConfigService.saveConfig(updatedConfig, targetClientId);
-                   alert('Configuração de menu salva com sucesso!');
-                   window.location.reload();
-                 } catch (error) {
+                  
+                  await SystemConfigService.saveConfig(updatedConfig, targetClientId);
+                  
+                  if (onUpdateSystemConfig) {
+                    onUpdateSystemConfig(updatedConfig);
+                  }
+                  
+                  alert('Configuração de menu salva com sucesso!');
+                } catch (error) {
                    console.error('Error saving menu config:', error);
                    alert('Erro ao salvar configuração.');
                  }
                }}
              />
+        </div>
+      )}
+
+      {/* SYSTEM CONFIG TAB */}
+      {activeTab === 'system-config' && (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+          <SystemConfigManagement 
+            config={systemConfig || DEFAULT_SYSTEM_CONFIG}
+            onUpdateConfig={async (updatedConfig) => {
+               try {
+                 const { SystemConfigService } = await import('../services/systemConfigService');
+                 const targetClientId = updatedConfig.license?.clientId;
+                 await SystemConfigService.saveConfig(updatedConfig, targetClientId);
+                 if (onUpdateSystemConfig) {
+                   onUpdateSystemConfig(updatedConfig);
+                 }
+               } catch (error) {
+                 console.error('Error saving system config:', error);
+                 alert('Erro ao salvar configuração.');
+               }
+            }}
+          />
+        </div>
+      )}
+
+      {/* HOMEPAGE CONFIG TAB */}
+      {activeTab === 'homepage-config' && (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+          <HomepageConfig />
         </div>
       )}
     </div>

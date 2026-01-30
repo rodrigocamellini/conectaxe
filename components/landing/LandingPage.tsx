@@ -52,7 +52,12 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen">
       <Navbar logoUrl={config.landing_page_logo} />
-      <Hero />
+      <Hero 
+        title={config.landing_page_hero?.title}
+        subtitle={config.landing_page_hero?.subtitle}
+        backgroundImage={config.landing_page_hero?.backgroundImage}
+        dashboardImage={config.landing_page_hero?.dashboardImage}
+      />
       
       {/* Stats Section */}
       <section className="bg-white py-12 border-y border-slate-100">
