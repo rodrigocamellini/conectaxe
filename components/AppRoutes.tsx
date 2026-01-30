@@ -6,9 +6,12 @@ import { useData } from '../contexts/DataContext';
 import { 
   Member, CalendarEvent, Course, Enrollment, InventoryItem, 
   InventoryCategory, StockLog, Donation, CanteenItem, CanteenOrder, 
-  User, StockUpdate 
+  User, StockUpdate, Ponto, Reza, Erva, Banho, SpiritualEntity
 } from '../types';
 import { INITIAL_MASTER_MENU_CONFIG } from '../constants';
+import { UserService } from '../services/userService';
+import { EntityService } from '../services/entityService';
+import { CourseService } from '../services/courseService';
 
 // Components
 import { Dashboard } from './Dashboard';
@@ -52,19 +55,16 @@ import { Outlet } from 'react-router-dom';
 
 const ProtectedLayout: React.FC = () => {
   const auth = useAuth();
-  const { setAuth } = auth;
   const { 
     systemConfig, setSystemConfig, 
-    updateProfile, // Assuming this exists in DataContext based on analysis
+    updateProfile,
     currentClient
   } = useData();
   const [isSimulation, setIsSimulation] = useState(false);
   
   // Dummy props for Layout since it handles routing internally now
-  const handleLogout = () => {
-    setAuth({ user: null, isAuthenticated: false, isMasterMode: false });
-    // Clear persist if any
-    localStorage.removeItem('saas_login_persist');
+  const handleLogout = async () => {
+    await auth.logout();
   };
 
   return (
@@ -87,6 +87,13 @@ const ProtectedLayout: React.FC = () => {
 import { generateUUID } from '../utils/ids';
 import { MemberService } from '../services/memberService';
 import { InventoryService } from '../services/inventoryService';
+import { MediaService } from '../services/mediaService';
+import { CanteenService } from '../services/canteenService';
+import { EventService } from '../services/eventService';
+import { FinancialService } from '../services/financialService';
+import { AttendanceService } from '../services/AttendanceService';
+import { IdCardService } from '../services/IdCardService';
+import { SystemConfigService } from '../services/systemConfigService';
 
 export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour }) => {
   const navigate = useNavigate();
@@ -133,7 +140,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   } = useData();
 
   // Helpers for Plan Limits
-  const currentPlan = plans.find(p => p.name === systemConfig.license?.planName);
+  const currentPlan = plans.find(p => p.name === (currentClient?.planName || systemConfig.license?.planName));
 
   const handleAddMember = async (m: Partial<Member>) => {
     const isConsulente = m.status === 'consulente' || m.isConsulente;
@@ -158,6 +165,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     
     const newMember = await MemberService.createMember(m, members, false);
     setMembers([newMember, ...members]);
+    if (currentClient?.id) await MemberService.saveMember(currentClient.id, newMember).catch(console.error);
   };
 
   const handleAddConsulente = async (m: Partial<Member>) => {
@@ -173,21 +181,124 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     
     const newConsulente = await MemberService.createMember(m, members, true);
     setMembers([newConsulente, ...members]);
+    if (currentClient?.id) await MemberService.saveMember(currentClient.id, newConsulente).catch(console.error);
   };
 
-  const handleAddCourse = (c: Partial<Course>) => {
-    const newId = generateUUID();
-    setCourses([{ ...c, id: newId, createdAt: new Date().toISOString() } as Course, ...courses]);
+  const handleUpdateMember = async (id: string, data: Partial<Member>) => {
+    const updated = members.map(m => m.id === id ? { ...m, ...data } : m);
+    setMembers(updated);
+    const member = updated.find(m => m.id === id);
+    if (currentClient?.id && member) await MemberService.saveMember(currentClient.id, member).catch(console.error);
   };
 
-  const handleInventoryEntrySave = (up: StockUpdate[]) => {
-      const { updatedItems, newLogs } = InventoryService.processStockUpdates(up, inventoryItems, auth.user?.name || 'Sistema');
-      setInventoryItems(updatedItems);
-      setStockLogs([...newLogs, ...stockLogs]);
-      if (newLogs.length > 0) alert(`${newLogs.length} movimentações registradas!`);
+  const handleDeleteMember = async (id: string) => {
+    setMembers(members.filter(m => m.id !== id));
+    if (currentClient?.id) await MemberService.deleteMember(currentClient.id, id).catch(console.error);
   };
 
-  const handleAddCanteenOrder = (order: CanteenOrder) => {
+  // Course Handlers
+  const handleAddCourse = async (c: Partial<Course>) => {
+    const newCourse = { ...c, id: generateUUID(), createdAt: new Date().toISOString() } as Course;
+    setCourses([newCourse, ...courses]);
+    if (currentClient?.id) await CourseService.saveCourse(currentClient.id, newCourse).catch(console.error);
+  };
+  const handleUpdateCourse = async (id: string, data: Partial<Course>) => {
+    const updated = courses.map(c => c.id === id ? { ...c, ...data } : c);
+    setCourses(updated);
+    const item = updated.find(c => c.id === id);
+    if (currentClient?.id && item) await CourseService.saveCourse(currentClient.id, item).catch(console.error);
+  };
+  const handleDeleteCourse = async (id: string) => {
+    setCourses(courses.filter(c => c.id !== id));
+    if (currentClient?.id) await CourseService.deleteCourse(currentClient.id, id).catch(console.error);
+  };
+  
+  // Enrollment Handlers
+  const handleEnroll = async (memberId: string, courseId: string) => {
+      const newEnrollment: Enrollment = { 
+          id: generateUUID(), 
+          memberId, 
+          courseId, 
+          enrolledAt: new Date().toISOString(), 
+          progress: [] 
+      };
+      setEnrollments([...enrollments, newEnrollment]);
+      if (currentClient?.id) await CourseService.saveEnrollment(currentClient.id, newEnrollment).catch(console.error);
+  };
+  const handleUpdateEnrollment = async (id: string, data: Partial<Enrollment>) => {
+      const updated = enrollments.map(e => e.id === id ? { ...e, ...data } : e);
+      setEnrollments(updated);
+      const item = updated.find(e => e.id === id);
+      if (currentClient?.id && item) await CourseService.saveEnrollment(currentClient.id, item).catch(console.error);
+  };
+  
+  const handleUpdateProgress = async (enrollmentId: string, lessonId: string) => {
+    const enrollment = enrollments.find(e => e.id === enrollmentId);
+    if (!enrollment) return;
+    
+    const newProgress = enrollment.progress.includes(lessonId) 
+        ? enrollment.progress.filter(id => id !== lessonId) 
+        : [...enrollment.progress, lessonId];
+    
+    await handleUpdateEnrollment(enrollmentId, { progress: newProgress });
+  };
+
+  const handleCompleteCourse = async (enrollmentId: string) => {
+      await handleUpdateEnrollment(enrollmentId, { completedAt: new Date().toISOString() });
+  };
+  
+  // User Handlers
+  const handleAddUser = async (u: Partial<User>) => {
+    const newUser = { ...u, id: generateUUID() } as User;
+    setSystemUsers([...systemUsers, newUser]);
+    if (currentClient?.id) await UserService.saveUser(currentClient.id, newUser).catch(console.error);
+  };
+  const handleUpdateUser = async (id: string, data: Partial<User>) => {
+    const updated = systemUsers.map(u => u.id === id ? { ...u, ...data } : u);
+    setSystemUsers(updated);
+    const user = updated.find(u => u.id === id);
+    if (currentClient?.id && user) await UserService.saveUser(currentClient.id, user).catch(console.error);
+  };
+  const handleDeleteUser = async (id: string) => {
+    setSystemUsers(systemUsers.filter(u => u.id !== id));
+    if (currentClient?.id) await UserService.deleteUser(currentClient.id, id).catch(console.error);
+  };
+
+  // Entity Handlers
+  const handleAddEntity = async (name: string, type: SpiritualEntity['type']) => {
+    const newEntity: SpiritualEntity = { id: generateUUID(), name, type };
+    setEntities([...entities, newEntity]);
+    if (currentClient?.id) await EntityService.saveEntity(currentClient.id, newEntity).catch(console.error);
+  };
+  const handleUpdateEntity = async (id: string, data: Partial<SpiritualEntity>) => { 
+      const updated = entities.map(e => e.id === id ? { ...e, ...data } : e);
+      setEntities(updated);
+      const entity = updated.find(e => e.id === id);
+      if (currentClient?.id && entity) await EntityService.saveEntity(currentClient.id, entity).catch(console.error);
+  };
+  const handleDeleteEntity = async (id: string) => {
+    setEntities(entities.filter(e => e.id !== id));
+    if (currentClient?.id) await EntityService.deleteEntity(currentClient.id, id).catch(console.error);
+  };
+
+  // Canteen Handlers
+  const handleAddCanteenItem = async (item: Partial<CanteenItem>) => {
+    const newItem = { ...item, id: generateUUID() } as CanteenItem;
+    setCanteenItems([newItem, ...canteenItems]);
+    if (currentClient?.id) await CanteenService.saveItem(currentClient.id, newItem).catch(console.error);
+  };
+  const handleUpdateCanteenItem = async (id: string, data: Partial<CanteenItem>) => {
+    const updated = canteenItems.map(i => i.id === id ? { ...i, ...data } : i);
+    setCanteenItems(updated);
+    const item = updated.find(i => i.id === id);
+    if (currentClient?.id && item) await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+  };
+  const handleDeleteCanteenItem = async (id: string) => {
+    setCanteenItems(canteenItems.filter(i => i.id !== id));
+    if (currentClient?.id) await CanteenService.deleteItem(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddCanteenOrder = async (order: CanteenOrder) => {
     setCanteenOrders([order, ...canteenOrders]);
     const updatedItems = canteenItems.map(item => {
         const soldItem = order.items.find(si => si.itemId === item.id);
@@ -195,9 +306,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         return item;
     });
     setCanteenItems(updatedItems);
+    
+    if (currentClient?.id) {
+        await CanteenService.saveOrder(currentClient.id, order).catch(console.error);
+        const soldItems = updatedItems.filter(item => order.items.some(si => si.itemId === item.id));
+        for (const item of soldItems) {
+            await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+        }
+    }
   };
 
-  const handleDeleteCanteenOrder = (id: string) => {
+  const handleDeleteCanteenOrder = async (id: string) => {
     const order = canteenOrders.find(o => o.id === id);
     if (!order) return;
     
@@ -209,6 +328,14 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     });
     setCanteenItems(updatedItems);
     setCanteenOrders(canteenOrders.filter(o => o.id !== id));
+
+    if (currentClient?.id) {
+        await CanteenService.deleteOrder(currentClient.id, id).catch(console.error);
+        const restoredItems = updatedItems.filter(item => order.items.some(si => si.itemId === item.id));
+        for (const item of restoredItems) {
+            await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+        }
+    }
   };
 
   // Check Module Helper
@@ -221,6 +348,264 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       return currentPlan.enabledModules.includes(module);
     }
     return true; // Fallback if no restriction found
+  };
+
+  // Media Handlers
+  const handleAddPonto = async (p: Partial<Ponto>) => {
+    const newPonto = { ...p, id: generateUUID() } as Ponto;
+    setPontos([newPonto, ...pontos]);
+    if (currentClient?.id) await MediaService.savePonto(currentClient.id, newPonto).catch(console.error);
+  };
+  const handleUpdatePonto = async (id: string, data: Partial<Ponto>) => {
+    const updated = pontos.map(p => p.id === id ? { ...p, ...data } : p);
+    setPontos(updated);
+    const item = updated.find(p => p.id === id);
+    if (currentClient?.id && item) await MediaService.savePonto(currentClient.id, item).catch(console.error);
+  };
+  const handleDeletePonto = async (id: string) => {
+    setPontos(pontos.filter(p => p.id !== id));
+    if (currentClient?.id) await MediaService.deletePonto(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddReza = async (r: Partial<Reza>) => {
+    const newReza = { ...r, id: generateUUID() } as Reza;
+    setRezas([newReza, ...rezas]);
+    if (currentClient?.id) await MediaService.saveReza(currentClient.id, newReza).catch(console.error);
+  };
+  const handleUpdateReza = async (id: string, data: Partial<Reza>) => {
+    const updated = rezas.map(r => r.id === id ? { ...r, ...data } : r);
+    setRezas(updated);
+    const item = updated.find(r => r.id === id);
+    if (currentClient?.id && item) await MediaService.saveReza(currentClient.id, item).catch(console.error);
+  };
+  const handleDeleteReza = async (id: string) => {
+    setRezas(rezas.filter(r => r.id !== id));
+    if (currentClient?.id) await MediaService.deleteReza(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddErva = async (e: Partial<Erva>) => {
+    const newErva = { ...e, id: generateUUID() } as Erva;
+    setErvas([newErva, ...ervas]);
+    if (currentClient?.id) await MediaService.saveErva(currentClient.id, newErva).catch(console.error);
+  };
+  const handleUpdateErva = async (id: string, data: Partial<Erva>) => {
+    const updated = ervas.map(e => e.id === id ? { ...e, ...data } : e);
+    setErvas(updated);
+    const item = updated.find(e => e.id === id);
+    if (currentClient?.id && item) await MediaService.saveErva(currentClient.id, item).catch(console.error);
+  };
+  const handleDeleteErva = async (id: string) => {
+    setErvas(ervas.filter(e => e.id !== id));
+    if (currentClient?.id) await MediaService.deleteErva(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddBanho = async (b: Partial<Banho>) => {
+    const newBanho = { ...b, id: generateUUID() } as Banho;
+    setBanhos([newBanho, ...banhos]);
+    if (currentClient?.id) await MediaService.saveBanho(currentClient.id, newBanho).catch(console.error);
+  };
+  const handleUpdateBanho = async (id: string, data: Partial<Banho>) => {
+    const updated = banhos.map(b => b.id === id ? { ...b, ...data } : b);
+    setBanhos(updated);
+    const item = updated.find(b => b.id === id);
+    if (currentClient?.id && item) await MediaService.saveBanho(currentClient.id, item).catch(console.error);
+  };
+  const handleDeleteBanho = async (id: string) => {
+    setBanhos(banhos.filter(b => b.id !== id));
+    if (currentClient?.id) await MediaService.deleteBanho(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddEvent = async (e: CalendarEvent | Partial<CalendarEvent>) => {
+    // Ensure id exists
+    const newEvent = { ...e, id: e.id || generateUUID() } as CalendarEvent;
+    setEvents(prev => [newEvent, ...prev]);
+    if (currentClient?.id) await EventService.saveCalendarEvent(currentClient.id, newEvent).catch(console.error);
+  };
+  const handleUpdateEvent = async (id: string, data: Partial<CalendarEvent>) => {
+    setEvents(prev => {
+        const updated = prev.map(e => e.id === id ? { ...e, ...data } : e);
+        const event = updated.find(e => e.id === id);
+        if (currentClient?.id && event) {
+             EventService.saveCalendarEvent(currentClient.id, event).catch(console.error);
+        }
+        return updated;
+    });
+  };
+  const handleDeleteEvent = async (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+    if (currentClient?.id) await EventService.deleteCalendarEvent(currentClient.id, id).catch(console.error);
+  };
+
+  // Attendance Handlers
+  const handleSaveAttendanceRecord = async (record: AttendanceRecord) => {
+    setAttendanceRecords(prev => {
+        const idx = prev.findIndex(r => r.id === record.id);
+        if (idx >= 0) {
+            const newArr = [...prev];
+            newArr[idx] = record;
+            return newArr;
+        }
+        return [...prev, record];
+    });
+    
+    if (currentClient?.id) {
+        await AttendanceService.saveRecord(currentClient.id, record).catch(console.error);
+    }
+  };
+
+  const handleDeleteAttendanceRecord = async (recordId: string) => {
+    setAttendanceRecords(prev => prev.filter(r => r.id !== recordId));
+    if (currentClient?.id) {
+        await AttendanceService.deleteRecord(currentClient.id, recordId).catch(console.error);
+    }
+  };
+  
+  const handleBatchSaveAttendance = async (records: AttendanceRecord[]) => {
+      setAttendanceRecords(prev => {
+          const newPrev = [...prev];
+          records.forEach(r => {
+             const idx = newPrev.findIndex(ex => ex.id === r.id);
+             if (idx >= 0) newPrev[idx] = r;
+             else newPrev.push(r);
+          });
+          return newPrev;
+      });
+
+      if (currentClient?.id) {
+          await Promise.all(records.map(r => AttendanceService.saveRecord(currentClient!.id, r)));
+      }
+  };
+
+  // ID Card Handlers
+  const handleSaveIDCardLog = async (log: IDCardLog) => {
+      setIdCardLogs(prev => [log, ...prev]);
+      if (currentClient?.id) {
+          await IdCardService.saveLog(currentClient.id, log).catch(console.error);
+      }
+  };
+
+  const handleBatchSaveIDCardLogs = async (logs: IDCardLog[]) => {
+      setIdCardLogs(prev => [...logs, ...prev]);
+      if (currentClient?.id) {
+          await Promise.all(logs.map(l => IdCardService.saveLog(currentClient!.id, l)));
+      }
+  };
+
+  // Config Handler
+  const handleUpdateSystemConfig = async (newConfig: SystemConfig) => {
+      setSystemConfig(newConfig);
+      if (currentClient?.id) {
+          await SystemConfigService.saveConfig(currentClient.id, newConfig).catch(console.error);
+      }
+  };
+
+  // Inventory Handlers
+  const handleAddInventoryItem = async (partial: Partial<InventoryItem>) => {
+    const newItem = InventoryService.createItem(partial);
+    setInventoryItems([newItem, ...inventoryItems]);
+    if (currentClient?.id) await InventoryService.saveItem(currentClient.id, newItem).catch(console.error);
+  };
+  const handleDeleteInventoryItem = async (id: string) => {
+    setInventoryItems(inventoryItems.filter(i => i.id !== id));
+    if (currentClient?.id) await InventoryService.deleteItem(currentClient.id, id).catch(console.error);
+  };
+  const handleAddInventoryCategory = async (name: string) => {
+    const newCategory = InventoryService.createCategory(name);
+    setInventoryCategories([...inventoryCategories, newCategory]);
+    if (currentClient?.id) await InventoryService.saveCategory(currentClient.id, newCategory).catch(console.error);
+  };
+  const handleDeleteInventoryCategory = async (id: string) => {
+    setInventoryCategories(inventoryCategories.filter(c => c.id !== id));
+    if (currentClient?.id) await InventoryService.deleteCategory(currentClient.id, id).catch(console.error);
+  };
+  const processInventoryEntry = async (updates: StockUpdate[]) => {
+    if (!auth.user?.name) return;
+    const { updatedItems, newLogs } = InventoryService.processStockUpdates(updates, inventoryItems, auth.user.name);
+    
+    setInventoryItems(updatedItems);
+    setStockLogs([...newLogs, ...stockLogs]);
+
+    if (currentClient?.id) {
+        // Save updated items
+        for (const item of updatedItems) {
+            const original = inventoryItems.find(i => i.id === item.id);
+            if (original && original.currentStock !== item.currentStock) {
+                await InventoryService.saveItem(currentClient.id, item).catch(console.error);
+            }
+        }
+        // Save logs
+        for (const log of newLogs) {
+            await InventoryService.saveLog(currentClient.id, log).catch(console.error);
+        }
+    }
+  };
+
+  // Financial Handlers
+  const handleUpdatePayment = async (memberId: string, monthKey: string, status: 'paid' | 'pending' | 'partial' | 'late') => {
+      setMembers(prev => {
+          const updated = prev.map(m => m.id === memberId ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [monthKey]: status } } : m);
+          const member = updated.find(m => m.id === memberId);
+          if (currentClient?.id && member) {
+              MemberService.saveMember(currentClient.id, member).catch(console.error);
+          }
+          return updated;
+      });
+  };
+  const handleAddTransactionWrapper = async (t: FinancialTransaction) => {
+      const newTransaction = { ...t, id: t.id || generateUUID() } as FinancialTransaction;
+      // Use context addTransaction to update state if needed, or just setTransactions
+      // context addTransaction might be just a state setter wrapper
+      if (addTransaction) addTransaction(newTransaction); 
+      // Also persist
+      if (currentClient?.id) await FinancialService.saveTransaction(currentClient.id, newTransaction).catch(console.error);
+  };
+  const handleUpdateTransactionWrapper = async (id: string, data: Partial<FinancialTransaction>) => {
+      if (updateTransaction) updateTransaction(id, data);
+      // Persist
+      // We need the full object to save. 
+      const existing = transactions.find(t => t.id === id);
+      if (existing && currentClient?.id) {
+          await FinancialService.saveTransaction(currentClient.id, { ...existing, ...data }).catch(console.error);
+      }
+  };
+  const handleDeleteTransactionWrapper = async (id: string) => {
+      if (deleteTransaction) deleteTransaction(id);
+      if (currentClient?.id) await FinancialService.deleteTransaction(currentClient.id, id).catch(console.error);
+  };
+
+  const handleAddDonation = async (d: Donation) => {
+      setDonations([...donations, d]);
+      if (currentClient?.id) await FinancialService.saveDonation(currentClient.id, d).catch(console.error);
+  };
+  const handleDeleteDonation = async (id: string) => {
+      setDonations(donations.filter(d => d.id !== id));
+      if (currentClient?.id) await FinancialService.deleteDonation(currentClient.id, id).catch(console.error);
+  };
+
+  const fullSystemData = {
+    members,
+    events,
+    terreiroEvents,
+    courses,
+    enrollments,
+    inventoryItems,
+    inventoryCategories,
+    stockLogs,
+    donations,
+    canteenItems,
+    canteenOrders,
+    systemUsers,
+    entities,
+    attendanceRecords,
+    idCardLogs,
+    tickets,
+    pontos,
+    rezas,
+    ervas,
+    banhos,
+    referrals,
+    transactions,
+    systemConfig
   };
 
   return (
@@ -240,9 +625,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
               members={members} 
               config={systemConfig} 
               user={auth.user!} 
-              onAddEvent={e => setEvents(prev => [e as CalendarEvent, ...prev])} 
-              onUpdateEvent={(id, data) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...data } : e))} 
-              onDeleteEvent={id => setEvents(prev => prev.filter(e => e.id !== id))} 
+              onAddEvent={handleAddEvent} 
+              onUpdateEvent={handleUpdateEvent} 
+              onDeleteEvent={handleDeleteEvent} 
             />
           } />
         )}
@@ -266,9 +651,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                             courses={courses} 
                             enrollments={enrollments} 
                             config={systemConfig} 
-                            onEnroll={(mid, cid) => setEnrollments([...enrollments, { id: generateUUID(), memberId: mid, courseId: cid, enrolledAt: new Date().toISOString(), progress: [] }])} 
-                            onUpdateProgress={(eid, lid) => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, progress: e.progress.includes(lid) ? e.progress.filter(id => id !== lid) : [...e.progress, lid] } : e))} 
-                            onCompleteCourse={eid => setEnrollments(enrollments.map(e => e.id === eid ? { ...e, completedAt: new Date().toISOString() } : e))} 
+                            onEnroll={handleEnroll} 
+                            onUpdateProgress={handleUpdateProgress} 
+                            onCompleteCourse={handleCompleteCourse} 
                         />
                     } />
                 )}
@@ -280,8 +665,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                             enrollments={enrollments} 
                             config={systemConfig} 
                             onAddCourse={handleAddCourse} 
-                            onUpdateCourse={(id, data) => setCourses(courses.map(c => c.id === id ? { ...c, ...data } : c))} 
-                            onDeleteCourse={id => setCourses(courses.filter(c => c.id !== id))} 
+                            onUpdateCourse={handleUpdateCourse} 
+                            onDeleteCourse={handleDeleteCourse} 
                             onUpdateConfig={setSystemConfig} 
                         />
                     } />
@@ -292,17 +677,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {/* Cantina */}
         {hasModule('cantina_pdv') && (
              <Route path="/cantina_pdv" element={
-                <CanteenManagement activeTab="cantina_pdv" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_pdv" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={handleAddCanteenItem} onUpdateItem={handleUpdateCanteenItem} onDeleteItem={handleDeleteCanteenItem} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_gestao') && (
              <Route path="/cantina_gestao" element={
-                <CanteenManagement activeTab="cantina_gestao" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_gestao" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={handleAddCanteenItem} onUpdateItem={handleUpdateCanteenItem} onDeleteItem={handleDeleteCanteenItem} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
         {hasModule('cantina_historico') && (
              <Route path="/cantina_historico" element={
-                <CanteenManagement activeTab="cantina_historico" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={(item) => setCanteenItems([{...item, id: generateUUID()} as CanteenItem, ...canteenItems])} onUpdateItem={(id, data) => setCanteenItems(canteenItems.map(i => i.id === id ? {...i, ...data} : i))} onDeleteItem={(id) => setCanteenItems(canteenItems.filter(i => i.id !== id))} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
+                <CanteenManagement activeTab="cantina_historico" setActiveTab={handleTabChange} items={canteenItems} orders={canteenOrders} config={systemConfig} user={auth.user!} onAddItem={handleAddCanteenItem} onUpdateItem={handleUpdateCanteenItem} onDeleteItem={handleDeleteCanteenItem} onAddOrder={handleAddCanteenOrder} onDeleteOrder={handleDeleteCanteenOrder} />
              } />
         )}
 
@@ -316,8 +701,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 config={systemConfig} 
                 currentUser={auth.user!} 
                 onAddMember={handleAddMember} 
-                onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data } : m))} 
-                onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} 
+                onUpdateMember={handleUpdateMember} 
+                onDeleteMember={handleDeleteMember} 
             />
         } />
 
@@ -329,8 +714,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 config={systemConfig} 
                 currentUser={auth.user!} 
                 onAddMember={handleAddConsulente} 
-                onUpdateMember={(id, data) => setMembers(members.map(m => m.id === id ? { ...m, ...data, isConsulente: data.isConsulente ?? m.isConsulente } : m))} 
-                onDeleteMember={id => setMembers(members.filter(m => m.id !== id))} 
+                onUpdateMember={(id, data) => handleUpdateMember(id, { ...data, isConsulente: data.isConsulente ?? true })}
+                onDeleteMember={handleDeleteMember} 
                 mode="consulente" 
             />
         } />
@@ -340,7 +725,16 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         } />
 
         <Route path="/idcards" element={
-            <IDCardManagement members={members} entities={entities} logs={idCardLogs} config={systemConfig} onUpdateLogs={setIdCardLogs} onUpdateConfig={setSystemConfig} currentUser={auth.user!} />
+          <IDCardManagement 
+            members={members} 
+            entities={entities} 
+            logs={idCardLogs} 
+            config={systemConfig} 
+            currentUser={auth.user!}
+            onSaveLog={handleSaveIDCardLog}
+            onBatchSave={handleBatchSaveIDCardLogs}
+            onUpdateConfig={handleUpdateSystemConfig}
+          />
         } />
 
         <Route path="/attendance" element={
@@ -351,17 +745,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         {hasModule('estoque') && (
             <>
                 {hasModule('estoque_dashboard') && <Route path="/inventory-dashboard" element={<InventoryDashboard items={inventoryItems} categories={inventoryCategories} config={systemConfig} />} />}
-                {hasModule('estoque_gestao') && <Route path="/inventory" element={<InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={(name) => setInventoryCategories([...inventoryCategories, { id: generateUUID(), name }])} onDeleteItem={(id) => setInventoryItems(inventoryItems.filter(i => i.id !== id))} onAddItem={(item) => setInventoryItems([...inventoryItems, InventoryService.createItem(item)])} />} />}
-                {hasModule('estoque_movimentacao') && <Route path="/inventory-entry" element={<InventoryEntry items={inventoryItems} categories={inventoryCategories} onSaveUpdates={handleInventoryEntrySave} />} />}
+                {hasModule('estoque_gestao') && <Route path="/inventory" element={<InventoryManagement items={inventoryItems} categories={inventoryCategories} logs={stockLogs} config={systemConfig} onAddCategory={handleAddInventoryCategory} onDeleteCategory={handleDeleteInventoryCategory} onDeleteItem={handleDeleteInventoryItem} onAddItem={handleAddInventoryItem} />} />}
+                {hasModule('estoque_movimentacao') && <Route path="/inventory-entry" element={<InventoryEntry items={inventoryItems} categories={inventoryCategories} onSaveUpdates={processInventoryEntry} />} />}
             </>
         )}
 
         {/* Financeiro */}
         {hasModule('financeiro') && (
             <>
-                {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={(mid, mk, st) => setMembers(p => p.map(m => m.id === mid ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [mk]: st } } : m))} transactions={transactions} onAddTransaction={addTransaction} />} />}
-                {hasModule('financeiro_fluxo') && <Route path="/cash-flow" element={<FinancialLedger transactions={transactions} onAddTransaction={addTransaction} onUpdateTransaction={updateTransaction} onDeleteTransaction={deleteTransaction} config={systemConfig} />} />}
-                {hasModule('financeiro_doacoes') && <Route path="/donations" element={<DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={d => setDonations([...donations, d as Donation])} onDeleteDonation={id => setDonations(donations.filter(d => d.id !== id))} />} />}
+                {hasModule('financeiro_mensalidades') && <Route path="/mensalidades" element={<FinancialManagement members={members} config={systemConfig} onUpdatePayment={handleUpdatePayment} transactions={transactions} onAddTransaction={handleAddTransactionWrapper} />} />}
+                {hasModule('financeiro_fluxo') && <Route path="/cash-flow" element={<FinancialLedger transactions={transactions} onAddTransaction={handleAddTransactionWrapper} onUpdateTransaction={handleUpdateTransactionWrapper} onDeleteTransaction={handleDeleteTransactionWrapper} config={systemConfig} />} />}
+                {hasModule('financeiro_doacoes') && <Route path="/donations" element={<DonationManagement donations={donations} inventoryItems={inventoryItems} config={systemConfig} onAddDonation={handleAddDonation} onDeleteDonation={handleDeleteDonation} />} />}
                 {hasModule('financeiro_relatorios') && <Route path="/finance-reports" element={<FinancialReports members={members} donations={donations} canteenOrders={canteenOrders} config={systemConfig} transactions={transactions} />} />}
                 {hasModule('financeiro_config') && <Route path="/finance-config" element={<FinancialConfigComponent config={systemConfig} onUpdateConfig={setSystemConfig} />} />}
             </>
@@ -375,9 +769,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 <MediaPontos 
                   pontos={pontos} 
                   config={systemConfig} 
-                  onAddPonto={p => setPontos([...pontos, { ...p, id: generateUUID() }])} 
-                  onUpdatePonto={(id, data) => setPontos(pontos.map(p => p.id === id ? { ...p, ...data } : p))} 
-                  onDeletePonto={id => setPontos(pontos.filter(p => p.id !== id))} 
+                  onAddPonto={handleAddPonto} 
+                  onUpdatePonto={handleUpdatePonto} 
+                  onDeletePonto={handleDeletePonto} 
                   activeTab="media-pontos"
                 />
               } />
@@ -387,9 +781,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                 <MediaRezas 
                   rezas={rezas} 
                   config={systemConfig} 
-                  onAddReza={r => setRezas([...rezas, { ...r, id: generateUUID() }])} 
-                  onUpdateReza={(id, data) => setRezas(rezas.map(r => r.id === id ? { ...r, ...data } : r))} 
-                  onDeleteReza={id => setRezas(rezas.filter(r => r.id !== id))} 
+                  onAddReza={handleAddReza} 
+                  onUpdateReza={handleUpdateReza} 
+                  onDeleteReza={handleDeleteReza} 
                   activeTab="media-rezas"
                 />
               } />
@@ -400,12 +794,12 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
                   ervas={ervas} 
                   banhos={banhos} 
                   config={systemConfig} 
-                  onAddErva={e => setErvas([...ervas, { ...e, id: generateUUID() }])} 
-                  onUpdateErva={(id, data) => setErvas(ervas.map(e => e.id === id ? { ...e, ...data } : e))} 
-                  onDeleteErva={id => setErvas(ervas.filter(e => e.id !== id))} 
-                  onAddBanho={b => setBanhos([...banhos, { ...b, id: generateUUID() }])} 
-                  onUpdateBanho={(id, data) => setBanhos(banhos.map(b => b.id === id ? { ...b, ...data } : b))} 
-                  onDeleteBanho={id => setBanhos(banhos.filter(b => b.id !== id))} 
+                  onAddErva={handleAddErva} 
+                  onUpdateErva={handleUpdateErva} 
+                  onDeleteErva={handleDeleteErva} 
+                  onAddBanho={handleAddBanho} 
+                  onUpdateBanho={handleUpdateBanho} 
+                  onDeleteBanho={handleDeleteBanho} 
                   activeTab="media-ervas"
                 />
               } />
@@ -420,13 +814,13 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
 
         {/* Configurações e Admin */}
         <Route path="/layout" element={<SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={u => setSystemUsers([...systemUsers, u as User])} onUpdateUser={(id, data) => setSystemUsers(systemUsers.map(u => u.id === id ? { ...u, ...data } : u))} onDeleteUser={id => setSystemUsers(systemUsers.filter(u => u.id !== id))} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={(n, t) => setEntities([...entities, { id: generateUUID(), name: n, type: t }])} onDeleteEntity={id => setEntities(entities.filter(e => e.id !== id))} />} />
-        <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={(id, data) => setEntities(entities.map(e => e.id === id ? { ...e, ...data } : e))} />} />
+        <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} onUpdateConfig={setSystemConfig} />} />
+        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={handleAddEntity} onDeleteEntity={handleDeleteEntity} />} />
+        <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={handleUpdateEntity} />} />
         <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         
-        <Route path="/backup" element={<BackupSystem user={auth.user!} config={systemConfig} onRestoreFromBackup={d => { Object.keys(d).forEach(k => localStorage.setItem(k, JSON.stringify(d[k]))); window.location.reload(); }} allowAutoBackup={hasModule('mod_backup_auto')} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => { localStorage.clear(); window.location.reload(); }} />} />
+        <Route path="/backup" element={<BackupSystem user={auth.user!} config={systemConfig} currentData={fullSystemData} onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} allowAutoBackup={hasModule('mod_backup_auto')} onUpdateConfig={setSystemConfig} />} />
+        <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fábrica desativado na versão Nuvem.")} />} />
         <Route path="/saas-manager" element={<SaaSManager config={systemConfig} onUpdateConfig={setSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />} />
         
         {/* Ajuda */}
@@ -445,8 +839,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         <Route path="/developer-portal" element={
           <DeveloperPortal 
             onLogout={() => {
-              setAuth({ user: null, isAuthenticated: false, isMasterMode: false });
-              localStorage.removeItem('saas_login_persist');
+              auth.logout();
             }}
             onEnterClientSystem={client => {
               setAuth({ ...auth, isMasterMode: false });
@@ -480,8 +873,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           <Route key={path} path={`/${path}`} element={
             <DeveloperPortal 
               onLogout={() => {
-                setAuth({ user: null, isAuthenticated: false, isMasterMode: false });
-                localStorage.removeItem('saas_login_persist');
+                auth.logout();
               }}
               onEnterClientSystem={client => {
                 setAuth({ ...auth, isMasterMode: false });

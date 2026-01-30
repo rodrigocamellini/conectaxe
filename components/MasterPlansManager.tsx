@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { SaaSPlan, PlanLimits, SaaSClient } from '../types';
 import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play, ShieldAlert } from 'lucide-react';
+import { MasterService } from '../services/masterService';
 
 interface MasterPlansManagerProps {
   plans: SaaSPlan[];
@@ -26,17 +27,25 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
   const [autoBlockConfig, setAutoBlockConfig] = useState<{enabled: boolean, days: number}>({ enabled: false, days: 5 });
 
   useEffect(() => {
-    const saved = localStorage.getItem('saas_auto_block_config');
-    if (saved) {
+    const loadConfig = async () => {
       try {
-        setAutoBlockConfig(JSON.parse(saved));
-      } catch {}
-    }
+        const config = await MasterService.getAutoBlockConfig();
+        setAutoBlockConfig(config);
+      } catch (e) {
+        console.error("Erro ao carregar config de auto block:", e);
+      }
+    };
+    loadConfig();
   }, []);
 
-  const handleSaveAutoBlock = () => {
-    localStorage.setItem('saas_auto_block_config', JSON.stringify(autoBlockConfig));
-    alert('Configuração de bloqueio automático salva!');
+  const handleSaveAutoBlock = async () => {
+    try {
+      await MasterService.saveAutoBlockConfig(autoBlockConfig);
+      alert('Configuração de bloqueio automático salva!');
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao salvar configuração.');
+    }
   };
 
   // Edit State
@@ -61,7 +70,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
 
   const lifetimeCount = useMemo(() => plans.filter(p => p.durationDays === null).length, [plans]);
 
-  const handleAddPlan = (e: React.FormEvent) => {
+  const handleAddPlan = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = newName.trim();
     if (!name) {
@@ -89,11 +98,18 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
       enabledModules: [] // Initialize with no modules enabled by default
     };
 
-    onUpdatePlans([...plans, plan]);
-    setNewName('');
-    setNewPrice(49.9);
-    setNewDuration(30);
-    setNewLifetime(false);
+    try {
+      await MasterService.savePlan(plan);
+      // Update local state via prop to reflect changes immediately in UI
+      onUpdatePlans([...plans, plan]);
+      setNewName('');
+      setNewPrice(49.9);
+      setNewDuration(30);
+      setNewLifetime(false);
+    } catch (error) {
+      console.error("Error saving plan:", error);
+      alert("Erro ao salvar o plano. Tente novamente.");
+    }
   };
 
   const startEdit = (plan: SaaSPlan) => {
@@ -119,7 +135,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
     setEditLimits({});
   };
 
-  const saveEdit = (e: React.FormEvent) => {
+  const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlan) return;
     const name = editName.trim();
@@ -140,21 +156,26 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
       return;
     }
 
-    const updated = plans.map(p => {
-      if (p.id !== editingPlan.id) return p;
-      return {
-        ...p,
-        name,
-        price: editPrice,
-        durationDays: editLifetime ? null : editDuration,
-        limits: {
-          maxMembers: editLimits.maxMembers ?? null,
-          maxConsulentes: editLimits.maxConsulentes ?? null
-        }
-      };
-    });
-    onUpdatePlans(updated);
-    cancelEdit();
+    const updatedPlan = {
+      ...editingPlan,
+      name,
+      price: editPrice,
+      durationDays: editLifetime ? null : editDuration,
+      limits: {
+        maxMembers: editLimits.maxMembers ?? null,
+        maxConsulentes: editLimits.maxConsulentes ?? null
+      }
+    };
+
+    try {
+      await MasterService.savePlan(updatedPlan);
+      const updated = plans.map(p => p.id === editingPlan.id ? updatedPlan : p);
+      onUpdatePlans(updated);
+      cancelEdit();
+    } catch (error) {
+      console.error("Error updating plan:", error);
+      alert("Erro ao atualizar o plano. Tente novamente.");
+    }
   };
 
   const handleDeleteClick = (plan: SaaSPlan) => {
@@ -169,7 +190,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
     setDeleteError('');
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!planToDelete) return;
     
     if (deletePassword !== masterPassword) {
@@ -177,12 +198,18 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
       return;
     }
 
-    onUpdatePlans(plans.filter(p => p.id !== planToDelete.id));
-    // If editing the plan being deleted, close edit modal
-    if (editingPlan?.id === planToDelete.id) {
-      cancelEdit();
+    try {
+      await MasterService.deletePlan(planToDelete.id);
+      onUpdatePlans(plans.filter(p => p.id !== planToDelete.id));
+      // If editing the plan being deleted, close edit modal
+      if (editingPlan?.id === planToDelete.id) {
+        cancelEdit();
+      }
+      setPlanToDelete(null);
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      alert("Erro ao excluir o plano. Tente novamente.");
     }
-    setPlanToDelete(null);
   };
 
   const renderPlanIcon = (plan: SaaSPlan) => {

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { format, isAfter } from 'date-fns';
 import { SAAS_PLANS, DEFAULT_LOGO_URL } from '../constants';
+import { MasterService } from '../services/masterService';
 
 interface SaaSManagerProps {
   config: SystemConfig;
@@ -59,9 +60,18 @@ export const SaaSManager: React.FC<SaaSManagerProps> = ({ config, onUpdateConfig
   const [showPayModal, setShowPayModal] = useState(false);
   const currentYear = new Date().getFullYear();
   
-  const masterData = useMemo(() => {
-    const saved = localStorage.getItem('saas_master_credentials');
-    return saved ? JSON.parse(saved) : { email: 'rodrigo@dev.com', whatsapp: '', pixKey: 'Não configurado', bankDetails: 'Não configurado' };
+  const [masterData, setMasterData] = useState({ email: 'rodrigo@dev.com', whatsapp: '', pixKey: 'Não configurado', bankDetails: 'Não configurado' });
+
+  useEffect(() => {
+    const loadMasterCredentials = async () => {
+      try {
+        const creds = await MasterService.getMasterCredentials();
+        setMasterData(creds);
+      } catch (e) {
+        console.error("Failed to load master credentials", e);
+      }
+    };
+    loadMasterCredentials();
   }, []);
 
   const [license, setLicense] = useState<SystemLicense>(config.license || {

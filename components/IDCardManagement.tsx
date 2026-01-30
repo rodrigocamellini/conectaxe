@@ -162,7 +162,7 @@ export const IDCardManagement: React.FC<IDCardManagementProps> = ({
       issuedBy: currentUser.name
     };
 
-    onUpdateLogs([newLog, ...logs]);
+    onSaveLog(newLog).catch(console.error);
     setPrintingBatch([member]);
     setShowPrintPreview(true);
   };

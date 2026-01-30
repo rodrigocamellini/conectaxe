@@ -27,6 +27,7 @@ interface BackupSystemProps {
   onRestoreFromBackup: (data: any) => void;
   onUpdateConfig?: (config: SystemConfig) => void;
   allowAutoBackup?: boolean;
+  currentData?: any;
 }
 
 export const BackupSystem: React.FC<BackupSystemProps> = ({ 
@@ -34,7 +35,8 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   config, 
   onRestoreFromBackup, 
   onUpdateConfig, 
-  allowAutoBackup = false 
+  allowAutoBackup = false,
+  currentData
 }) => {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null); // ID do backup a deletar
@@ -46,7 +48,18 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   const [backupFile, setBackupFile] = useState<any>(null);
 
   // Snapshots State
-  const [snapshots, setSnapshots] = useState<StoredSnapshot[]>(() => backupService.getSnapshots());
+  const [snapshots, setSnapshots] = useState<StoredSnapshot[]>([]);
+  
+  // Load Cloud Backups
+  useEffect(() => {
+    const loadBackups = async () => {
+        if (config.license?.clientId) {
+            const backups = await backupService.getBackups(config.license.clientId);
+            setSnapshots(backups);
+        }
+    };
+    loadBackups();
+  }, [config.license?.clientId]);
 
   // Função para gerar captcha (reutilizada para consistência)
   const generateCaptcha = useCallback(() => {
@@ -66,11 +79,23 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   }, [showRestoreModal, generateCaptcha]);
 
   // Gerar Backup e Salvar na Lista
-  const handleGenerateBackup = () => {
-    const newSnapshot = backupService.createSnapshot('Manual');
-    const updatedSnapshots = backupService.saveSnapshot(newSnapshot);
-    setSnapshots(updatedSnapshots);
-    alert('Backup gerado e salvo na lista com sucesso!');
+  const handleGenerateBackup = async () => {
+    const dataToBackup = currentData || {};
+    const newSnapshot = backupService.createSnapshotFromData(dataToBackup, 'Manual');
+    
+    if (config.license?.clientId) {
+        try {
+            await backupService.saveBackup(config.license.clientId, newSnapshot);
+            setSnapshots(prev => [newSnapshot, ...prev]);
+            alert('Backup Cloud gerado e salvo com sucesso!');
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao salvar backup na nuvem.');
+        }
+    } else {
+        // Fallback download if no client ID (shouldn't happen in prod)
+        handleDownloadSnapshot(newSnapshot);
+    }
   };
 
   // Download de um backup da lista
@@ -92,10 +117,18 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
     setShowDeleteModal(id);
   };
 
-  const handleDeleteSnapshot = () => {
+  const handleDeleteSnapshot = async () => {
     if (!showDeleteModal) return;
-    const updatedSnapshots = backupService.deleteSnapshot(showDeleteModal);
-    setSnapshots(updatedSnapshots);
+    
+    if (config.license?.clientId) {
+        try {
+            await backupService.deleteBackup(config.license.clientId, showDeleteModal);
+            setSnapshots(prev => prev.filter(s => s.id !== showDeleteModal));
+        } catch (error) {
+             console.error(error);
+             alert('Erro ao excluir backup da nuvem.');
+        }
+    }
     setShowDeleteModal(null);
   };
 
@@ -184,12 +217,11 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
               <div className="space-y-2">
                  <h4 className="text-xl font-black text-indigo-800 uppercase tracking-tight">Restaurar de Arquivo</h4>
                  <p className="text-xs text-indigo-700 font-medium leading-relaxed">
-                   Recupere os dados de um arquivo baixado anteriormente. **Aviso: Esta ação substituirá todos os dados atuais.**
+                   Funcionalidade desativada na versão Nuvem. Entre em contato com o suporte.
                  </p>
               </div>
-              <label className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
-                <Upload size={18} /> Selecionar Arquivo JSON
-                <input type="file" className="hidden" accept=".json" onChange={handleFileChange} />
+              <label className="w-full py-4 bg-gray-400 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg cursor-not-allowed flex items-center justify-center gap-2">
+                <Upload size={18} /> Restaurar Indisponível
               </label>
            </div>
         </div>

@@ -83,37 +83,40 @@ export const AttendanceManagement: React.FC<AttendanceManagementProps> = ({
     };
   }, [currentDayRecords, eligibleMembers]);
 
-  const updateStatus = (memberId: string, status: 'presente' | 'ausente' | 'justificado') => {
-    const existingIndex = attendanceRecords.findIndex(r => r.date === selectedDate && r.memberId === memberId);
-    let newRecords = [...attendanceRecords];
+  const updateStatus = async (memberId: string, status: 'presente' | 'ausente' | 'justificado') => {
+    const existingRecord = attendanceRecords.find(r => r.date === selectedDate && r.memberId === memberId);
 
-    if (existingIndex > -1) {
-      if (attendanceRecords[existingIndex].status === status) {
-        newRecords.splice(existingIndex, 1);
+    if (existingRecord) {
+      if (existingRecord.status === status) {
+        // Toggle off -> Delete
+        await onDeleteRecord(existingRecord.id);
       } else {
-        newRecords[existingIndex] = { ...newRecords[existingIndex], status };
+        // Update status
+        await onSaveRecord({ ...existingRecord, status });
       }
     } else {
+      // Create new
       const newRecord: AttendanceRecord = {
         id: Math.random().toString(36).substr(2, 9),
         date: selectedDate,
         memberId,
         status
       };
-      newRecords.push(newRecord);
+      await onSaveRecord(newRecord);
     }
-
-    onUpdateAttendance(newRecords);
   };
 
-  const markAllPresent = () => {
-    let newRecords = [...attendanceRecords];
+  const markAllPresent = async () => {
+    const recordsToSave: AttendanceRecord[] = [];
+    
     eligibleMembers.forEach(m => {
-      const existingIdx = newRecords.findIndex(r => r.date === selectedDate && r.memberId === m.id);
-      if (existingIdx > -1) {
-        newRecords[existingIdx] = { ...newRecords[existingIdx], status: 'presente' };
+      const existingRecord = attendanceRecords.find(r => r.date === selectedDate && r.memberId === m.id);
+      if (existingRecord) {
+        if (existingRecord.status !== 'presente') {
+           recordsToSave.push({ ...existingRecord, status: 'presente' });
+        }
       } else {
-        newRecords.push({
+        recordsToSave.push({
           id: Math.random().toString(36).substr(2, 9),
           date: selectedDate,
           memberId: m.id,
@@ -121,7 +124,17 @@ export const AttendanceManagement: React.FC<AttendanceManagementProps> = ({
         });
       }
     });
-    onUpdateAttendance(newRecords);
+
+    if (recordsToSave.length > 0) {
+      if (onBatchSave) {
+        await onBatchSave(recordsToSave);
+      } else {
+        // Fallback to sequential save if no batch handler
+        for (const record of recordsToSave) {
+          await onSaveRecord(record);
+        }
+      }
+    }
   };
 
   const handleDateChange = (direction: 'prev' | 'next') => {

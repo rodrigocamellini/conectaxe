@@ -1,37 +1,26 @@
 
-const STORAGE_KEYS = {
-  MEMBERS: 'terreiro_members',
-  ENTITIES: 'terreiro_entities',
-  PONTOS: 'terreiro_pontos',
-  REZAS: 'terreiro_rezas',
-  ERVAS: 'terreiro_ervas',
-  BANHOS: 'terreiro_banhos',
-  CONSULENTES: 'terreiro_consulentes',
+// This service is DEPRECATED and should not be used.
+// All data persistence should be handled via Firebase services (Firestore/Storage).
+// Keeping this file temporarily to prevent import errors during transition, 
+// but all methods are now no-ops or log warnings.
+
+export const STORAGE_KEYS = {
   AUTH: 'terreiro_auth',
-  SYSTEM_CONFIG: 'terreiro_system_config',
-  TRANSACTIONS: 'terreiro_transactions',
   MASTER_CONFIG: 'terreiro_master_config'
 };
+
 export const storage = {
   get: <T,>(key: string): T | null => {
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error(`Error parsing storage key "${key}":`, error);
-      return null;
-    }
+    console.warn(`[DEPRECATED] storage.get called for key "${key}". LocalStorage is being removed.`);
+    return null;
   },
   set: <T,>(key: string, value: T): void => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error saving storage key "${key}":`, error);
-    }
+    console.warn(`[DEPRECATED] storage.set called for key "${key}". LocalStorage is being removed.`);
   },
-  clear: (key: string): void => {
-    localStorage.removeItem(key);
+  remove: (key: string): void => {
+    console.warn(`[DEPRECATED] storage.remove called for key "${key}". LocalStorage is being removed.`);
+  },
+  clear: (): void => {
+    console.warn(`[DEPRECATED] storage.clear called. LocalStorage is being removed.`);
   }
 };
-
-export { STORAGE_KEYS };

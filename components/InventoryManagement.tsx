@@ -31,6 +31,7 @@ export const InventoryManagement: React.FC<InventoryManagementProps> = ({
   config,
   onAddItem,
   onAddCategory,
+  onDeleteCategory,
   onDeleteItem
 }) => {
   const [activeTab, setActiveTab] = useState<'catalog' | 'logs'>('catalog');
@@ -119,7 +120,23 @@ export const InventoryManagement: React.FC<InventoryManagementProps> = ({
 
           {categories.map(cat => (
             <div key={cat.id} className="space-y-3">
-              <h4 className="font-extrabold text-gray-800 uppercase tracking-widest flex items-center gap-2"><ChevronDown size={18} className="text-indigo-600" /> {cat.name}</h4>
+              <div className="flex justify-between items-center">
+                <h4 className="font-extrabold text-gray-800 uppercase tracking-widest flex items-center gap-2"><ChevronDown size={18} className="text-indigo-600" /> {cat.name}</h4>
+                <button 
+                  onClick={() => { 
+                    const hasItems = items.some(i => i.categoryId === cat.id);
+                    if (hasItems) {
+                      alert('Não é possível excluir categoria com itens. Remova os itens primeiro.');
+                      return;
+                    }
+                    if(window.confirm('Excluir categoria?')) onDeleteCategory(cat.id); 
+                  }} 
+                  className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                  title="Excluir Categoria"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">

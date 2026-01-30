@@ -34,6 +34,8 @@ import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
 import { DEFAULT_LOGO_URL, MASTER_LOGO_URL, INITIAL_MASTER_MENU_CONFIG, INITIAL_MENU_CONFIG } from '../constants';
 import { RoleIconComponent } from './UserManagement';
+import { useData } from '../contexts/DataContext';
+import { MasterService } from '../services/masterService';
 
 interface LayoutProps {
   user: User;
@@ -317,20 +319,19 @@ export const Layout: React.FC<LayoutProps> = ({
     setExpandedGroupId(prev => prev === id ? null : id);
   };
 
+  const { broadcasts, roadmap, userPreferences } = useData();
+
   const notificationsCount = useMemo(() => {
     try {
-      const broadcasts: GlobalBroadcast[] = JSON.parse(localStorage.getItem('saas_global_broadcasts') || '[]');
-      const roadmap: ReleaseNote[] = JSON.parse(localStorage.getItem('saas_global_roadmap') || '[]');
-      const dismissed: string[] = JSON.parse(localStorage.getItem(`dismissed_roadmap_${config.license?.clientId || 'default'}`) || '[]');
+      const dismissed = userPreferences.dismissedRoadmapIds || [];
       return broadcasts.filter(b => b.active).length + roadmap.filter(r => !dismissed.includes(r.id)).length;
     } catch (error) {
       console.error('Error calculating notifications count:', error);
       return 0;
     }
-  }, [activeTab, config.license]);
+  }, [activeTab, config.license, broadcasts, roadmap, userPreferences]);
 
-  const masterSettings = useMemo<MasterCredentials>(() => {
-    const fallback: MasterCredentials = {
+  const [masterSettings, setMasterSettings] = useState<MasterCredentials>({
       email: 'rodrigo@dev.com',
       password: 'master',
       whatsapp: '',
@@ -340,22 +341,19 @@ export const Layout: React.FC<LayoutProps> = ({
       systemTitle: 'ConectAxé Painel de Desenvolvedor',
       brandLogo: MASTER_LOGO_URL,
       backupFrequency: 'disabled'
+  });
+
+  useEffect(() => {
+    const loadMasterSettings = async () => {
+       const auth = await MasterService.getMasterAuth();
+       if (auth) {
+         setMasterSettings(prev => ({ ...prev, ...auth }));
+       }
     };
-    try {
-      const saved = localStorage.getItem('saas_master_credentials');
-      if (!saved) {
-        return fallback;
-      }
-      const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object') {
-        return { ...fallback, ...parsed };
-      }
-      return fallback;
-    } catch {
-      localStorage.removeItem('saas_master_credentials');
-      return fallback;
+    if (isMasterMode) {
+      loadMasterSettings();
     }
-  }, []);
+  }, [isMasterMode]);
 
   const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
 

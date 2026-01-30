@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import { MasterService } from '../services/masterService';
 
 interface MasterTicketManagerProps {
   tickets: SupportTicket[];
@@ -54,23 +55,37 @@ export const MasterTicketManager: React.FC<MasterTicketManagerProps> = ({ ticket
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [predefinedResponses, setPredefinedResponses] = useState<PredefinedResponse[]>(() => {
-    const saved = localStorage.getItem('saas_support_templates');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', title: 'Boas Vindas', content: 'Olá! Recebemos sua solicitação e nossa equipe técnica já está analisando o caso. Retornaremos em breve.' },
-      { id: '2', title: 'Solicitar Print', content: 'Para que possamos agilizar o atendimento, poderia nos enviar um print da tela onde o erro ocorre?' },
-      { id: '3', title: 'Correção Aplicada', content: 'Informamos que a correção para o problema relatado já foi aplicada em sua instância. Por favor, recarregue o sistema e teste novamente.' },
-      { id: '4', title: 'Encerramento', content: 'Ficamos felizes em ajudar! Como o problema foi resolvido, estamos encerrando este chamado. Se precisar de algo mais, sinta-se à vontade para abrir um novo ticket.' }
-    ];
-  });
-
-  const [showTemplateManager, setShowTemplateManager] = useState(false);
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({ title: '', content: '' });
+  const [predefinedResponses, setPredefinedResponses] = useState<PredefinedResponse[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('saas_support_templates', JSON.stringify(predefinedResponses));
+    const loadTemplates = async () => {
+      try {
+        const templates = await MasterService.getSupportTemplates();
+        if (templates.length > 0) {
+          setPredefinedResponses(templates);
+        } else {
+          // Defaults if empty
+          setPredefinedResponses([
+            { id: '1', title: 'Boas Vindas', content: 'Olá! Recebemos sua solicitação e nossa equipe técnica já está analisando o caso. Retornaremos em breve.' },
+            { id: '2', title: 'Solicitar Print', content: 'Para que possamos agilizar o atendimento, poderia nos enviar um print da tela onde o erro ocorre?' },
+            { id: '3', title: 'Correção Aplicada', content: 'Informamos que a correção para o problema relatado já foi aplicada em sua instância. Por favor, recarregue o sistema e teste novamente.' },
+            { id: '4', title: 'Encerramento', content: 'Ficamos felizes em ajudar! Como o problema foi resolvido, estamos encerrando este chamado. Se precisar de algo mais, sinta-se à vontade para abrir um novo ticket.' }
+          ]);
+        }
+      } catch (error) {
+        console.error("Error loading support templates:", error);
+      }
+    };
+    loadTemplates();
+  }, []);
+
+  useEffect(() => {
+    if (predefinedResponses.length > 0) {
+       MasterService.saveSupportTemplates(predefinedResponses).catch(console.error);
+    }
   }, [predefinedResponses]);
+
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(t => {

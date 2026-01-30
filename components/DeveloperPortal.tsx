@@ -71,6 +71,7 @@ import { MasterPlansManager } from './MasterPlansManager';
 import { MasterPlanResources } from './MasterPlanResources';
 import { AuditTab } from './AuditTab';
 import { MenuManager } from './MenuManager';
+import { MasterService } from '../services/masterService';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS, DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface DeveloperPortalProps {
@@ -147,16 +148,21 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para Snapshots (Backups)
-  const [snapshots, setSnapshots] = useState<StoredSnapshot[]>(() => {
-    try {
-      const saved = localStorage.getItem('saas_master_snapshots');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+  const [snapshots, setSnapshots] = useState<StoredSnapshot[]>([]);
+
+  // Load snapshots from MasterService
+  useEffect(() => {
+    const loadSnapshots = async () => {
+      try {
+        const data = await MasterService.getAllSnapshots();
+        setSnapshots(data as StoredSnapshot[]);
+      } catch (error) {
+        console.error("Error loading snapshots:", error);
+      }
+    };
+    loadSnapshots();
+  }, []);
+
   const [showMasterPassword, setShowMasterPassword] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState<StoredSnapshot | null>(null);
   const [restorePassword, setRestorePassword] = useState('');
@@ -224,18 +230,16 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   }, [roadmap, updateType]);
 
   useEffect(() => {
-    const runAutoBlock = () => {
-      const configStr = localStorage.getItem('saas_auto_block_config');
-      if (!configStr) return;
-      
+    const runAutoBlock = async () => {
       let config;
       try {
-        config = JSON.parse(configStr);
-      } catch {
+        config = await MasterService.getAutoBlockConfig();
+      } catch (error) {
+        console.error("Error fetching auto block config:", error);
         return;
       }
 
-      if (!config.enabled) return;
+      if (!config || !config.enabled) return;
 
       const today = new Date();
       let hasUpdates = false;
@@ -280,15 +284,20 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   }, [clients]);
 
   const handleExportRoadmap = () => {
-    const data = JSON.stringify(roadmap, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `roadmap_backup_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const data = JSON.stringify(roadmap, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `roadmap_backup_${format(new Date(), 'yyyyMMdd_HHmm')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading backup:", error);
+      alert("Erro ao baixar backup. Verifique o console.");
+    }
   };
 
   const handleRestoreRoadmap = (e: React.FormEvent) => {
@@ -334,8 +343,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const [newBroadcastType, setNewBroadcastType] = useState<'info' | 'warning' | 'success'>('info');
 
   // Gestão de Credenciais e Identidade Master
-  const [masterCreds, setMasterCreds] = useState<MasterCredentials>(() => {
-    const fallback: MasterCredentials = {
+  const [masterCreds, setMasterCreds] = useState<MasterCredentials>({
       email: 'rodrigo@dev.com', 
       password: 'master', 
       whatsapp: '', 
@@ -345,20 +353,19 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       systemTitle: 'ConectAxé Painel de Desenvolvedor',
       brandLogo: MASTER_LOGO_URL,
       backupFrequency: 'disabled'
-    };
-    try {
-      const saved = localStorage.getItem('saas_master_credentials');
-      if (!saved) return fallback;
-      const parsed = JSON.parse(saved);
-      return { ...fallback, ...parsed };
-    } catch {
-      return fallback;
-    }
   });
 
   useEffect(() => {
-    localStorage.setItem('saas_master_snapshots', JSON.stringify(snapshots));
-  }, [snapshots]);
+    const loadMasterCreds = async () => {
+      try {
+        const creds = await MasterService.getMasterCredentials();
+        setMasterCreds(creds);
+      } catch (error) {
+        console.error("Error loading master credentials:", error);
+      }
+    };
+    loadMasterCreds();
+  }, []);
 
   const [newClient, setNewClient] = useState<Partial<SaaSClient>>(() => ({
     name: '',
@@ -415,12 +422,17 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     }
   }, [externalTab]);
 
-  const handleSaveMasterSettings = (e: React.FormEvent) => {
+  const handleSaveMasterSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('saas_master_credentials', JSON.stringify(masterCreds));
-    setShowMasterSettings(false);
-    alert('Configurações do Ecossistema Master atualizadas com sucesso!');
-    window.location.reload(); 
+    try {
+      await MasterService.saveMasterCredentials(masterCreds);
+      setShowMasterSettings(false);
+      alert('Configurações do Ecossistema Master atualizadas com sucesso!');
+      window.location.reload(); 
+    } catch (error) {
+      console.error("Error saving master credentials:", error);
+      alert('Erro ao salvar configurações.');
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,15 +537,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
           photo: ''
         };
         
-        const clientUsersKey = `terreiro_system_users_${client.id}`;
-        const existingUsersStr = localStorage.getItem(clientUsersKey);
-        const existingUsers: User[] = existingUsersStr ? JSON.parse(existingUsersStr) : [...INITIAL_USERS];
-        const updatedUsers = [...existingUsers, newAdminUser];
-        localStorage.setItem(clientUsersKey, JSON.stringify(updatedUsers));
-
+        const initialUsers = [...INITIAL_USERS, newAdminUser];
+        
+        let newClientConfig: SystemConfig | undefined;
         if (systemConfig) {
-             const clientConfigKey = `terreiro_system_config_${client.id}`;
-             const newClientConfig = {
+             newClientConfig = {
                 ...DEFAULT_SYSTEM_CONFIG,
                 primaryColor: systemConfig.primaryColor,
                 sidebarColor: systemConfig.sidebarColor,
@@ -542,7 +550,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                 spiritualSectionColors: systemConfig.spiritualSectionColors,
                 systemName: client.name
              };
-             localStorage.setItem(clientConfigKey, JSON.stringify(newClientConfig));
+        }
+
+        // Initialize Client Data in Firebase
+        if (newClientConfig) {
+          MasterService.initializeClientData(client.id, initialUsers, newClientConfig)
+            .catch(err => console.error("Error initializing client data:", err));
         }
     }
 
@@ -575,37 +588,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   };
 
   const handleCreateSnapshot = (type: 'manual' | 'automatico' = 'manual') => {
-    const allData: Record<string, any> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      // Evitar circularidade de snapshots salvando snapshots
-      if (key && !key.includes('saas_master_snapshots')) {
-        const val = localStorage.getItem(key);
-        if (val) allData[key] = JSON.parse(val);
-      }
-    }
-
-    const dataStr = JSON.stringify(allData);
-    const size = (dataStr.length / 1024).toFixed(2) + ' KB';
-
-    const newSnapshot: StoredSnapshot = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-      date: new Date().toISOString(),
-      type,
-      data: allData,
-      size
-    };
-
-    setSnapshots([newSnapshot, ...snapshots]);
-    
-    onAddAuditLog({
-      action: 'Criação de Snapshot',
-      category: 'system',
-      severity: 'info',
-      details: `Snapshot ${type} criado. Tamanho: ${size}`
-    });
-
-    alert(`Snapshot ${type} criado com sucesso! Tamanho: ${size}`);
+    alert("Funcionalidade de Snapshot Local desativada no modo Nuvem/Firebase. Utilize os backups automáticos do banco de dados.");
+    return;
   };
 
   const formatRoadmapDate = (value?: string) => {
@@ -630,47 +614,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
   const handleRestoreSnapshot = (e: React.FormEvent) => {
     e.preventDefault();
+    alert("Funcionalidade de Restauração Local desativada no modo Nuvem/Firebase.");
+    return;
+    /*
     if (!showRestoreConfirm) return;
-
-    if (restorePassword !== masterCreds.password) {
-      alert('Senha master incorreta! Restauração cancelada.');
-      return;
-    }
-
-    if (confirm('ATENÇÃO: Isso substituirá TODOS os dados atuais do sistema pelo backup selecionado. Continuar?')) {
-      const data = showRestoreConfirm.data;
-      // Preservar o histórico de snapshots e logs de auditoria na restauração
-      const currentSnapshots = localStorage.getItem('saas_master_snapshots');
-      const currentAuditLogs = localStorage.getItem('saas_master_audit_logs');
-      
-      localStorage.clear();
-      
-      Object.keys(data).forEach(key => {
-        localStorage.setItem(key, JSON.stringify(data[key]));
-      });
-
-      if (currentSnapshots) {
-        localStorage.setItem('saas_master_snapshots', currentSnapshots);
-      }
-      
-      // Preservar logs de auditoria atuais + adicionar log de restauração
-      if (currentAuditLogs) {
-        const logs = JSON.parse(currentAuditLogs) as MasterAuditLog[];
-        const restoreLog: MasterAuditLog = {
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
-            timestamp: new Date().toISOString(),
-            masterEmail: masterCreds.email,
-            action: 'Restauração de Sistema',
-            category: 'system',
-            severity: 'critical',
-            details: `Sistema restaurado para o ponto: ${format(new Date(showRestoreConfirm.date), 'dd/MM/yyyy HH:mm')}`
-        };
-        localStorage.setItem('saas_master_audit_logs', JSON.stringify([restoreLog, ...logs]));
-      }
-
-      alert('Restauração concluída! O sistema será reiniciado.');
-      window.location.reload();
-    }
+    // ... legacy logic ...
+    */
   };
 
   const deleteSnapshot = (id: string) => {
@@ -739,21 +688,12 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     alert('Comunicado disparado com sucesso para toda a rede!');
   };
 
-  const handleDownloadClientBackup = (clientId: string) => {
-    const clientInfo = clients.find(c => c.id === clientId);
-    const suffix = `_${clientId}`;
-    const backupData: Record<string, any> = {};
-    
-    // Coleta dados específicos do cliente
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.endsWith(suffix)) {
-        const val = localStorage.getItem(key);
-        if (val) {
-          backupData[key] = JSON.parse(val);
-        }
-      }
-    }
+  const handleDownloadClientBackup = async (clientId: string) => {
+    try {
+      const clientInfo = clients.find(c => c.id === clientId);
+      
+      // Fetch full data from Firebase
+      const backupData = await MasterService.getClientFullData(clientId);
 
     // Adiciona metadados do cliente
     if (clientInfo) {
@@ -768,6 +708,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading client backup:", error);
+      alert("Erro ao baixar backup do cliente.");
+    }
   };
 
   const deleteClient = (id: string) => {
@@ -780,7 +724,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     }
   };
 
-  const handleConfirmDeleteClient = (e: React.FormEvent) => {
+  const handleConfirmDeleteClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientToDelete) return;
 
@@ -789,16 +733,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       return;
     }
 
-    // Remove dados do localStorage
-    const suffix = `_${clientToDelete.id}`;
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.endsWith(suffix)) {
-            keysToRemove.push(key);
-        }
+    // Remove from Firebase
+    try {
+        await MasterService.deleteClient(clientToDelete.id);
+    } catch (err) {
+        console.error("Error deleting client from Firebase:", err);
+        setDeleteClientError("Erro ao excluir do banco de dados.");
+        return;
     }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
 
     // Remove da lista de clientes
     onUpdateClients(clients.filter(c => c.id !== clientToDelete.id));
@@ -809,14 +751,14 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       action: 'Exclusão de Instância',
       category: 'client_management',
       severity: 'critical',
-      details: `Instância removida permanentemente. Dados limpos do localStorage.`
+      details: `Instância removida permanentemente.`
     });
 
     setShowDeleteClientModal(false);
     setClientToDelete(null);
     setDeleteClientPassword('');
     setDeleteClientError('');
-    alert('Instância removida permanentemente e dados limpos.');
+    alert('Instância removida permanentemente.');
   };
 
   const toggleStatus = (id: string, newStatus: SaaSClient['status']) => {
@@ -2490,10 +2432,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
              <MenuManager 
                config={systemConfig || DEFAULT_SYSTEM_CONFIG}
-               onUpdateConfig={(updatedConfig) => {
-                 localStorage.setItem('terreiro_system_config', JSON.stringify(updatedConfig));
-                 alert('Configuração de menu salva com sucesso!');
-                 window.location.reload();
+               onUpdateConfig={async (updatedConfig) => {
+                 try {
+                   // Save to Firestore using SystemConfigService
+                   // If we are in Master Mode, we might be editing the global default or the master's own config.
+                   // Assuming this updates the currently loaded config.
+                   // We need to import SystemConfigService.
+                   const { SystemConfigService } = await import('../services/systemConfigService');
+                   
+                   // Determine clientId. If systemConfig has a license.clientId, use it.
+                   const targetClientId = updatedConfig.license?.clientId;
+                   
+                   await SystemConfigService.saveConfig(updatedConfig, targetClientId);
+                   alert('Configuração de menu salva com sucesso!');
+                   window.location.reload();
+                 } catch (error) {
+                   console.error('Error saving menu config:', error);
+                   alert('Erro ao salvar configuração.');
+                 }
                }}
              />
         </div>

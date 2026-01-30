@@ -4,6 +4,8 @@ import { ReleaseNote, GlobalBroadcast } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { Sparkles, Calendar, CheckCircle2, Zap, Bell, Info, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 
 interface NotificationsCenterProps {
   roadmap: ReleaseNote[];
@@ -13,41 +15,22 @@ interface NotificationsCenterProps {
 
 export const RoadmapHistory: React.FC<NotificationsCenterProps> = ({ roadmap, broadcasts, clientId }) => {
   const [activeSubTab, setActiveSubTab] = useState<'news' | 'announcements'>('news');
-  
-  const [dismissedRoadmapIds, setDismissedRoadmapIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`dismissed_roadmap_${clientId}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error('Error loading dismissed roadmap:', error);
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const { userPreferences, updateUserPreferences } = useData();
 
-  const [dismissedBroadcastIds, setDismissedBroadcastIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`dismissed_broadcasts_${clientId}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error('Error loading dismissed broadcasts:', error);
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(`dismissed_roadmap_${clientId}`, JSON.stringify(dismissedRoadmapIds));
-  }, [dismissedRoadmapIds, clientId]);
-
-  useEffect(() => {
-    localStorage.setItem(`dismissed_broadcasts_${clientId}`, JSON.stringify(dismissedBroadcastIds));
-  }, [dismissedBroadcastIds, clientId]);
+  const dismissedRoadmapIds = userPreferences.dismissedRoadmapIds || [];
+  const dismissedBroadcastIds = userPreferences.dismissedBroadcastIds || [];
 
   const handleDismissRoadmap = (id: string) => {
-    if (!dismissedRoadmapIds.includes(id)) setDismissedRoadmapIds(prev => [...prev, id]);
+    if (!dismissedRoadmapIds.includes(id)) {
+      updateUserPreferences({ dismissedRoadmapIds: [...dismissedRoadmapIds, id] });
+    }
   };
 
   const handleDismissBroadcast = (id: string) => {
-    if (!dismissedBroadcastIds.includes(id)) setDismissedBroadcastIds(prev => [...prev, id]);
+    if (!dismissedBroadcastIds.includes(id)) {
+      updateUserPreferences({ dismissedBroadcastIds: [...dismissedBroadcastIds, id] });
+    }
   };
 
   const sortedRoadmap = [...roadmap].sort((a, b) => b.date.localeCompare(a.date));

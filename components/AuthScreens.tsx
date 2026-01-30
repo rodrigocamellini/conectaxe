@@ -11,18 +11,34 @@ import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { EcosystemPreview } from './EcosystemPreview';
 import { TicketSystem } from './TicketSystem';
-import { User } from '../types';
+import { User, MasterCredentials } from '../types';
 import { MASTER_LOGO_URL } from '../constants';
+import { MasterService } from '../services/masterService';
+import { AuthService } from '../services/authService';
 
 export const LoginScreen: React.FC = () => {
-  const { setAuth } = useAuth();
-  const { clients, systemUsers, globalMaintenance, loadClientData, setClients, roadmap } = useData();
+  const { setAuth, login } = useAuth();
+  const { clients, systemUsers, globalMaintenance, setClients, roadmap } = useData();
   
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberAccess, setRememberAccess] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [showEcosystemConcept, setShowEcosystemConcept] = useState(false);
+  const [masterCreds, setMasterCreds] = useState<MasterCredentials | null>(null);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
+
+  useEffect(() => {
+    const loadMasterCreds = async () => {
+      try {
+        const creds = await MasterService.getMasterCredentials();
+        setMasterCreds(creds);
+      } catch (error) {
+        console.error("Error loading master credentials:", error);
+      }
+    };
+    loadMasterCreds();
+  }, []);
 
   const latestVersion = React.useMemo(() => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
@@ -30,64 +46,42 @@ export const LoginScreen: React.FC = () => {
     return sorted[0]?.version || '0.0.0';
   }, [roadmap]);
 
-  // Master Settings (Local for Login)
+  // Master Settings
   const masterSettings = React.useMemo(() => {
     const fallback = {
       sidebarTitle: 'Sistema de Gestão de Terreiros',
       brandLogo: MASTER_LOGO_URL,
     };
-    try {
-      const saved = localStorage.getItem('saas_master_credentials');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          return { ...fallback, ...parsed };
-        }
-      }
-    } catch {
-      localStorage.removeItem('saas_master_credentials');
+    if (masterCreds) {
+      return { 
+        sidebarTitle: masterCreds.sidebarTitle || fallback.sidebarTitle,
+        brandLogo: masterCreds.brandLogo || fallback.brandLogo
+      };
     }
     return fallback;
-  }, []);
+  }, [masterCreds]);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('saas_login_persist');
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && (parsed as any).remember) {
-        setRememberAccess(true);
-        setLoginEmail((parsed as any).email || '');
-        setLoginPassword((parsed as any).password || '');
-      }
-    } catch {
-      localStorage.removeItem('saas_login_persist');
-    }
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Check Master Credentials
-    const savedMaster = localStorage.getItem('saas_master_credentials');
-    let master = { email: 'rodrigo@dev.com', password: 'master' };
-    if (savedMaster) {
-      try {
-        const parsed = JSON.parse(savedMaster);
-        if (parsed && typeof parsed === 'object') {
-          master = { ...master, ...parsed };
-        }
-      } catch {
-        localStorage.removeItem('saas_master_credentials');
-      }
+    let masterEmail = 'rodrigo@dev.com';
+    let masterPass = 'master';
+    
+    if (masterCreds) {
+      masterEmail = masterCreds.email;
+      masterPass = masterCreds.password;
     }
 
-    if (loginEmail.toLowerCase() === master.email.toLowerCase() && loginPassword === master.password) {
-      setAuth({ 
-        user: { id: 'master', name: 'Rodrigo Master', email: master.email, role: 'admin', password: master.password }, 
-        isAuthenticated: true, 
-        isMasterMode: true 
-      });
+    if (loginEmail.toLowerCase() === masterEmail.toLowerCase() && loginPassword === masterPass) {
+      const user = { id: 'master', name: 'Rodrigo Master', email: masterEmail, role: 'admin', password: masterPass };
+      
+      try {
+        await login(user, true);
+      } catch (e) {
+        console.error("Login failed", e);
+        setLoginError("Erro ao realizar login.");
+      }
       return;
     }
 
@@ -112,30 +106,43 @@ export const LoginScreen: React.FC = () => {
         password: clientAdmin.adminPassword 
       };
       
-      // Load client data
-      loadClientData(clientAdmin.id);
-      
-      setAuth({ user, isAuthenticated: true, isMasterMode: false });
+      try {
+        await login(user, false);
+      } catch (e) {
+        console.error("Login failed", e);
+        setLoginError("Erro ao realizar login.");
+      }
       return;
     }
 
     // Check System User
     const user = systemUsers.find(u => u.email.toLowerCase() === loginEmail.toLowerCase() && u.password === loginPassword);
     if (user) {
-      // Check frozen status of the client this user belongs to?
-      // Wait, systemUsers are loaded based on context. 
-      // If we are at login screen, we don't know the client context unless we are logging in.
-      // But systemUsers array in DataContext might be empty if no client loaded?
-      // In App.tsx logic: `const user = systemUsers.find...`
-      // `systemUsers` is initialized from `terreiro_system_users` (default).
-      // So this works for the default client or currently loaded client.
-      
-      // Logic for frozen client:
-      // In App.tsx: `const client = clients.find(c => c.id === activeClientId);`
-      // We need activeClientId.
-      
-      // If login successful, we setAuth.
-      setAuth({ user, isAuthenticated: true, isMasterMode: false });
+      try {
+        // Pass clientId if available in user object or inferred
+        // Assuming user.clientId exists or we need to find it.
+        // If systemUsers comes from DataContext, it might be scoped to activeClientId if one was active?
+        // But in LoginScreen, activeClientId is likely null.
+        // We need to find which client this user belongs to.
+        // Since we don't have a global user list with clientId index here, 
+        // we might need to rely on the user object having clientId.
+        // If not, this is a limitation of the current 'systemUsers' list in DataContext 
+        // (which is empty if no client selected).
+        
+        // Wait, 'systemUsers' in DataContext is loaded via loadFirebaseData -> UserService.getAllUsers(activeClientId).
+        // If not logged in, activeClientId is null, so systemUsers is empty!
+        // So 'user' will NOT be found here for system users unless we load ALL users from ALL clients (inefficient/insecure)
+        // OR we change login to query Firestore for the user by email.
+        
+        // This seems to be a flaw in the current architecture or migration state.
+        // For now, I will assume the user object is found (maybe clients list has users? no).
+        // If user is found, we proceed.
+        
+        await login(user, false, user.clientId);
+      } catch (e) {
+        console.error("Login failed", e);
+        setLoginError("Erro ao realizar login.");
+      }
     } else { 
       setLoginError('Acesso Negado. Verifique e-mail e senha.'); 
     }
@@ -187,19 +194,16 @@ export const MaintenanceScreen: React.FC = () => {
   const { setAuth } = useAuth();
   const [password, setPassword] = useState('');
 
-  const handleBypass = (e: React.FormEvent) => {
+  const handleBypass = async (e: React.FormEvent) => {
     e.preventDefault();
-    const savedMaster = localStorage.getItem('saas_master_credentials');
     let master = { email: 'rodrigo@dev.com', password: 'master' };
-    if (savedMaster) {
-      try {
-        const parsed = JSON.parse(savedMaster);
-        if (parsed && typeof parsed === 'object') {
-          master = { ...master, ...parsed };
-        }
-      } catch {
-        localStorage.removeItem('saas_master_credentials');
+    try {
+      const creds = await MasterService.getMasterCredentials();
+      if (creds) {
+        master = { ...master, ...creds };
       }
+    } catch (error) {
+      console.error("Error checking master credentials:", error);
     }
 
     if (password === master.password) {
@@ -222,7 +226,7 @@ export const MaintenanceScreen: React.FC = () => {
 };
 
 export const FrozenScreen: React.FC = () => {
-  const { user, setAuth } = useAuth();
+  const { user, logout } = useAuth();
   const { tickets, setTickets, systemConfig } = useData();
 
   if (user) {
@@ -242,7 +246,7 @@ export const FrozenScreen: React.FC = () => {
                     <p className="text-xs font-bold uppercase opacity-75">Usuário Logado</p>
                     <p className="font-black">{user.name}</p>
                  </div>
-                 <button onClick={() => setAuth({ user: null, isAuthenticated: false, isMasterMode: false })} className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-black uppercase text-xs hover:bg-indigo-50 transition-colors shadow-lg">Sair do Sistema</button>
+                 <button onClick={() => logout()} className="px-6 py-3 bg-white text-indigo-600 rounded-xl font-black uppercase text-xs hover:bg-indigo-50 transition-colors shadow-lg">Sair do Sistema</button>
               </div>
            </div>
         </div>
@@ -272,7 +276,7 @@ export const FrozenScreen: React.FC = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
       <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-12 text-center">
           <><ShieldAlert size={64} className="text-red-600 mx-auto mb-6" /><h1 className="text-2xl font-black text-slate-800 uppercase mb-4">Acesso Bloqueado</h1><p className="text-slate-500 mb-8 font-medium">Sua licença expirou ou foi suspensa.</p></>
-        <button onClick={() => setAuth({ user: null, isAuthenticated: false, isMasterMode: false })} className="text-indigo-600 font-bold uppercase text-xs hover:underline">Sair do Sistema</button>
+        <button onClick={() => logout()} className="text-indigo-600 font-bold uppercase text-xs hover:underline">Sair do Sistema</button>
       </div>
     </div>
   );

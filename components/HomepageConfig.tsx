@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LandingPageService, LandingPageConfig } from '../services/landingPageService';
 import { 
   Plus, 
   Trash2, 
@@ -337,44 +338,26 @@ const INITIAL_MODULES: LandingPageModule[] = [
 ];
 
 export const HomepageConfig: React.FC = () => {
-  const [socialConfig, setSocialConfig] = useState<SocialConfig>(() => {
-    const saved = localStorage.getItem('landing_page_social');
-    return saved ? JSON.parse(saved) : INITIAL_SOCIAL;
-  });
+  const [socialConfig, setSocialConfig] = useState<SocialConfig>(INITIAL_SOCIAL);
 
-  const [faqItems, setFaqItems] = useState<FAQItem[]>(() => {
-    const saved = localStorage.getItem('landing_page_faq');
-    return saved ? JSON.parse(saved) : INITIAL_FAQ;
-  });
+  const [faqItems, setFaqItems] = useState<FAQItem[]>(INITIAL_FAQ);
 
-  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(() => {
-    const saved = localStorage.getItem('landing_page_testimonials');
-    return saved ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
-  });
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(INITIAL_TESTIMONIALS);
 
-  const [clientLogos, setClientLogos] = useState<ClientLogo[]>(() => {
-    const saved = localStorage.getItem('landing_page_client_logos');
-    return saved ? JSON.parse(saved) : INITIAL_CLIENT_LOGOS;
-  });
+  const [clientLogos, setClientLogos] = useState<ClientLogo[]>(INITIAL_CLIENT_LOGOS);
 
-  const [modules, setModules] = useState<LandingPageModule[]>(() => {
-    const saved = localStorage.getItem('landing_page_modules');
-    return saved ? JSON.parse(saved) : INITIAL_MODULES;
-  });
+  const [modules, setModules] = useState<LandingPageModule[]>(INITIAL_MODULES);
 
-  const [logoUrl, setLogoUrl] = useState<string>(() => {
-    const saved = localStorage.getItem('landing_page_logo');
-    return saved ? saved : '/images/logo_conectaxe.png';
-  });
-  const [whatsappNumber, setWhatsappNumber] = useState<string>(() => {
-    const saved = localStorage.getItem('landing_page_whatsapp');
-    return saved ? saved : '';
-  });
+  const [logoUrl, setLogoUrl] = useState<string>('/images/logo_conectaxe.png');
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('');
 
-  const [cnpj, setCnpj] = useState<string>(() => {
-    const saved = localStorage.getItem('landing_page_cnpj');
-    return saved ? saved : '00.000.000/0001-00';
-  });
+  const [cnpj, setCnpj] = useState<string>('00.000.000/0001-00');
+  
+  // Hero Config State
+  const [heroTitle, setHeroTitle] = useState<string>("Tudo o que seu terreiro precisa em um só lugar");
+  const [heroSubtitle, setHeroSubtitle] = useState<string>("Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.");
+  const [heroBackground, setHeroBackground] = useState<string>("https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=2070");
+  const [heroDashboard, setHeroDashboard] = useState<string>("/images/hero-dashboard.png");
 
   const [showEditor, setShowEditor] = useState(false);
   const [editingModule, setEditingModule] = useState<Partial<LandingPageModule> | null>(null);
@@ -392,37 +375,85 @@ export const HomepageConfig: React.FC = () => {
   const [deleteFaqConfirmation, setDeleteFaqConfirmation] = useState<string | null>(null);
   const [deleteTestimonialConfirmation, setDeleteTestimonialConfirmation] = useState<string | null>(null);
   const [deleteClientLogoConfirmation, setDeleteClientLogoConfirmation] = useState<string | null>(null);
+  
+  // Load Config from Firebase
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await LandingPageService.getConfig();
+        if (config.landing_page_social) setSocialConfig(config.landing_page_social);
+        
+        // Self-Healing for FAQ
+        if (config.landing_page_faq && Array.isArray(config.landing_page_faq) && config.landing_page_faq.length > 0) {
+          setFaqItems(config.landing_page_faq);
+        }
 
-  useEffect(() => {
-    localStorage.setItem('landing_page_social', JSON.stringify(socialConfig));
-  }, [socialConfig]);
+        // Self-Healing for Testimonials
+        if (config.landing_page_testimonials && Array.isArray(config.landing_page_testimonials) && config.landing_page_testimonials.length > 0) {
+          setTestimonials(config.landing_page_testimonials);
+        }
+        
+        // Self-Healing for Client Logos
+        if (config.landing_page_client_logos && Array.isArray(config.landing_page_client_logos) && config.landing_page_client_logos.length > 2) {
+          setClientLogos(config.landing_page_client_logos);
+        } else {
+          // If missing or corrupted (too few), keep default (which is already set in useState)
+          console.log("Restoring default Client Logos due to missing/corrupted data");
+        }
 
-  useEffect(() => {
-    localStorage.setItem('landing_page_testimonials', JSON.stringify(testimonials));
-  }, [testimonials]);
+        // Self-Healing for Modules
+        if (config.landing_page_modules && Array.isArray(config.landing_page_modules) && config.landing_page_modules.length > 5) {
+          setModules(config.landing_page_modules);
+        } else {
+          // If missing or corrupted (too few), keep default
+          console.log("Restoring default Modules due to missing/corrupted data");
+        }
 
-  useEffect(() => {
-    localStorage.setItem('landing_page_client_logos', JSON.stringify(clientLogos));
-  }, [clientLogos]);
+        if (config.landing_page_logo) setLogoUrl(config.landing_page_logo);
+        if (config.landing_page_whatsapp) setWhatsappNumber(config.landing_page_whatsapp);
+        if (config.landing_page_cnpj) setCnpj(config.landing_page_cnpj);
+        
+        if (config.landing_page_hero) {
+          if (config.landing_page_hero.title) setHeroTitle(config.landing_page_hero.title);
+          if (config.landing_page_hero.subtitle) setHeroSubtitle(config.landing_page_hero.subtitle);
+          if (config.landing_page_hero.backgroundImage) setHeroBackground(config.landing_page_hero.backgroundImage);
+          if (config.landing_page_hero.dashboardImage) setHeroDashboard(config.landing_page_hero.dashboardImage);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar configurações da Landing Page:", error);
+      }
+    };
+    loadConfig();
+  }, []);
 
+  // Save Config to Firebase (Debounced)
   useEffect(() => {
-    localStorage.setItem('landing_page_faq', JSON.stringify(faqItems));
-  }, [faqItems]);
+    const saveConfig = async () => {
+      try {
+        const config: LandingPageConfig = {
+          landing_page_social: socialConfig,
+          landing_page_faq: faqItems,
+          landing_page_testimonials: testimonials,
+          landing_page_client_logos: clientLogos,
+          landing_page_modules: modules,
+          landing_page_logo: logoUrl,
+          landing_page_whatsapp: whatsappNumber,
+          landing_page_cnpj: cnpj,
+          landing_page_hero: {
+            title: heroTitle,
+            subtitle: heroSubtitle,
+            backgroundImage: heroBackground
+          }
+        };
+        await LandingPageService.saveConfig(config);
+      } catch (error) {
+        console.error("Erro ao salvar configurações da Landing Page:", error);
+      }
+    };
 
-  useEffect(() => {
-    localStorage.setItem('landing_page_modules', JSON.stringify(modules));
-  }, [modules]);
-
-  useEffect(() => {
-    if (logoUrl) localStorage.setItem('landing_page_logo', logoUrl);
-  }, [logoUrl]);
-  useEffect(() => {
-    localStorage.setItem('landing_page_whatsapp', whatsappNumber);
-  }, [whatsappNumber]);
-
-  useEffect(() => {
-    localStorage.setItem('landing_page_cnpj', cnpj);
-  }, [cnpj]);
+    const timeoutId = setTimeout(saveConfig, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [socialConfig, faqItems, testimonials, clientLogos, modules, logoUrl, whatsappNumber, cnpj, heroTitle, heroSubtitle, heroBackground, heroDashboard]);
 
   const handlePhoneChange = (value: string) => {
     let numeric = value.replace(/\D/g, '');
@@ -759,6 +790,48 @@ export const HomepageConfig: React.FC = () => {
               <input type="file" accept="image/*" className="hidden" onChange={e => handleLogoFile(e.target.files?.[0] || null)} />
               <span className="text-sm font-semibold">Enviar arquivo</span>
             </label>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <Wand2 className="text-indigo-400" />
+          Configurações da Hero Section
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Título Principal</label>
+            <textarea
+              value={heroTitle}
+              onChange={e => setHeroTitle(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none h-24"
+              placeholder="Ex: Gestão com Axé..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Subtítulo</label>
+            <textarea
+              value={heroSubtitle}
+              onChange={e => setHeroSubtitle(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none h-20"
+              placeholder="Ex: Simplifique a administração..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Imagem de Fundo (URL)</label>
+            <input
+              type="text"
+              value={heroBackground}
+              onChange={e => setHeroBackground(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="https://..."
+            />
+            {heroBackground && (
+              <div className="mt-2 h-32 w-full rounded-lg overflow-hidden border border-slate-700">
+                <img src={heroBackground} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
           </div>
         </div>
       </section>

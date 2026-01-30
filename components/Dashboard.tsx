@@ -38,6 +38,8 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 
 interface DashboardProps {
   members: Member[];
@@ -80,37 +82,24 @@ const RenderEventIcon = ({ name, size = 16, className = "" }: { name?: string, s
 
 export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, terreiroEvents, roadmap = [], broadcasts = [] }) => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const { user } = useAuth();
+  const { userPreferences, updateUserPreferences } = useData();
   
-  // IDs de Novidades (Roadmap) descartadas
-  const [dismissedRoadmapIds, setDismissedRoadmapIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem(`dismissed_roadmap_${config.license?.clientId || 'default'}`);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // IDs de Avisos (Broadcasts) descartados
-  const [dismissedBroadcastIds, setDismissedBroadcastIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem(`dismissed_broadcasts_${config.license?.clientId || 'default'}`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const dismissedRoadmapIds = userPreferences.dismissedRoadmapIds || [];
+  const dismissedBroadcastIds = userPreferences.dismissedBroadcastIds || [];
 
   const currentYear = new Date().getFullYear();
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  useEffect(() => {
-    localStorage.setItem(`dismissed_roadmap_${config.license?.clientId || 'default'}`, JSON.stringify(dismissedRoadmapIds));
-  }, [dismissedRoadmapIds, config.license?.clientId]);
-
-  useEffect(() => {
-    localStorage.setItem(`dismissed_broadcasts_${config.license?.clientId || 'default'}`, JSON.stringify(dismissedBroadcastIds));
-  }, [dismissedBroadcastIds, config.license?.clientId]);
+  // Calcular aniversariantes do mês
 
   const handleDismissRoadmap = (id: string) => {
-    setDismissedRoadmapIds(prev => [...prev, id]);
+    updateUserPreferences({ dismissedRoadmapIds: [...dismissedRoadmapIds, id] });
   };
 
   const handleDismissBroadcast = (id: string) => {
-    setDismissedBroadcastIds(prev => [...prev, id]);
+    updateUserPreferences({ dismissedBroadcastIds: [...dismissedBroadcastIds, id] });
   };
 
   const fontSizes = {

@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  logoUrl?: string;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
 
@@ -19,7 +23,7 @@ const Navbar: React.FC = () => {
       <div className="container mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center">
           <img
-            src="/images/logo_conectaxe.png"
+            src={logoUrl || "/images/logo_conectaxe.png"}
             alt="ConectAxé"
             className="h-10 w-auto"
           />

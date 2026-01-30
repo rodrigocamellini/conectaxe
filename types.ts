@@ -1,4 +1,3 @@
-
 export interface EventTicket {
   id: string;
   eventId: string;
@@ -337,6 +336,18 @@ export interface MasterAuditLog {
   targetId?: string;
 }
 
+export interface MasterCredentials {
+  email: string;
+  password: string;
+  whatsapp?: string;
+  pixKey?: string;
+  bankDetails?: string;
+  sidebarTitle?: string;
+  systemTitle?: string;
+  brandLogo?: string;
+  backupFrequency?: string;
+}
+
 export interface CanteenItem {
   id: string;
   name: string;
@@ -460,4 +471,16 @@ export interface FinancialTransaction {
   paymentMethod?: string;
   notes?: string;
   relatedId?: string;
+}
+
+export interface MasterCredentials {
+  email: string;
+  password: string;
+  whatsapp: string;
+  pixKey: string;
+  bankDetails: string;
+  sidebarTitle: string;
+  systemTitle: string;
+  brandLogo: string;
+  backupFrequency: 'disabled' | 'daily' | 'weekly' | 'monthly';
 }
