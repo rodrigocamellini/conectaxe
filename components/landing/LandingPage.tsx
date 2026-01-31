@@ -304,10 +304,10 @@ const LandingPage: React.FC = () => {
       {/* FAQ */}
       <section id="faq" className="py-24 bg-white">
         <div className="container mx-auto px-6 max-w-4xl">
-          <h2 className="text-4xl font-bold text-center mb-16">Perguntas Frequentes</h2>
-          <div className="space-y-6">
+          <h2 className="text-4xl font-bold text-center mb-8">Perguntas Frequentes</h2>
+          <div className="space-y-2">
             {faqItems.filter(item => item.visible).map((item) => (
-              <details key={item.id} className="group border border-slate-100 rounded-2xl bg-slate-50/50 p-6">
+              <details key={item.id} className="group border border-slate-100 rounded-2xl bg-slate-50/50 p-4">
                 <summary className="flex justify-between items-center font-bold text-lg cursor-pointer list-none text-slate-950">
                   {item.question}
                   <span className="text-orange-600 transition-transform group-open:rotate-180">

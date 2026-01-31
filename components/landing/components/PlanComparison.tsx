@@ -6,7 +6,7 @@ const PlanComparison: React.FC = () => {
     {
       category: "Essencial",
       items: [
-        { name: "Gestão de Membros e Filhos", iniciante: true, expandido: true, pro: true },
+        { name: "Gestão de Membros e Filhos", iniciante: "30 Membros e Consulentes", expandido: "100 Membros e Consulentes", pro: "Membros e Consulentes Ilimitados" },
         { name: "Cadastro de Entidades Espirituais", iniciante: true, expandido: true, pro: true },
         { name: "Mídia e Acervo (Pontos/Rezas)", iniciante: true, expandido: true, pro: true },
         { name: "Agenda de Giras", iniciante: "Visualização", expandido: "Completo", pro: "Completo" },
@@ -28,6 +28,16 @@ const PlanComparison: React.FC = () => {
         { name: "Plataforma EAD (Cursos)", iniciante: false, expandido: false, pro: true },
         { name: "Múltiplos Administradores", iniciante: false, expandido: false, pro: true },
         { name: "Auditoria de Ações", iniciante: false, expandido: false, pro: true },
+      ]
+    },
+    {
+      category: "Valores dos Planos",
+      items: [
+        { name: "Plano Mensal", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
+        { name: "Plano Trimestral", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
+        { name: "Plano Semestral", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
+        { name: "Plano Anual", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
+        { name: "Plano Vitalício", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
       ]
     }
   ];

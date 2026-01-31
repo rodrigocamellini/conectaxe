@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { SaaSPlan, PlanLimits, SaaSClient } from '../types';
-import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play, ShieldAlert } from 'lucide-react';
+import { Settings, CreditCard, Calendar, Clock, Infinity, Gift, Plus, Trash2, Edit2, Save, X, Lock, AlertTriangle, Play, ShieldAlert, ChevronUp, ChevronDown } from 'lucide-react';
 import { MasterService } from '../services/masterService';
 
 interface MasterPlansManagerProps {
@@ -48,6 +48,36 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
     }
   };
 
+  // Sort plans by order
+  const sortedPlans = useMemo(() => {
+    return [...plans].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [plans]);
+
+  const handleMovePlan = async (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) || 
+      (direction === 'down' && index === sortedPlans.length - 1)
+    ) return;
+
+    const newPlans = [...sortedPlans];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [newPlans[index], newPlans[targetIndex]] = [newPlans[targetIndex], newPlans[index]];
+    
+    // Update order field
+    const updatedPlans = newPlans.map((p, idx) => ({ ...p, order: idx }));
+    
+    // Optimistic update
+    onUpdatePlans(updatedPlans);
+
+    // Save to DB
+    try {
+      await Promise.all(updatedPlans.map(p => MasterService.savePlan(p)));
+    } catch (error) {
+      console.error("Error saving plan order:", error);
+      alert("Erro ao salvar a ordem dos planos.");
+    }
+  };
+
   // Edit State
   const [editingPlan, setEditingPlan] = useState<SaaSPlan | null>(null);
   const [editName, setEditName] = useState('');
@@ -90,12 +120,15 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
       return;
     }
 
+    const maxOrder = plans.length > 0 ? Math.max(...plans.map(p => p.order || 0)) : -1;
+
     const plan: SaaSPlan = {
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
       name,
       price: newPrice,
       durationDays: newLifetime ? null : newDuration,
-      enabledModules: [] // Initialize with no modules enabled by default
+      enabledModules: [], // Initialize with no modules enabled by default
+      order: maxOrder + 1
     };
 
     try {
@@ -417,6 +450,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-950/80 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
+                  <th className="px-8 py-4 w-16">#</th>
                   <th className="px-8 py-4">Plano</th>
                   <th className="px-8 py-4">Valor</th>
                   <th className="px-8 py-4">Duração</th>
@@ -425,10 +459,33 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {plans.length > 0 ? (
-                  plans.map(plan => {
+                {sortedPlans.length > 0 ? (
+                  sortedPlans.map((plan, index) => {
                     return (
                       <tr key={plan.id} className="hover:bg-slate-800/30 transition-colors group align-middle">
+                        <td className="px-8 py-4 w-16 text-center">
+                            <div className="flex flex-col items-center gap-1 text-slate-500">
+                                <span className="text-xs font-mono text-orange-500 mb-1 font-bold">#{index + 1}</span>
+                                <div className="flex flex-col gap-1">
+                                    <button 
+                                        onClick={() => handleMovePlan(index, 'up')}
+                                        disabled={index === 0}
+                                        className="hover:text-indigo-400 disabled:opacity-30 disabled:hover:text-slate-500 p-0.5 transition-colors"
+                                        title="Mover para cima"
+                                    >
+                                        <ChevronUp size={16} />
+                                    </button>
+                                    <button 
+                                        onClick={() => handleMovePlan(index, 'down')}
+                                        disabled={index === sortedPlans.length - 1}
+                                        className="hover:text-indigo-400 disabled:opacity-30 disabled:hover:text-slate-500 p-0.5 transition-colors"
+                                        title="Mover para baixo"
+                                    >
+                                        <ChevronDown size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
                         <td className="px-8 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
@@ -471,7 +528,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
                           </div>
                         </td>
                         <td className="px-8 py-4 text-right">
-                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex justify-end gap-2 transition-opacity">
                             <button
                               onClick={() => startEdit(plan)}
                               className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
@@ -494,7 +551,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
                 ) : (
                   <tr>
                       <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-8 py-20 text-center flex flex-col items-center gap-3"
                     >
                       <CreditCard size={40} className="text-slate-800 opacity-20" />

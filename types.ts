@@ -38,6 +38,7 @@ export interface SaaSPlan {
   maxStorage?: number; // MB
   enabledModules?: string[];
   limits?: any;
+  order?: number;
 }
 
 export interface StoredSnapshot {
