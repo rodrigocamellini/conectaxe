@@ -348,6 +348,13 @@ export const HomepageConfig: React.FC = () => {
 
   const [modules, setModules] = useState<LandingPageModule[]>(INITIAL_MODULES);
 
+  const [whatsappMessage, setWhatsappMessage] = useState<string>('Olá, gostaria de fazer um upgrade no meu plano do ConectAxé!');
+  const [whatsappMessageTest, setWhatsappMessageTest] = useState<string>('Olá! Gostaria de testar o sistema ConectAxé gratuitamente.');
+  const [whatsappMessageIniciante, setWhatsappMessageIniciante] = useState<string>('Olá! Gostaria de contratar o plano Iniciante para meu terreiro.');
+  const [whatsappMessageExpandido, setWhatsappMessageExpandido] = useState<string>('Olá! Tenho interesse no plano Expandido.');
+  const [whatsappMessagePro, setWhatsappMessagePro] = useState<string>('Olá! Quero saber mais sobre o plano Terreiro Pro.');
+  const [whatsappMessageFloating, setWhatsappMessageFloating] = useState<string>('Olá! Gostaria de saber mais sobre o ConectAxé.');
+
   const [logoUrl, setLogoUrl] = useState<string>('/images/logo_conectaxe.png');
   const [whatsappNumber, setWhatsappNumber] = useState<string>('');
 
@@ -356,7 +363,7 @@ export const HomepageConfig: React.FC = () => {
   // Hero Config State
   const [heroTitle, setHeroTitle] = useState<string>("Tudo o que seu terreiro precisa em um só lugar");
   const [heroSubtitle, setHeroSubtitle] = useState<string>("Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.");
-  const [heroBackground, setHeroBackground] = useState<string>("https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=2070");
+  const [heroBackground, setHeroBackground] = useState<string>("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2070");
   const [heroDashboard, setHeroDashboard] = useState<string>("/images/hero-dashboard.png");
 
   const [showEditor, setShowEditor] = useState(false);
@@ -411,12 +418,21 @@ export const HomepageConfig: React.FC = () => {
 
         if (config.landing_page_logo) setLogoUrl(config.landing_page_logo);
         if (config.landing_page_whatsapp) setWhatsappNumber(config.landing_page_whatsapp);
+        if (config.landing_page_whatsapp_message) setWhatsappMessage(config.landing_page_whatsapp_message);
+        if (config.landing_page_whatsapp_message_test) setWhatsappMessageTest(config.landing_page_whatsapp_message_test);
+        if (config.landing_page_whatsapp_message_iniciante) setWhatsappMessageIniciante(config.landing_page_whatsapp_message_iniciante);
+        if (config.landing_page_whatsapp_message_expandido) setWhatsappMessageExpandido(config.landing_page_whatsapp_message_expandido);
+        if (config.landing_page_whatsapp_message_pro) setWhatsappMessagePro(config.landing_page_whatsapp_message_pro);
+        if (config.landing_page_whatsapp_message_floating) setWhatsappMessageFloating(config.landing_page_whatsapp_message_floating);
         if (config.landing_page_cnpj) setCnpj(config.landing_page_cnpj);
         
         if (config.landing_page_hero) {
           if (config.landing_page_hero.title) setHeroTitle(config.landing_page_hero.title);
           if (config.landing_page_hero.subtitle) setHeroSubtitle(config.landing_page_hero.subtitle);
-          if (config.landing_page_hero.backgroundImage) setHeroBackground(config.landing_page_hero.backgroundImage);
+          // Only update background if it's a valid string (not empty) to avoid overwriting default with empty value
+          if (config.landing_page_hero.backgroundImage && config.landing_page_hero.backgroundImage.length > 5) {
+            setHeroBackground(config.landing_page_hero.backgroundImage);
+          }
           if (config.landing_page_hero.dashboardImage) setHeroDashboard(config.landing_page_hero.dashboardImage);
         }
       } catch (error) {
@@ -438,6 +454,12 @@ export const HomepageConfig: React.FC = () => {
           landing_page_modules: modules,
           landing_page_logo: logoUrl,
           landing_page_whatsapp: whatsappNumber,
+          landing_page_whatsapp_message: whatsappMessage,
+          landing_page_whatsapp_message_test: whatsappMessageTest,
+          landing_page_whatsapp_message_iniciante: whatsappMessageIniciante,
+          landing_page_whatsapp_message_expandido: whatsappMessageExpandido,
+          landing_page_whatsapp_message_pro: whatsappMessagePro,
+          landing_page_whatsapp_message_floating: whatsappMessageFloating,
           landing_page_cnpj: cnpj,
           landing_page_hero: {
             title: heroTitle,
@@ -454,7 +476,7 @@ export const HomepageConfig: React.FC = () => {
 
     const timeoutId = setTimeout(saveConfig, 1000);
     return () => clearTimeout(timeoutId);
-  }, [socialConfig, faqItems, testimonials, clientLogos, modules, logoUrl, whatsappNumber, cnpj, heroTitle, heroSubtitle, heroBackground, heroDashboard]);
+  }, [socialConfig, faqItems, testimonials, clientLogos, modules, logoUrl, whatsappNumber, whatsappMessage, whatsappMessageTest, whatsappMessageIniciante, whatsappMessageExpandido, whatsappMessagePro, whatsappMessageFloating, cnpj, heroTitle, heroSubtitle, heroBackground, heroDashboard]);
 
   const handlePhoneChange = (value: string) => {
     let numeric = value.replace(/\D/g, '');
@@ -1292,6 +1314,107 @@ export const HomepageConfig: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <MessageCircle className="text-green-400" />
+            Mensagens Automáticas
+          </h2>
+          <p className="text-slate-400">Configure as mensagens padrão enviadas via WhatsApp.</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 flex items-center justify-center bg-green-500/20 rounded-lg text-green-400">
+                <MessageCircle size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Solicitação de Upgrade</h3>
+                <p className="text-slate-400 text-sm">Mensagem pré-preenchida quando um usuário atinge o limite do plano.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-400">Mensagem do WhatsApp</label>
+              <textarea
+                value={whatsappMessage}
+                onChange={e => setWhatsappMessage(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none h-24 resize-none"
+                placeholder="Ex: Olá, gostaria de fazer um upgrade no meu plano do ConectAxé!"
+              />
+              <p className="text-xs text-slate-500">
+                Esta mensagem aparecerá automaticamente quando o usuário clicar no botão de contato na tela de bloqueio de limite.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 flex items-center justify-center bg-blue-500/20 rounded-lg text-blue-400">
+                <MessageCircle size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Landing Page - Botões de Ação</h3>
+                <p className="text-slate-400 text-sm">Configure as mensagens para os botões da página inicial.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-400">Botão de Teste Grátis (Hero)</label>
+                <textarea
+                  value={whatsappMessageTest}
+                  onChange={e => setWhatsappMessageTest(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  placeholder="Ex: Olá! Gostaria de testar o sistema ConectAxé gratuitamente."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-400">Plano Iniciante</label>
+                <textarea
+                  value={whatsappMessageIniciante}
+                  onChange={e => setWhatsappMessageIniciante(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  placeholder="Ex: Olá! Gostaria de contratar o plano Iniciante para meu terreiro."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-400">Plano Expandido</label>
+                <textarea
+                  value={whatsappMessageExpandido}
+                  onChange={e => setWhatsappMessageExpandido(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  placeholder="Ex: Olá! Tenho interesse no plano Expandido."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-400">Plano Terreiro Pro</label>
+                <textarea
+                  value={whatsappMessagePro}
+                  onChange={e => setWhatsappMessagePro(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  placeholder="Ex: Olá! Quero saber mais sobre o plano Terreiro Pro."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-400">Ícone Flutuante (WhatsApp)</label>
+                <textarea
+                  value={whatsappMessageFloating}
+                  onChange={e => setWhatsappMessageFloating(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  placeholder="Ex: Olá! Gostaria de saber mais sobre o ConectAxé."
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

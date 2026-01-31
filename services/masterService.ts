@@ -325,5 +325,72 @@ export const MasterService = {
       console.error("Error saving master credentials:", error);
       throw error;
     }
+  },
+
+  // --- Ecosystem Backup ---
+  getEcosystemSnapshot: async (): Promise<any> => {
+    try {
+      const [
+        plans,
+        clients,
+        broadcasts,
+        roadmap,
+        coupons,
+        auditLogs,
+        masterCreds,
+        autoBlockConfig,
+        maintenanceConfig,
+        supportTemplates
+      ] = await Promise.all([
+        MasterService.getAllPlans(),
+        MasterService.getAllClients(),
+        MasterService.getAllBroadcasts(),
+        MasterService.getAllRoadmap(),
+        MasterService.getAllCoupons(),
+        MasterService.getAllAuditLogs(),
+        MasterService.getMasterCredentials(),
+        MasterService.getAutoBlockConfig(),
+        MasterService.getGlobalMaintenance(),
+        MasterService.getSupportTemplates()
+      ]);
+
+      // Fetch Client Configs
+      const clientConfigs: Record<string, any> = {};
+      await Promise.all(clients.map(async (client) => {
+        try {
+           const configRef = doc(db, CLIENTS_COLLECTION, client.id, CLIENT_CONFIG_SUBCOLLECTION, 'system_settings');
+           const snap = await getDoc(configRef);
+           if (snap.exists()) {
+             clientConfigs[client.id] = snap.data();
+           }
+        } catch (e) {
+          console.warn(`Could not fetch config for client ${client.id}`, e);
+        }
+      }));
+
+      return {
+        timestamp: new Date().toISOString(),
+        version: '1.0',
+        type: 'ecosystem_full_config',
+        master: {
+          credentials: masterCreds,
+          autoBlock: autoBlockConfig,
+          maintenance: maintenanceConfig,
+          supportTemplates
+        },
+        data: {
+          plans,
+          clients, // The list
+          clientConfigs, // The actual settings per client
+          broadcasts,
+          roadmap,
+          coupons,
+          auditLogs
+        }
+      };
+    } catch (error) {
+      console.error("Error generating ecosystem snapshot:", error);
+      throw error;
+    }
   }
 };

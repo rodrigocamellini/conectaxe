@@ -64,6 +64,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [saasWhatsapp, setSaasWhatsapp] = useState('');
+  const [saasWhatsappMessage, setSaasWhatsappMessage] = useState('Olá, gostaria de fazer um upgrade no meu plano do ConectAxé!');
 
   useEffect(() => {
     const fetchLandingConfig = async () => {
@@ -71,6 +72,9 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
         const lpConfig = await LandingPageService.getConfig();
         if (lpConfig.landing_page_whatsapp) {
           setSaasWhatsapp(lpConfig.landing_page_whatsapp);
+        }
+        if (lpConfig.landing_page_whatsapp_message) {
+          setSaasWhatsappMessage(lpConfig.landing_page_whatsapp_message);
         }
       } catch (error) {
         console.error('Error fetching SaaS Whatsapp:', error);
@@ -453,7 +457,8 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
                 <button 
                   onClick={() => {
                     const phone = saasWhatsapp.replace(/\D/g, '') || '5511999999999';
-                    window.open(`https://wa.me/${phone}?text=Olá, gostaria de fazer um upgrade no meu plano do ConectAxé!`, '_blank');
+                    const message = encodeURIComponent(saasWhatsappMessage);
+                    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
                   }}
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-200"
                 >

@@ -1,7 +1,38 @@
 import React from 'react';
-import { Check, Minus, X, HelpCircle, Sprout, Zap, Crown } from 'lucide-react';
+import { Check, Minus, X, HelpCircle, Sprout, Zap, Crown, ChevronRight } from 'lucide-react';
 
-const PlanComparison: React.FC = () => {
+interface PlanComparisonProps {
+  whatsappNumber?: string;
+  messageIniciante?: string;
+  messageExpandido?: string;
+  messagePro?: string;
+}
+
+const PlanComparison: React.FC<PlanComparisonProps> = ({
+  whatsappNumber,
+  messageIniciante,
+  messageExpandido,
+  messagePro
+}) => {
+  const handlePlanClick = (plan: string) => {
+    const phone = whatsappNumber?.replace(/\D/g, '') || '5511999999999';
+    let message = '';
+    
+    switch(plan) {
+      case 'iniciante':
+        message = messageIniciante || 'Olá! Gostaria de contratar o plano Iniciante para meu terreiro.';
+        break;
+      case 'expandido':
+        message = messageExpandido || 'Olá! Tenho interesse no plano Expandido.';
+        break;
+      case 'pro':
+        message = messagePro || 'Olá! Quero saber mais sobre o plano Terreiro Pro.';
+        break;
+    }
+    
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const features = [
     {
       category: "Essencial",
@@ -37,15 +68,22 @@ const PlanComparison: React.FC = () => {
         { name: "Plano Trimestral", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
         { name: "Plano Semestral", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
         { name: "Plano Anual", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
-        { name: "Plano Vitalício", iniciante: "R$9.999,00", expandido: "R$9.999,00", pro: "R$9.999,00" },
+        { name: "Plano Vitalício", iniciante: "Consulte", expandido: "Consulte", pro: "Consulte" },
       ]
     }
   ];
 
   return (
-    <div className="mt-0 overflow-x-auto">
-      <div className="min-w-[800px] bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-        {/* Header */}
+    <div className="mt-0 w-full overflow-hidden">
+      {/* Mobile Scroll Indicator */}
+      <div className="md:hidden flex items-center justify-center gap-2 text-slate-400 text-xs font-medium mb-4 animate-pulse">
+        <span>Arraste para ver os planos</span>
+        <ChevronRight size={14} />
+      </div>
+
+      <div className="overflow-x-auto pb-6 -mx-6 px-6 md:mx-0 md:px-0 md:pb-0 scrollbar-hide">
+        <div className="min-w-[800px] bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+          {/* Header */}
         <div className="grid grid-cols-4 bg-slate-900 text-white p-6">
           <div className="flex items-end pb-2">
             <span className="font-bold text-lg text-slate-400 uppercase tracking-widest">Comparativo</span>
@@ -133,18 +171,28 @@ const PlanComparison: React.FC = () => {
         {/* Footer Buttons */}
         <div className="grid grid-cols-4 p-8 bg-slate-50 border-t border-slate-200 gap-4">
           <div></div>
-          <button className="py-3 rounded-xl bg-slate-600 text-white font-bold shadow-lg shadow-slate-300 hover:bg-slate-700 transition-all text-sm transform hover:-translate-y-1">
+          <button 
+            onClick={() => handlePlanClick('iniciante')}
+            className="py-3 rounded-xl bg-slate-600 text-white font-bold shadow-lg shadow-slate-300 hover:bg-slate-700 transition-all text-sm transform hover:-translate-y-1"
+          >
             Escolher Iniciante
           </button>
-          <button className="py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm transform hover:-translate-y-1">
+          <button 
+            onClick={() => handlePlanClick('expandido')}
+            className="py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm transform hover:-translate-y-1"
+          >
             Escolher Expandido
           </button>
-          <button className="py-3 rounded-xl bg-amber-600 text-white font-bold shadow-lg shadow-amber-200 hover:bg-amber-700 transition-all text-sm transform hover:-translate-y-1">
-            Falar com Consultor
+          <button 
+            onClick={() => handlePlanClick('pro')}
+            className="py-3 rounded-xl bg-amber-600 text-white font-bold shadow-lg shadow-amber-200 hover:bg-amber-700 transition-all text-sm transform hover:-translate-y-1"
+          >
+            Escolher Terreiro Pro
           </button>
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

@@ -1,24 +1,53 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { SpiritualEntity, SystemConfig } from '../types';
-import { DEFAULT_ENTITY_IMAGES } from '../constants';
+import { DEFAULT_ENTITY_IMAGES, INITIAL_ENTITIES } from '../constants';
 import { Image as ImageIcon, Upload, Camera, Trash2, Search, Info, Sparkles, Layers } from 'lucide-react';
 
 interface EntityImageManagementProps {
   entities: SpiritualEntity[];
   config: SystemConfig;
   onUpdateEntity: (id: string, data: Partial<SpiritualEntity>) => void;
+  onAddEntity: (entity: Partial<SpiritualEntity>) => void;
 }
+
+const slugify = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
 
 const ENTITY_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z'/%3E%3Cpath d='M12 6a3 3 0 1 0 3 3 3 3 0 0 0-3-3z'/%3E%3Cpath d='M6 19a6 6 0 0 1 12 0'/%3E%3C/svg%3E";
 
 export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({ 
   entities, 
   config, 
-  onUpdateEntity 
+  onUpdateEntity,
+  onAddEntity
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Ensure default entities exist
+  useEffect(() => {
+    const missingEntities = INITIAL_ENTITIES.filter(
+      initial => !entities.some(e => e.name === initial.name && e.type === initial.type)
+    );
+
+    if (missingEntities.length > 0) {
+      console.log('Populating missing entities in Image Management:', missingEntities.length);
+      missingEntities.forEach(entity => {
+        onAddEntity(entity);
+      });
+    }
+  }, [entities, onAddEntity]);
 
   const sections: { type: SpiritualEntity['type'], label: string, icon: any }[] = [
     { type: 'pai_cabeca', label: 'Pais de Cabeça', icon: Layers },
@@ -30,6 +59,12 @@ export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({
   const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (max 800KB to be safe with Firestore 1MB limit)
+      if (file.size > 800 * 1024) {
+        alert('A imagem é muito grande. Por favor, escolha uma imagem menor que 800KB.');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         onUpdateEntity(id, { imageUrl: reader.result as string });
@@ -46,7 +81,7 @@ export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 pb-20">
-      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 sticky top-0 z-20">
+      <div className="bg-white p-6 border-b border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 sticky top-0 z-40 mb-8">
         <div className="flex items-center gap-4 flex-1 max-w-md w-full">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

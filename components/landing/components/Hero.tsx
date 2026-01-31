@@ -6,14 +6,23 @@ interface HeroProps {
   subtitle?: string;
   backgroundImage?: string;
   dashboardImage?: string;
+  whatsappNumber?: string;
+  testMessage?: string;
 }
 
 const Hero: React.FC<HeroProps> = ({ 
   title = "Gestão com Axé,\nOrganização com Fé.", 
   subtitle = "Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.",
-  backgroundImage = "https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?auto=format&fit=crop&q=80&w=2070",
-  dashboardImage = "/images/hero-dashboard.png"
+  backgroundImage = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2070",
+  dashboardImage = "/images/hero-dashboard.png",
+  whatsappNumber,
+  testMessage = "Olá! Gostaria de testar o sistema ConectAxé gratuitamente."
 }) => {
+  const handleTestClick = () => {
+    const phone = whatsappNumber?.replace(/\D/g, '') || '5511999999999';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(testMessage)}`, '_blank');
+  };
+
   return (
     <div className="relative min-h-screen flex items-center pt-20" id="inicio">
       {/* Background with overlay */}
@@ -36,7 +45,10 @@ const Hero: React.FC<HeroProps> = ({
           </h1>
           <p className="text-xl text-slate-100/80 max-w-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: subtitle }} />
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <button className="bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all shadow-xl hover:-translate-y-1">
+            <button 
+              onClick={handleTestClick}
+              className="bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all shadow-xl hover:-translate-y-1"
+            >
               Teste Grátis por 7 Dias
             </button>
             <button className="border-2 border-white/30 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm">

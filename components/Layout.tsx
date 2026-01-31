@@ -345,15 +345,26 @@ export const Layout: React.FC<LayoutProps> = ({
 
   useEffect(() => {
     const loadMasterSettings = async () => {
-       const auth = await MasterService.getMasterAuth();
-       if (auth) {
-         setMasterSettings(prev => ({ ...prev, ...auth }));
+       try {
+         // Tenta buscar credenciais (suporta getMasterCredentials ou getMasterAuth legado)
+         const service = MasterService as any;
+         const method = service.getMasterCredentials || service.getMasterAuth;
+         
+         if (method) {
+             const auth = await method();
+             if (auth) {
+                setMasterSettings(prev => ({ ...prev, ...auth }));
+             }
+         }
+       } catch (error) {
+         console.error('Error loading master settings:', error);
        }
     };
-    if (isMasterMode) {
+    // Sempre carrega configurações master se usuário estiver logado, para verificar permissão do botão
+    if (user) {
       loadMasterSettings();
     }
-  }, [isMasterMode]);
+  }, [isMasterMode, user]);
 
   const userRoleConfig = (config.userRoles || []).find(r => r.id === user?.role);
 
@@ -411,9 +422,10 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
         
         <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-          {(isRodrigo || isMasterMode) && !isAtDeveloperPortal && !isSimulation && (
+          {/* Botão de Retorno ao Painel Master - Visível para Master ou Rodrigo */}
+          {((isRodrigo || isMasterMode) || (masterSettings?.email && user?.email === masterSettings.email)) && !isAtDeveloperPortal && !isSimulation && (
             <button onClick={() => setActiveTab('developer-portal')} className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl transition-all bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95">
-              <ShieldCheck size={18} className="shrink-0" /><span>Painel Master</span>
+              <ShieldCheck size={18} className="shrink-0" /><span>Voltar para Master</span>
             </button>
           )}
 

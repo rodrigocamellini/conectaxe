@@ -287,7 +287,12 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       const updated = entities.map(e => e.id === id ? { ...e, ...data } : e);
       setEntities(updated);
       const entity = updated.find(e => e.id === id);
-      if (currentClient?.id && entity) await EntityService.saveEntity(currentClient.id, entity).catch(console.error);
+      if (currentClient?.id && entity) {
+        await EntityService.saveEntity(currentClient.id, entity).catch(err => {
+          console.error("Erro ao salvar entidade:", err);
+          alert("Erro ao salvar a imagem. Tente novamente ou use uma imagem menor.");
+        });
+      }
   };
   const handleDeleteEntity = async (id: string) => {
     setEntities(entities.filter(e => e.id !== id));
@@ -829,7 +834,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         <Route path="/layout" element={<SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} onUpdateConfig={setSystemConfig} />} />
         <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={handleAddEntity} onDeleteEntity={handleDeleteEntity} />} />
-        <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={handleUpdateEntity} />} />
+        <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={handleUpdateEntity} onAddEntity={handleAddEntity} />} />
         <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         
         <Route path="/backup" element={<BackupSystem user={auth.user!} config={systemConfig} currentData={fullSystemData} onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} allowAutoBackup={hasModule('mod_backup_auto')} onUpdateConfig={setSystemConfig} />} />

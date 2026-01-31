@@ -13,6 +13,12 @@ export interface LandingPageConfig {
   landing_page_modules?: any[];
   landing_page_logo?: string;
   landing_page_whatsapp?: string;
+  landing_page_whatsapp_message?: string;
+  landing_page_whatsapp_message_test?: string;
+  landing_page_whatsapp_message_iniciante?: string;
+  landing_page_whatsapp_message_expandido?: string;
+  landing_page_whatsapp_message_pro?: string;
+  landing_page_whatsapp_message_floating?: string;
   landing_page_cnpj?: string;
   landing_page_hero?: {
     title?: string;

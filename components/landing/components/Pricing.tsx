@@ -41,7 +41,19 @@ const plans = [
   }
 ];
 
-const Pricing: React.FC = () => {
+interface PricingProps {
+  whatsappNumber?: string;
+  messageIniciante?: string;
+  messageExpandido?: string;
+  messagePro?: string;
+}
+
+const Pricing: React.FC<PricingProps> = ({ 
+  whatsappNumber, 
+  messageIniciante, 
+  messageExpandido, 
+  messagePro 
+}) => {
   return (
     <section id="preços" className="py-24 bg-slate-50">
       <div className="container mx-auto px-6">
@@ -50,40 +62,12 @@ const Pricing: React.FC = () => {
           <p className="text-xl text-slate-600">Escolha o plano que melhor se adapta ao tamanho da sua corrente.</p>
         </div>
 
-        {/* Old Cards Hidden
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, idx) => (
-            <div key={idx} className={`relative p-8 rounded-3xl transition-all duration-300 ${plan.recommended ? 'bg-indigo-900 text-white shadow-2xl scale-105 z-10' : 'bg-white text-slate-900 border border-slate-200 hover:border-indigo-200 shadow-xl'}`}>
-              {plan.recommended && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest">
-                  Mais Popular
-                </div>
-              )}
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className={`text-sm mb-6 ${plan.recommended ? 'text-indigo-200' : 'text-slate-500'}`}>{plan.description}</p>
-              <div className="mb-8">
-                <span className="text-5xl font-bold">R$ {plan.price}</span>
-                <span className={`text-lg font-medium ${plan.recommended ? 'text-indigo-300' : 'text-slate-400'}`}>/mês</span>
-              </div>
-              <ul className="space-y-4 mb-10">
-                {plan.features.map((feature, fIdx) => (
-                  <li key={fIdx} className="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-5 h-5 ${plan.recommended ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                    <span className="text-sm font-medium">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <button className={`w-full py-4 rounded-xl font-bold transition-all ${plan.recommended ? 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-lg' : 'bg-slate-100 hover:bg-slate-200 text-indigo-900'}`}>
-                Assinar Agora
-              </button>
-            </div>
-          ))}
-        </div>
-        */}
-        
-        <PlanComparison />
+        <PlanComparison 
+          whatsappNumber={whatsappNumber}
+          messageIniciante={messageIniciante}
+          messageExpandido={messageExpandido}
+          messagePro={messagePro}
+        />
 
         <p className="text-center mt-6 text-slate-500 text-sm">
           Sem taxas de adesão. Cancele quando quiser.

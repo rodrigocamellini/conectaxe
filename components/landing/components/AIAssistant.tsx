@@ -3,20 +3,21 @@ import React, { useState, useEffect } from 'react';
 
 interface AIAssistantProps {
   whatsappNumber?: string;
+  message?: string;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ whatsappNumber }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ whatsappNumber, message = 'Olá! Gostaria de saber mais sobre o ConectAxé.' }) => {
   const [link, setLink] = useState<string>('');
 
   useEffect(() => {
     const digits = (whatsappNumber || '').replace(/\D/g, '');
-    const text = encodeURIComponent('Olá! Gostaria de saber mais sobre o ConectAxé.');
+    const text = encodeURIComponent(message);
     if (digits) {
       setLink(`https://wa.me/${digits}?text=${text}`);
     } else {
       setLink('');
     }
-  }, [whatsappNumber]);
+  }, [whatsappNumber, message]);
 
   if (!link) return null;
 

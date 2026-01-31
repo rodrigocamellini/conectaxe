@@ -135,6 +135,13 @@ const LandingPage: React.FC = () => {
   const [heroConfig, setHeroConfig] = useState<{ title?: string; subtitle?: string; backgroundImage?: string; dashboardImage?: string }>({});
   const [whatsappNumber, setWhatsappNumber] = useState<string>('');
   const [cnpj, setCnpj] = useState<string>('');
+  
+  // WhatsApp Messages Config
+  const [whatsappMessageTest, setWhatsappMessageTest] = useState<string>('');
+  const [whatsappMessageIniciante, setWhatsappMessageIniciante] = useState<string>('');
+  const [whatsappMessageExpandido, setWhatsappMessageExpandido] = useState<string>('');
+  const [whatsappMessagePro, setWhatsappMessagePro] = useState<string>('');
+  const [whatsappMessageFloating, setWhatsappMessageFloating] = useState<string>('');
 
   useEffect(() => {
     // Subscribe to config updates from Firebase
@@ -142,6 +149,13 @@ const LandingPage: React.FC = () => {
       if (config.landing_page_whatsapp) setWhatsappNumber(config.landing_page_whatsapp);
       if (config.landing_page_cnpj) setCnpj(config.landing_page_cnpj);
       
+      // WhatsApp Messages
+      if (config.landing_page_whatsapp_message_test) setWhatsappMessageTest(config.landing_page_whatsapp_message_test);
+      if (config.landing_page_whatsapp_message_iniciante) setWhatsappMessageIniciante(config.landing_page_whatsapp_message_iniciante);
+      if (config.landing_page_whatsapp_message_expandido) setWhatsappMessageExpandido(config.landing_page_whatsapp_message_expandido);
+      if (config.landing_page_whatsapp_message_pro) setWhatsappMessagePro(config.landing_page_whatsapp_message_pro);
+      if (config.landing_page_whatsapp_message_floating) setWhatsappMessageFloating(config.landing_page_whatsapp_message_floating);
+
       if (config.landing_page_hero) {
         setHeroConfig(config.landing_page_hero);
       }
@@ -193,7 +207,11 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <Hero {...heroConfig} />
+      <Hero 
+        {...heroConfig} 
+        whatsappNumber={whatsappNumber}
+        testMessage={whatsappMessageTest}
+      />
       
       {/* Stats Section */}
       <section className="bg-white py-12 border-y border-slate-100">
@@ -299,10 +317,15 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      <Pricing />
+      <Pricing 
+        whatsappNumber={whatsappNumber}
+        messageIniciante={whatsappMessageIniciante}
+        messageExpandido={whatsappMessageExpandido}
+        messagePro={whatsappMessagePro}
+      />
 
       {/* FAQ */}
-      <section id="faq" className="py-24 bg-white">
+      <section id="faq" className="py-12 bg-white">
         <div className="container mx-auto px-6 max-w-4xl">
           <h2 className="text-4xl font-bold text-center mb-8">Perguntas Frequentes</h2>
           <div className="space-y-2">
@@ -364,7 +387,10 @@ const LandingPage: React.FC = () => {
         </button>
       )}
 
-      <AIAssistant whatsappNumber={whatsappNumber} />
+      <AIAssistant 
+        whatsappNumber={whatsappNumber} 
+        message={whatsappMessageFloating}
+      />
     </div>
   );
 };

@@ -590,9 +590,31 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     }
   };
 
-  const handleCreateSnapshot = (type: 'manual' | 'automatico' = 'manual') => {
-    alert("Funcionalidade de Snapshot Local desativada no modo Nuvem/Firebase. Utilize os backups automáticos do banco de dados.");
-    return;
+  const handleCreateSnapshot = async (type: 'manual' | 'automatico' = 'manual') => {
+    if (type === 'automatico') {
+      alert("Backups automáticos são gerenciados pelo servidor.");
+      return;
+    }
+
+    try {
+      // Feedback visual simples via cursor ou toast (aqui usando alert no final)
+      const snapshotData = await MasterService.getEcosystemSnapshot();
+      
+      const newSnapshot: StoredSnapshot = {
+        id: format(new Date(), 'yyyyMMddHHmmss'),
+        date: new Date().toISOString(),
+        type: 'manual',
+        size: (JSON.stringify(snapshotData).length / 1024).toFixed(2) + ' KB',
+        data: snapshotData
+      };
+
+      await MasterService.saveSnapshot(newSnapshot);
+      setSnapshots(prev => [newSnapshot, ...prev]);
+      alert('Snapshot do Ecossistema (incluindo configs dos painéis) gerado e salvo com sucesso!');
+    } catch (error) {
+      console.error("Error creating snapshot:", error);
+      alert('Erro ao gerar snapshot do ecossistema.');
+    }
   };
 
   const formatRoadmapDate = (value?: string) => {
@@ -827,10 +849,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       
 
-      {/* ABA: CONFIGURAÇÕES DA HOMEPAGE */}
-      {activeTab === 'homepage-config' && (
-        <HomepageConfig />
-      )}
+      {/* ABA: CONFIGURAÇÕES DA HOMEPAGE - REMOVIDO DUPLICATA DAQUI */}
 
       {/* ABA: TERREIROS ATIVOS */}
       {activeTab === 'clients' && (
