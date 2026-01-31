@@ -117,6 +117,46 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
     setShowDeleteModal(id);
   };
 
+  const isTestPlan = config.license?.planName?.toLowerCase().includes('teste') || 
+                     config.license?.planName?.toLowerCase().includes('trial') ||
+                     config.license?.planName?.toLowerCase().includes('período de teste');
+
+  if (isTestPlan) {
+    return (
+      <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-8 bg-slate-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                <Lock size={32} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Segurança de Dados</h3>
+                <p className="text-white/70 text-sm font-medium">Backup e Restauração</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-16 flex flex-col items-center justify-center text-center space-y-6">
+            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+              <Lock size={48} />
+            </div>
+            <div className="max-w-md space-y-2">
+              <h3 className="text-xl font-black text-slate-800 uppercase">Funcionalidade Bloqueada</h3>
+              <p className="text-slate-500 font-medium">
+                A geração e exportação de backups não está disponível no Plano de Teste.
+                Para garantir a segurança dos seus dados e habilitar esta função, atualize para um plano completo.
+              </p>
+            </div>
+            <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all">
+              Ver Planos Disponíveis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleDeleteSnapshot = async () => {
     if (!showDeleteModal) return;
     

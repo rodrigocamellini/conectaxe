@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Member, SpiritualEntity, ModulePermission, SystemConfig, PaymentStatus, User } from '../types';
 import { Plus, Search, Filter, Camera, Pencil, Trash2, Upload, CheckSquare, Square, Printer, X, UserCircle, FileText, Mail, MapPin, Phone, Contact, Calendar, Sparkles, Award, Minus, Info, GraduationCap, Briefcase, Baby, BookOpen, MessageSquare, DollarSign, Wallet, Check, Clock, Globe, ShieldCheck } from 'lucide-react';
 import { format, differenceInYears, isValid } from 'date-fns';
@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale/pt-BR';
 import { DEFAULT_LOGO_URL, BRAZILIAN_STATES, SCHOOLING_LEVELS } from '../constants';
 import { generateUUID } from '../utils/ids';
 import { formatCPF, formatRG, formatPhone, formatCEP, validateCPF, validateEmail } from '../utils/validators';
+import { LandingPageService } from '../services/landingPageService';
 
 interface MemberManagementProps {
   members: Member[];
@@ -61,6 +62,36 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [saasWhatsapp, setSaasWhatsapp] = useState('');
+
+  useEffect(() => {
+    const fetchLandingConfig = async () => {
+      try {
+        const lpConfig = await LandingPageService.getConfig();
+        if (lpConfig.landing_page_whatsapp) {
+          setSaasWhatsapp(lpConfig.landing_page_whatsapp);
+        }
+      } catch (error) {
+        console.error('Error fetching SaaS Whatsapp:', error);
+      }
+    };
+    fetchLandingConfig();
+  }, []);
+
+  // Calculate Plan Limit
+  const planLimit = useMemo(() => {
+    const planName = config.license?.planName?.toLowerCase() || '';
+    if (planName.includes('teste') || planName.includes('trial') || planName.includes('período de teste')) return 30;
+    if (planName.includes('iniciante')) return 30;
+    if (planName.includes('expandido')) return 100;
+    return 999999; // Unlimited
+  }, [config.license?.planName]);
+
+  const isMemberOverLimit = (memberId: string) => {
+    const index = members.findIndex(m => m.id === memberId);
+    return index >= planLimit;
+  };
 
   const [formData, setFormData] = useState<Partial<Member>>({
     name: '', email: '', rg: '', cpf: '', phone: '', emergencyPhone: '',
@@ -143,6 +174,14 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   };
 
   const handleOpenCreate = () => {
+    // Check Plan Limits
+    const currentCount = members.length;
+    
+    if (currentCount >= planLimit) {
+      setShowLimitModal(true);
+      return;
+    }
+
     setEditingId(null);
     setFormErrors({});
     setFormData({
@@ -344,42 +383,101 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredMembers.map((m) => (
-                <tr key={m.id} onClick={() => setSelectedMemberForView(m)} className="hover:bg-indigo-50/40 transition-all group cursor-pointer">
-                  <td className="px-6 py-4 font-mono font-bold text-indigo-600">#{m.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
-                      {m.photo ? <img src={m.photo} className="w-full h-full object-cover" /> : <Camera size={16} className="text-gray-400" />}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900">{m.name}</div>
-                    <div className="text-[10px] text-gray-400 font-mono">CPF: {m.cpf || '-'}</div>
-                  </td>
-                  {mode === 'member' && (
-                    <td className="px-6 py-4 font-medium text-indigo-600">
-                      {entities.find(e => e.id === m.cargoId)?.name || 'N/D'}
+              {filteredMembers.map((m) => {
+                const isOver = isMemberOverLimit(m.id);
+                return (
+                  <tr key={m.id} onClick={() => !isOver && setSelectedMemberForView(m)} className={`transition-all group ${isOver ? 'bg-gray-50 opacity-60 cursor-not-allowed' : 'hover:bg-indigo-50/40 cursor-pointer'}`}>
+                    <td className="px-6 py-4 font-mono font-bold text-indigo-600">#{m.id.substring(0, 8).toUpperCase()}</td>
+                    <td className="px-6 py-4">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                        {m.photo ? <img src={m.photo} className="w-full h-full object-cover" /> : <Camera size={16} className="text-gray-400" />}
+                      </div>
                     </td>
-                  )}
-                  <td className="px-6 py-4">
-                    <div className="text-xs text-gray-700">{m.phone || '-'}</div>
-                    <div className="text-[10px] text-gray-400">{m.email}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${m.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex gap-2 justify-center">
-                       <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(m); }} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"><Pencil size={18} /></button>
-                       <button onClick={(e) => { e.stopPropagation(); handleDelete(m); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-gray-900">{m.name}</div>
+                      <div className="text-[10px] text-gray-400 font-mono">CPF: {m.cpf || '-'}</div>
+                    </td>
+                    {mode === 'member' && (
+                      <td className="px-6 py-4 font-medium text-indigo-600">
+                        {entities.find(e => e.id === m.cargoId)?.name || 'N/D'}
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
+                      <div className="text-xs text-gray-700">{m.phone || '-'}</div>
+                      <div className="text-[10px] text-gray-400">{m.email}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${m.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.status}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex gap-2 justify-center">
+                         <button onClick={(e) => { 
+                           e.stopPropagation(); 
+                           if (isOver) {
+                             setShowLimitModal(true);
+                             return;
+                           }
+                           handleOpenEdit(m); 
+                         }} className={`p-2 rounded-lg ${isOver ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:bg-indigo-50'}`} title={isOver ? "Indisponível no plano atual" : "Editar"}>
+                           <Pencil size={18} />
+                         </button>
+                         <button onClick={(e) => { e.stopPropagation(); handleDelete(m); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Excluir (Permitido para regularização)">
+                           <Trash2 size={18} />
+                         </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
+            <div className="p-6 flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-2">
+                <Sparkles className="w-8 h-8 text-indigo-600" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900">Limite do Plano Atingido</h3>
+              
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Você atingiu o limite de <strong>{planLimit} cadastros</strong> do seu plano atual ({config.license?.planName || 'Teste'}). 
+                Para continuar expandindo a gestão do seu terreiro, faça um upgrade para o plano Expandido ou Ilimitado.
+              </p>
+
+              <div className="w-full space-y-3 mt-4">
+                <button 
+                  onClick={() => {
+                    const phone = saasWhatsapp.replace(/\D/g, '') || '5511999999999';
+                    window.open(`https://wa.me/${phone}?text=Olá, gostaria de fazer um upgrade no meu plano do ConectAxé!`, '_blank');
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-200"
+                >
+                  <MessageSquare size={20} />
+                  Falar com Suporte (WhatsApp)
+                </button>
+                
+                <button 
+                  onClick={() => setShowLimitModal(false)}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium transition-all"
+                >
+                  Entendi, vou gerenciar os atuais
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-indigo-50 p-4 text-center border-t border-indigo-100">
+              <p className="text-xs text-indigo-800 font-medium">
+                Dica: Você pode excluir registros antigos para liberar espaço.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
