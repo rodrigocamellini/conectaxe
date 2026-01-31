@@ -23,7 +23,7 @@ import {
   FinancialTransaction, MasterGlobalConfig, GlobalMaintenanceConfig, CertificateConfig
 } from '../types';
 import { 
-  INITIAL_USERS, DEFAULT_SYSTEM_CONFIG, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, 
+  DEFAULT_SYSTEM_CONFIG, INITIAL_ENTITIES, DEFAULT_ENTITY_IMAGES, 
   INITIAL_SAAS_PLANS 
 } from '../constants';
 import { generateUUID } from '../utils/ids';

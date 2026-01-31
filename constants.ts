@@ -23,12 +23,22 @@ export const SCHOOLING_LEVELS = [
 ];
 
 export const SAAS_PLANS = [
-  "Plano Mensal",
-  "Plano Trimestral",
-  "Plano Semestral",
-  "Plano Anual",
-  "Plano Vitalício",
-  "Período de Teste"
+  "Plano de Teste",
+  "Iniciante Mensal",
+  "Iniciante Trimestral",
+  "Iniciante Semestral",
+  "Iniciante Anual",
+  "Iniciante Vitalício",
+  "Expandido Mensal",
+  "Expandido Trimestral",
+  "Expandido Semestral",
+  "Expandido Anual",
+  "Expandido Vitalício",
+  "Terreiro Pro Mensal",
+  "Terreiro Pro Trimestral",
+  "Terreiro Pro Semestral",
+  "Terreiro Pro Anual",
+  "Terreiro Pro Vitalício"
 ];
 
 export const MENU_ICONS_CATALOG = [
@@ -224,11 +234,6 @@ export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings', color: '#d494ff' }
 ];
 
-export const INITIAL_USERS: User[] = [
-  { id: '1', email: 'admin@gmail.com', name: 'Administrador Principal', role: 'admin', password: 'admin' },
-  { id: '2', email: 'staff@gmail.com', name: 'Colaborador Staff', role: 'staff', password: 'staff' }
-];
-
 export const INITIAL_ENTITIES: SpiritualEntity[] = [
   { id: 'p1', name: 'Oxalá', type: 'pai_cabeca', imageUrl: '/images/entities/oxala.png' },
   { id: 'p2', name: 'Ogum', type: 'pai_cabeca', imageUrl: '/images/entities/ogum.png' },
@@ -338,7 +343,7 @@ export const DEFAULT_IDCARD_CONFIG: IDCardConfig = {
 };
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
-  systemName: 'Sistema Terreiro 1.0',
+  systemName: 'Sistema Terreiro',
   primaryColor: '#4f46e5',
   sidebarColor: '#020617', // Default from Master Panel
   sidebarTextColor: '#ffffffff', // Default from Master Panel
@@ -449,11 +454,34 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
 };
 
 export const INITIAL_SAAS_PLANS: SaaSPlan[] = [
-  { id: 'p_teste', name: 'Plano de Teste', price: 0, durationDays: 10 },
-  { id: 'p_mensal', name: 'Plano Mensal', price: 49.90, durationDays: 30 },
-  { id: 'p_trimestral', name: 'Plano Trimestral', price: 135.00, durationDays: 90 },
-  { id: 'p_semestral', name: 'Plano Semestral', price: 250.00, durationDays: 180 },
-  { id: 'p_anual', name: 'Plano Anual', price: 450.00, durationDays: 365 },
-  { id: 'p_vitalicio', name: 'Plano Vitalício', price: 1500.00, durationDays: null },
-  { id: 'p_cortesia', name: 'Plano Cortesia', price: 0, durationDays: 30 },
+  // Plano de Teste
+  { 
+    id: 'p_teste', 
+    name: 'Plano de Teste', 
+    price: 0, 
+    durationDays: 10,
+    enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'],
+    limits: { maxMembers: 30, maxConsulentes: 30 }
+  },
+
+  // Planos Iniciante
+  { id: 'p_iniciante_mensal', name: 'Iniciante Mensal', price: 49.00, durationDays: 30, enabledModules: ['agenda', 'midia', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'midia_pontos', 'midia_rezas', 'midia_ervas'], limits: { maxMembers: 30, maxConsulentes: 30 } },
+  { id: 'p_iniciante_trimestral', name: 'Iniciante Trimestral', price: 132.00, durationDays: 90, enabledModules: ['agenda', 'midia', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'midia_pontos', 'midia_rezas', 'midia_ervas'], limits: { maxMembers: 30, maxConsulentes: 30 } },
+  { id: 'p_iniciante_semestral', name: 'Iniciante Semestral', price: 245.00, durationDays: 180, enabledModules: ['agenda', 'midia', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'midia_pontos', 'midia_rezas', 'midia_ervas'], limits: { maxMembers: 30, maxConsulentes: 30 } },
+  { id: 'p_iniciante_anual', name: 'Iniciante Anual', price: 441.00, durationDays: 365, enabledModules: ['agenda', 'midia', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'midia_pontos', 'midia_rezas', 'midia_ervas'], limits: { maxMembers: 50, maxConsulentes: 30 } },
+  { id: 'p_iniciante_vitalicio', name: 'Iniciante Vitalício', price: 1470.00, durationDays: null, enabledModules: ['agenda', 'midia', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'midia_pontos', 'midia_rezas', 'midia_ervas'], limits: { maxMembers: 30, maxConsulentes: 30 } },
+
+  // Planos Expandido
+  { id: 'p_expandido_mensal', name: 'Expandido Mensal', price: 89.00, durationDays: 30, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'], limits: { maxMembers: 100, maxConsulentes: 100 } },
+  { id: 'p_expandido_trimestral', name: 'Expandido Trimestral', price: 240.00, durationDays: 90, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'], limits: { maxMembers: 100, maxConsulentes: 100 } },
+  { id: 'p_expandido_semestral', name: 'Expandido Semestral', price: 445.00, durationDays: 180, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'], limits: { maxMembers: 100, maxConsulentes: 100 } },
+  { id: 'p_expandido_anual', name: 'Expandido Anual', price: 801.00, durationDays: 365, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'], limits: { maxMembers: 100, maxConsulentes: 100 } },
+  { id: 'p_expandido_vitalicio', name: 'Expandido Vitalício', price: 2670.00, durationDays: null, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'], limits: { maxMembers: 100, maxConsulentes: 100 } },
+
+  // Planos Terreiro Pro
+  { id: 'p_pro_mensal', name: 'Terreiro Pro Mensal', price: 149.00, durationDays: 30, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao', 'mod_backup_auto'], limits: { maxMembers: null, maxConsulentes: null } },
+  { id: 'p_pro_trimestral', name: 'Terreiro Pro Trimestral', price: 402.00, durationDays: 90, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao', 'mod_backup_auto'], limits: { maxMembers: null, maxConsulentes: null } },
+  { id: 'p_pro_semestral', name: 'Terreiro Pro Semestral', price: 745.00, durationDays: 180, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao', 'mod_backup_auto'], limits: { maxMembers: null, maxConsulentes: null } },
+  { id: 'p_pro_anual', name: 'Terreiro Pro Anual', price: 1341.00, durationDays: 365, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao', 'mod_backup_auto'], limits: { maxMembers: null, maxConsulentes: null } },
+  { id: 'p_pro_vitalicio', name: 'Terreiro Pro Vitalício', price: 4470.00, durationDays: null, enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao', 'mod_backup_auto'], limits: { maxMembers: null, maxConsulentes: null } },
 ];

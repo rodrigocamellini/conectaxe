@@ -73,7 +73,7 @@ import { MasterPlanResources } from './MasterPlanResources';
 import { AuditTab } from './AuditTab';
 import { MenuManager } from './MenuManager';
 import { MasterService } from '../services/masterService';
-import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, INITIAL_USERS, DEFAULT_SYSTEM_CONFIG } from '../constants';
+import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface DeveloperPortalProps {
   onLogout: () => void;
@@ -540,7 +540,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
           photo: ''
         };
         
-        const initialUsers = [...INITIAL_USERS, newAdminUser];
+        const initialUsers = [newAdminUser];
         
         let newClientConfig: SystemConfig | undefined;
         if (systemConfig) {
