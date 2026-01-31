@@ -1,13 +1,8 @@
+
 import React from 'react';
+import { LandingPageService, LandingPageConfig } from '../../../services/landingPageService';
 
-interface FeatureItem {
-  title: string;
-  description: string;
-  icon: string;
-  visible?: boolean;
-}
-
-const DEFAULT_FEATURES = [
+const features = [
   {
     title: "Dashboard Principal",
     description: "Visão geral completa com indicadores, estatísticas e atalhos rápidos para a gestão do dia a dia.",
@@ -18,44 +13,166 @@ const DEFAULT_FEATURES = [
     description: "Calendário organizado de giras, festas e obrigações, mantendo todos informados sobre as datas importantes.",
     icon: "📅"
   },
-  // ... (keeping a few defaults just in case)
+  {
+    title: "Gestão de Eventos e Portaria",
+    description: "Controle avançado de eventos com lista de convidados, check-in na portaria e venda de ingressos.",
+    icon: "🎫"
+  },
+  {
+    title: "Plataforma EAD",
+    description: "Ambiente exclusivo para o aprendizado dos filhos de santo, com acesso a materiais de estudo e doutrina.",
+    icon: "🎓"
+  },
+  {
+    title: "Gestão de Cursos",
+    description: "Ferramentas para mentores e pais/mães de santo criarem aulas e acompanharem o desenvolvimento teórico.",
+    icon: "📚"
+  },
+  {
+    title: "Pontos Cantados",
+    description: "Acervo digital de áudios e letras dos pontos, organizados por linha e orixá para estudo da curimba.",
+    icon: "🥁"
+  },
+  {
+    title: "Rezas e Orações",
+    description: "Biblioteca de preces e fundamentos litúrgicos, preservando a tradição oral da sua casa.",
+    icon: "📿"
+  },
+  {
+    title: "Ervas e Banhos",
+    description: "Catálogo de conhecimentos sobre folhas, banhos e defumações, com suas propriedades e usos rituais.",
+    icon: "🌿"
+  },
+  {
+    title: "Cadastro de Membros",
+    description: "Banco de dados seguro com informações completas dos filhos da casa, contatos e dados pessoais.",
+    icon: "👥"
+  },
+  {
+    title: "Caminhada Mediúnica",
+    description: "Acompanhe a evolução espiritual e desenvolvimento de cada médium.",
+    icon: "👣"
+  },
+  {
+    title: "Obrigações do Médium",
+    description: "Histórico completo de rituais, consagrações e obrigações.",
+    icon: "✨"
+  },
+  {
+    title: "Cadastro de Médiuns",
+    description: "Fichas espirituais detalhadas com orixás, guias, datas de batismo e histórico de obrigações.",
+    icon: "🕊️"
+  },
+  {
+    title: "Cadastro de Consulentes",
+    description: "Registro organizado dos visitantes e consulentes frequentes para melhor acolhimento e acompanhamento.",
+    icon: "🙏"
+  },
+  {
+    title: "Carteirinhas Digitais",
+    description: "Geração automática de carteirinhas de identificação para membros e médiuns da casa.",
+    icon: "💳"
+  },
+  {
+    title: "Controle de Presença",
+    description: "Sistema prático de chamada para acompanhar a assiduidade dos médiuns nas giras e trabalhos.",
+    icon: "✅"
+  },
+  {
+    title: "Gestão de Cantina",
+    description: "Organize o cardápio, controle vendas em tempo real e acompanhe o caixa da cantina do terreiro.",
+    icon: "☕"
+  },
+  {
+    title: "Visualização de Estoque",
+    description: "Painel rápido para conferir a disponibilidade de itens, velas, ervas e materiais rituais.",
+    icon: "👁️"
+  },
+  {
+    title: "Catálogo de Estoque",
+    description: "Organização completa dos itens do almoxarifado, permitindo uma gestão eficiente dos recursos.",
+    icon: "🗃️"
+  },
+  {
+    title: "Entradas e Saídas",
+    description: "Controle rigoroso do fluxo de materiais, registrando o que entra e o que é consumido na casa.",
+    icon: "🔄"
+  },
+  {
+    title: "Gestão de Mensalidades",
+    description: "Controle financeiro das mensalidades, facilitando a organização das contribuições dos associados.",
+    icon: "💲"
+  },
+  {
+    title: "Gestão de Doações",
+    description: "Registro transparente de todas as doações recebidas, auxiliando na prestação de contas da casa.",
+    icon: "🎁"
+  },
+  {
+    title: "Relatórios Financeiros",
+    description: "Demonstrativos claros das receitas e despesas para uma gestão financeira transparente e segura.",
+    icon: "📈"
+  },
+  {
+    title: "Personalização do Sistema",
+    description: "Configure a aparência, cores e logo do sistema para refletir a identidade visual do seu terreiro.",
+    icon: "🎨"
+  },
+  {
+    title: "Usuários e Permissões",
+    description: "Gerencie quem tem acesso ao sistema e defina permissões específicas para cada função na casa.",
+    icon: "🛡️"
+  },
+  {
+    title: "Backup de Dados",
+    description: "Segurança total com backups automáticos e possibilidade de exportação dos seus dados.",
+    icon: "💾"
+  },
+  {
+    title: "Sistema de Afiliados",
+    description: "Ganhe comissões indicando o ConectAxé para outros terreiros e ajude a fortalecer nossa comunidade.",
+    icon: "🤝"
+  }
 ];
 
-interface FeaturesProps {
-  modules?: any[];
-}
+const Features: React.FC = () => {
+  const [activeFeatures, setActiveFeatures] = React.useState(features);
 
-const Features: React.FC<FeaturesProps> = ({ modules }) => {
-  const displayFeatures = modules && modules.length > 0 ? modules.filter(m => m.visible) : DEFAULT_FEATURES;
+  React.useEffect(() => {
+    // Subscribe to config changes from Firebase
+    const unsubscribe = LandingPageService.subscribeToConfig((config: LandingPageConfig) => {
+      if (config.landing_page_modules) {
+        const visibleModules = config.landing_page_modules
+          .filter((m: any) => m.visible)
+          .map((m: any) => ({
+            title: m.title,
+            description: m.description,
+            icon: m.icon
+          }));
+        
+        if (visibleModules.length > 0) {
+          setActiveFeatures(visibleModules);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
-    <section id="funcionalidades" className="py-24 bg-slate-50 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-50/50 via-white to-white"></div>
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-20">
-          <div className="inline-block px-4 py-1.5 bg-orange-100 text-orange-600 rounded-full font-bold text-sm mb-6 animate-pulse">
-            FUNCIONALIDADES COMPLETAS
-          </div>
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-            Tudo o que seu terreiro precisa em um só lugar
-          </h2>
-          <p className="text-xl text-slate-600 leading-relaxed">
-            Ferramentas desenvolvidas especificamente para as necessidades das casas de axé, respeitando as tradições e facilitando a organização.
-          </p>
+    <section id="funcionalidades" className="py-24 bg-white">
+      <div className="container mx-auto px-6">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Tudo o que seu terreiro precisa para evoluir</h2>
+          <p className="text-xl text-slate-600">Desenvolvemos ferramentas específicas para o dia a dia espiritual e administrativo das casas de Axé.</p>
         </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {displayFeatures.map((feature: any, index: number) => (
-            <div key={index} className="group bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-300 group-hover:bg-orange-100">
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-orange-600 transition-colors">
-                {feature.title}
-              </h3>
-              <p className="text-slate-600 leading-relaxed">
-                {feature.description}
-              </p>
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {activeFeatures.map((feature, idx) => (
+            <div key={idx} className="p-5 rounded-3xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-300 group">
+              <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform inline-block">{feature.icon}</div>
+              <h3 className="text-lg font-bold text-indigo-950 mb-2">{feature.title}</h3>
+              <p className="text-sm text-slate-600 leading-snug">{feature.description}</p>
             </div>
           ))}
         </div>

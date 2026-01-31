@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,12 +19,29 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const targetId = href.replace('#', '');
+    const element = document.getElementById(targetId);
+    if (element) {
+      // Calculate offset for fixed navbar
+      const navbarHeight = 80; // approximate height
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navbarHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-white/90 backdrop-blur-md py-4 shadow-sm'}`}>
       <div className="container mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center">
           <img
-            src={logoUrl || "/images/logo_conectaxe.png"}
+            src={logoUrl || '/images/logo_conectaxe.png'}
             alt="ConectAxé"
             className="h-10 w-auto"
           />
@@ -39,7 +57,8 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
             <a 
               key={item.label} 
               href={item.href} 
-              className="font-medium text-slate-700 transition-colors hover:text-orange-500"
+              onClick={(e) => handleNavClick(e, item.href)}
+              className="font-medium text-slate-700 transition-colors hover:text-orange-500 cursor-pointer"
             >
               {item.label}
             </a>
@@ -51,10 +70,7 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
             <User size={18} />
             Área do Cliente
           </button>
-          <button 
-            className="bg-orange-500 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-orange-600 transition-all transform hover:scale-105 shadow-lg shadow-orange-200"
-            onClick={() => navigate('/login')}
-          >
+          <button className="bg-orange-500 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-orange-600 transition-all transform hover:scale-105 shadow-lg shadow-orange-200">
             Começar Agora
           </button>
         </div>

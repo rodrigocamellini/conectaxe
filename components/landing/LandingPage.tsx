@@ -1,28 +1,169 @@
 import React, { useState, useEffect } from 'react';
+import { LandingPageService, LandingPageConfig } from '../../services/landingPageService';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import Pricing from './components/Pricing';
 import AIAssistant from './components/AIAssistant';
 import { Facebook, Instagram, Youtube } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { LandingPageService, LandingPageConfig } from '../../services/landingPageService';
+import { FAQItem, SocialConfig } from './types';
+import './Marquee.css';
+
+interface ClientLogo {
+  id: string;
+  name: string;
+  location: string;
+  logoUrl: string;
+  visible: boolean;
+}
+
+const DEFAULT_CLIENT_LOGOS: ClientLogo[] = [
+  { id: '1', name: 'Ilê Axé Ogum', location: 'Irecê - BA', logoUrl: 'https://ui-avatars.com/api/?name=IA&background=f97316&color=fff&rounded=true&bold=true', visible: true },
+  { id: '2', name: 'Aldeia Beira Mar', location: 'São Paulo - SP', logoUrl: 'https://ui-avatars.com/api/?name=AB&background=4f46e5&color=fff&rounded=true&bold=true', visible: true },
+  { id: '3', name: 'Terreiro Pena Branca', location: 'Petrolina - PE', logoUrl: 'https://ui-avatars.com/api/?name=TP&background=0ea5e9&color=fff&rounded=true&bold=true', visible: true },
+  { id: '4', name: 'Casa Mãe Guacyara', location: 'São Paulo - SP', logoUrl: 'https://ui-avatars.com/api/?name=CM&background=10b981&color=fff&rounded=true&bold=true', visible: true },
+  { id: '5', name: 'Ylê Africano', location: 'Porto Alegre - RS', logoUrl: 'https://ui-avatars.com/api/?name=YA&background=8b5cf6&color=fff&rounded=true&bold=true', visible: true },
+  { id: '6', name: 'Aldeia Pena Branca', location: 'Monte Santo - MG', logoUrl: 'https://ui-avatars.com/api/?name=AP&background=f43f5e&color=fff&rounded=true&bold=true', visible: true },
+  { id: '7', name: 'Roda Itaussu', location: 'São Paulo - SP', logoUrl: 'https://ui-avatars.com/api/?name=RI&background=eab308&color=fff&rounded=true&bold=true', visible: true },
+  { id: '8', name: 'Caboclo Akuan', location: 'Campinas - SP', logoUrl: 'https://ui-avatars.com/api/?name=CA&background=ec4899&color=fff&rounded=true&bold=true', visible: true },
+];
+
+interface TestimonialItem {
+  id: string;
+  text: string;
+  authorName: string;
+  authorRole: string; 
+  terreiro: string;
+  photoUrl: string;
+  visible: boolean;
+}
+
+const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
+  {
+    id: '1',
+    text: "Antigamente eu perdia horas com planilhas e cadernetas para saber quem tinha pago a mensalidade. Hoje o ConectAxé faz tudo sozinho. Sobra mais tempo para eu me dedicar ao que realmente importa: a espiritualidade.",
+    authorName: "Mãe Luciana de Iansã",
+    terreiro: "Templo Luz do Oriente",
+    photoUrl: "https://picsum.photos/seed/p1/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '2',
+    text: "A transparência financeira aumentou muito. Os filhos recebem o recibo direto no celular. O sistema é intuitivo e as escalas de giras acabaram com as confusões de datas no grupo de WhatsApp.",
+    authorName: "Pai Ricardo de Ogum",
+    terreiro: "Centro Cultural Axé Vivo",
+    photoUrl: "https://picsum.photos/seed/p2/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '3',
+    text: "A organização dos ebós e das obrigações anuais ficou impecável. O sistema me avisa com antecedência e não deixamos passar nada. É uma bênção.",
+    authorName: "Mãe Jandira de Nanã",
+    terreiro: "Ilê Axé Nanã Buruquê",
+    photoUrl: "https://picsum.photos/seed/p3/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '4',
+    text: "Gerenciar a cantina e a loja do terreiro era uma dor de cabeça. Com o módulo de estoque, sei exatamente o que precisa repor para a próxima gira.",
+    authorName: "Pai Carlos de Xangô",
+    terreiro: "Tenda Justiça Divina",
+    photoUrl: "https://picsum.photos/seed/p4/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '5',
+    text: "O cadastro de consulentes nos ajudou a acolher melhor quem chega. Sabemos quem vem sempre e podemos dar um atendimento mais fraterno e organizado.",
+    authorName: "Mãe Solange de Iemanjá",
+    terreiro: "Casa das Águas",
+    photoUrl: "https://picsum.photos/seed/p5/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '6',
+    text: "A plataforma EAD tem sido fundamental para os estudos dos iniciantes. Eles acessam o material de casa e chegam no terreiro com as dúvidas certas.",
+    authorName: "Pai Pedro de Oxóssi",
+    terreiro: "Cabana do Caboclo",
+    photoUrl: "https://picsum.photos/seed/p6/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '7',
+    text: "Desde que implantamos o sistema, a inadimplência caiu drásticamente. Os lembretes automáticos ajudam muito na gestão financeira da casa.",
+    authorName: "Mãe Teresa de Oxum",
+    terreiro: "Solar de Mamãe Oxum",
+    photoUrl: "https://picsum.photos/seed/p7/60/60",
+    visible: true,
+    authorRole: ""
+  },
+  {
+    id: '8',
+    text: "O suporte é incrível e o sistema está sempre evoluindo. Sinto que finalmente temos uma ferramenta feita por quem entende a nossa realidade.",
+    authorName: "Pai Jorge de Aruanda",
+    terreiro: "Terreiro Vovó Cambinda",
+    photoUrl: "https://picsum.photos/seed/p8/60/60",
+    visible: true,
+    authorRole: ""
+  }
+];
+
+const DEFAULT_FAQ_ITEMS: FAQItem[] = [
+  { id: '1', visible: true, question: "O sistema é seguro? Meus dados rituais ficam expostos?", answer: "Absolutamente não. Utilizamos criptografia de nível bancário e seus dados são privados. Apenas administradores autorizados por você têm acesso." },
+  { id: '2', visible: true, question: "Preciso instalar algo no meu computador?", answer: "Não. O ConectAxé é 100% na nuvem. Você acessa pelo navegador do celular, tablet ou computador, de onde estiver." },
+  { id: '3', visible: true, question: "Como funciona o período de teste?", answer: "Você tem 7 dias para usar todas as funcionalidades sem pagar nada. Se gostar, escolhe um plano e continua. Se não, sua conta é desativada sem custos." },
+  { id: '4', visible: true, question: "Vocês dão suporte para configurar o sistema?", answer: "Sim! Temos uma equipe pronta para te ajudar a importar seus dados e treinar sua equipe administrativa." }
+];
+
+const DEFAULT_SOCIAL_CONFIG: SocialConfig = {
+  facebook: 'https://facebook.com',
+  instagram: 'https://instagram.com',
+  youtube: 'https://youtube.com'
+};
 
 const LandingPage: React.FC = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [config, setConfig] = useState<LandingPageConfig>({});
-  const navigate = useNavigate();
+  const [faqItems, setFaqItems] = useState<FAQItem[]>(DEFAULT_FAQ_ITEMS);
+  const [socialConfig, setSocialConfig] = useState<SocialConfig>(DEFAULT_SOCIAL_CONFIG);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(DEFAULT_TESTIMONIALS);
+  const [clientLogos, setClientLogos] = useState<ClientLogo[]>(DEFAULT_CLIENT_LOGOS);
+  const [heroConfig, setHeroConfig] = useState<{ title?: string; subtitle?: string; backgroundImage?: string; dashboardImage?: string }>({});
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('');
+  const [cnpj, setCnpj] = useState<string>('');
 
   useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const data = await LandingPageService.getConfig();
-        setConfig(data);
-      } catch (error) {
-        console.error("Failed to load landing page config:", error);
+    // Subscribe to config updates from Firebase
+    const unsubscribe = LandingPageService.subscribeToConfig((config: LandingPageConfig) => {
+      if (config.landing_page_whatsapp) setWhatsappNumber(config.landing_page_whatsapp);
+      if (config.landing_page_cnpj) setCnpj(config.landing_page_cnpj);
+      
+      if (config.landing_page_hero) {
+        setHeroConfig(config.landing_page_hero);
       }
-    };
-    loadConfig();
+      
+      if (config.landing_page_faq && Array.isArray(config.landing_page_faq)) {
+        setFaqItems(config.landing_page_faq);
+      }
+      
+      if (config.landing_page_social) {
+        setSocialConfig(config.landing_page_social);
+      }
+      
+      if (config.landing_page_testimonials && Array.isArray(config.landing_page_testimonials)) {
+        setTestimonials(config.landing_page_testimonials);
+      }
+      
+      if (config.landing_page_client_logos && Array.isArray(config.landing_page_client_logos)) {
+        setClientLogos(config.landing_page_client_logos);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -51,13 +192,8 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <Navbar logoUrl={config.landing_page_logo} />
-      <Hero 
-        title={config.landing_page_hero?.title}
-        subtitle={config.landing_page_hero?.subtitle}
-        backgroundImage={config.landing_page_hero?.backgroundImage}
-        dashboardImage={config.landing_page_hero?.dashboardImage}
-      />
+      <Navbar />
+      <Hero {...heroConfig} />
       
       {/* Stats Section */}
       <section className="bg-white py-12 border-y border-slate-100">
@@ -77,69 +213,91 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      <Features modules={config.landing_page_modules} />
-
-      {/* Testimonials */}
-      {config.landing_page_testimonials && config.landing_page_testimonials.length > 0 && (
-        <section id="depoimentos" className="py-24 bg-slate-950 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-900/30 skew-x-12 transform translate-x-1/2"></div>
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
-              <div className="max-w-2xl">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">Vozes de quem já encontrou o equilíbrio</h2>
-                <p className="text-xl text-slate-200/70">A tecnologia a serviço do sagrado, transformando a vida de zeladores em todo o Brasil.</p>
-              </div>
-              <button className="bg-white text-slate-950 px-8 py-4 rounded-xl font-bold hover:bg-slate-50 transition-all">Ver todos os relatos</button>
+      {/* Clients Marquee Section */}
+      <section className="py-12 bg-slate-200 border-b border-slate-100 overflow-hidden">
+        <div className="container mx-auto px-6 text-center mb-10">
+          <h2 className="text-xl md:text-2xl font-medium text-slate-600">Mais de 50 terreiros confiam em nossa plataforma</h2>
+        </div>
+        
+        <div className="relative w-full overflow-hidden pt-16 pb-4">
+          <div className="flex w-max animate-scroll pause-on-hover">
+            {/* Original Set */}
+            <div className="flex gap-16 px-8 items-start">
+              {clientLogos.filter(l => l.visible).map((logo) => (
+                <div key={logo.id} className="relative flex flex-col items-center gap-3 w-40 flex-shrink-0 group cursor-default">
+                  <div className="w-32 h-32 rounded-full bg-white shadow-md flex items-center justify-center p-1 border border-slate-100 group-hover:scale-110 transition-transform duration-300 group-hover:border-orange-200 relative z-20">
+                     <img src={logo.logoUrl} alt={logo.name} className="w-full h-full rounded-full object-cover" />
+                     {/* Tooltip */}
+                     <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-lg shadow-xl border border-slate-100 pointer-events-none whitespace-nowrap z-30">
+                       <p className="text-slate-800 font-bold text-sm leading-tight">{logo.name}</p>
+                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-slate-100"></div>
+                     </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-slate-700 text-xs font-medium mt-2">{logo.location}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div className="grid md:grid-cols-2 gap-12">
-              {config.landing_page_testimonials.filter(t => t.visible).slice(0, 2).map((testimonial: any) => (
-                <div key={testimonial.id} className="bg-white/5 backdrop-blur-md p-10 rounded-3xl border border-white/10 hover:bg-white/10 transition-all">
-                  <div className="text-orange-400 text-4xl mb-6">"</div>
-                  <p className="text-xl italic leading-relaxed mb-8 text-slate-100">
-                    "{testimonial.text}"
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <img src={testimonial.photoUrl || "https://ui-avatars.com/api/?name=" + testimonial.authorName} className="w-14 h-14 rounded-full border-2 border-orange-400" alt={testimonial.authorName} />
-                    <div>
-                      <div className="font-bold text-lg text-white">{testimonial.authorName}</div>
-                      <div className="text-orange-400 text-sm font-medium uppercase">{testimonial.terreiro}</div>
-                    </div>
+            
+            {/* Duplicate Set for Loop */}
+            <div className="flex gap-16 px-8 items-start">
+              {clientLogos.filter(l => l.visible).map((logo) => (
+                <div key={`dup-${logo.id}`} className="relative flex flex-col items-center gap-3 w-40 flex-shrink-0 group cursor-default">
+                   <div className="w-32 h-32 rounded-full bg-white shadow-md flex items-center justify-center p-1 border border-slate-100 group-hover:scale-110 transition-transform duration-300 group-hover:border-orange-200 relative z-20">
+                     <img src={logo.logoUrl} alt={logo.name} className="w-full h-full rounded-full object-cover" />
+                     {/* Tooltip */}
+                     <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-3 py-1.5 rounded-lg shadow-xl border border-slate-100 pointer-events-none whitespace-nowrap z-30">
+                       <p className="text-slate-800 font-bold text-sm leading-tight">{logo.name}</p>
+                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-slate-100"></div>
+                     </div>
+                  </div>
+                   <div className="text-center">
+                    <p className="text-slate-700 text-xs font-medium mt-2">{logo.location}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </section>
-      )}
+          
+          {/* Gradient Overlay for Fade Effect */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-slate-200 to-transparent z-10"></div>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-slate-200 to-transparent z-10"></div>
+        </div>
+      </section>
 
-      {/* Fallback to hardcoded if no config (optional, or just hide) */}
-      {(!config.landing_page_testimonials || config.landing_page_testimonials.length === 0) && (
-        <section id="depoimentos" className="py-24 bg-slate-950 text-white overflow-hidden relative">
-           {/* Hardcoded content preserved as fallback or remove if you want fully dynamic */}
-           <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-900/30 skew-x-12 transform translate-x-1/2"></div>
-           <div className="container mx-auto px-6 relative z-10">
-             {/* ...existing hardcoded content... */}
-             {/* To save space, I will just render the hardcoded block ONLY if no dynamic data */}
-             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
-               <div className="max-w-2xl">
-                 <h2 className="text-4xl md:text-5xl font-bold mb-6">Vozes de quem já encontrou o equilíbrio</h2>
-                 <p className="text-xl text-slate-200/70">A tecnologia a serviço do sagrado, transformando a vida de zeladores em todo o Brasil.</p>
-               </div>
-             </div>
-             <div className="grid md:grid-cols-2 gap-12">
-               <div className="bg-white/5 backdrop-blur-md p-10 rounded-3xl border border-white/10 hover:bg-white/10 transition-all">
-                  <div className="text-orange-400 text-4xl mb-6">"</div>
-                  <p className="text-xl italic leading-relaxed mb-8 text-slate-100">"Antigamente eu perdia horas com planilhas..."</p>
-                  <div className="flex items-center gap-4">
-                    <img src="https://picsum.photos/seed/p1/60/60" className="w-14 h-14 rounded-full border-2 border-orange-400" />
-                    <div><div className="font-bold text-lg text-white">Mãe Luciana de Iansã</div><div className="text-orange-400 text-sm font-medium uppercase">Templo Luz do Oriente</div></div>
+      <Features />
+
+      {/* Testimonials */}
+      <section id="depoimentos" className="py-24 bg-slate-950 text-white overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-slate-900/30 skew-x-12 transform translate-x-1/2"></div>
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col items-center text-center mb-16 gap-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 whitespace-nowrap">Vozes de quem já encontrou o equilíbrio</h2>
+              <p className="text-xl text-slate-200/70">A tecnologia a serviço do sagrado, transformando a vida de zeladores em todo o Brasil.</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {testimonials.filter(t => t.visible).map((testimonial) => (
+              <div key={testimonial.id} className="bg-white/5 backdrop-blur-md p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-all">
+                <div className="text-orange-400 text-4xl mb-6">"</div>
+                <p className="text-sm italic leading-relaxed mb-6 text-slate-100">
+                  "{testimonial.text}"
+                </p>
+                <div className="flex items-center gap-4">
+                  <img src={testimonial.photoUrl} className="w-12 h-12 rounded-full border-2 border-orange-400 object-cover" alt={testimonial.authorName} />
+                  <div>
+                    <div className="font-bold text-sm text-white">{testimonial.authorName}</div>
+                    <div className="text-orange-400 text-xs font-medium uppercase">{testimonial.terreiro}</div>
                   </div>
-               </div>
-             </div>
-           </div>
-        </section>
-      )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <Pricing />
 
@@ -148,15 +306,10 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6 max-w-4xl">
           <h2 className="text-4xl font-bold text-center mb-16">Perguntas Frequentes</h2>
           <div className="space-y-6">
-            {(config.landing_page_faq && config.landing_page_faq.length > 0 ? config.landing_page_faq.filter(f => f.visible) : [
-              { id: '1', question: "O sistema é seguro? Meus dados rituais ficam expostos?", answer: "Absolutamente não. Utilizamos criptografia de nível bancário e seus dados são privados. Apenas administradores autorizados por você têm acesso." },
-              { id: '2', question: "Preciso instalar algo no meu computador?", answer: "Não. O ConectAxé é 100% na nuvem. Você acessa pelo navegador do celular, tablet ou computador, de onde estiver." },
-              { id: '3', question: "Como funciona o período de teste?", answer: "Você tem 7 dias para usar todas as funcionalidades sem pagar nada. Se gostar, escolhe um plano e continua. Se não, sua conta é desativada sem custos." },
-              { id: '4', question: "Vocês dão suporte para configurar o sistema?", answer: "Sim! Temos uma equipe pronta para te ajudar a importar seus dados e treinar sua equipe administrativa." }
-            ]).map((item: any, i: number) => (
-              <details key={i} className="group border border-slate-100 rounded-2xl bg-slate-50/50 p-6">
+            {faqItems.filter(item => item.visible).map((item) => (
+              <details key={item.id} className="group border border-slate-100 rounded-2xl bg-slate-50/50 p-6">
                 <summary className="flex justify-between items-center font-bold text-lg cursor-pointer list-none text-slate-950">
-                  {item.question || item.q}
+                  {item.question}
                   <span className="text-orange-600 transition-transform group-open:rotate-180">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -164,7 +317,7 @@ const LandingPage: React.FC = () => {
                   </span>
                 </summary>
                 <p className="mt-4 text-slate-600 leading-relaxed">
-                  {item.answer || item.a}
+                  {item.answer}
                 </p>
               </details>
             ))}
@@ -177,88 +330,41 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6 text-center relative z-10">
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-8">Pronto para dar o próximo passo na sua gestão?</h2>
           <p className="text-2xl text-orange-100 mb-12 max-w-3xl mx-auto">Junte-se a centenas de terreiros que já profissionalizaram seu axé com a ConectAxé.</p>
-          <button 
-            onClick={() => navigate('/login')}
-            className="bg-white text-orange-600 px-10 py-5 rounded-2xl font-bold text-xl hover:bg-indigo-50 transition-all shadow-2xl hover:scale-105 active:scale-95"
-          >
+          <button className="bg-white text-orange-600 px-10 py-5 rounded-2xl font-bold text-xl hover:bg-indigo-50 transition-all shadow-2xl hover:scale-105 active:scale-95">
             Começar Meu Teste Grátis Agora
           </button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-16">
-        <div className="container mx-auto px-6 grid md:grid-cols-4 gap-12">
-          <div className="col-span-1 md:col-span-2 space-y-6">
-            <div className="flex items-center">
-              <img
-                src={config.landing_page_logo || "/images/logo_conectaxe_rodape.png"}
-                alt="ConectAxé"
-                className="h-10 w-auto"
-              />
-            </div>
-            <p className="text-slate-400 max-w-md leading-relaxed">
-              O software de gestão mais completo do Brasil dedicado exclusivamente ao universo das religiões de matriz africana. Organização, transparência e respeito à tradição.
-            </p>
-            <p className="font-bold text-white mb-2">Siga-nos em Nossas Redes Sociais</p>
-            <div className="flex gap-4">
-              {(config.landing_page_social?.facebook || !config.landing_page_social) && (
-                <a href={config.landing_page_social?.facebook || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors cursor-pointer">
-                  <Facebook size={20} />
-                </a>
-              )}
-              {(config.landing_page_social?.instagram || !config.landing_page_social) && (
-                <a href={config.landing_page_social?.instagram || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors cursor-pointer">
-                  <Instagram size={20} />
-                </a>
-              )}
-              {(config.landing_page_social?.youtube || !config.landing_page_social) && (
-                <a href={config.landing_page_social?.youtube || "#"} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors cursor-pointer">
-                  <Youtube size={20} />
-                </a>
-              )}
-            </div>
-          </div>
-          <div>
-            <h5 className="font-bold text-lg mb-6 text-orange-400">Plataforma</h5>
-            <ul className="space-y-4 text-slate-400">
-              <li><a href="#funcionalidades" className="hover:text-white transition-colors">Funcionalidades</a></li>
-              <li><a href="#preços" className="hover:text-white transition-colors">Preços</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog do Axé</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Segurança</a></li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-bold text-lg mb-6 text-orange-400">Suporte</h5>
-            <ul className="space-y-4 text-slate-400">
-              <li><a href="#faq" className="hover:text-white transition-colors">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacidade</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="container mx-auto px-6 mt-16 pt-8 border-t border-white/5 text-center text-slate-500 text-sm">
-          <p>© {new Date().getFullYear()} ConectAxé. Todos os direitos reservados. CNPJ: {config.landing_page_cnpj || "00.000.000/0001-00"}</p>
+      <footer className="bg-slate-900 py-12 border-t border-slate-800">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-slate-500 text-sm flex items-center justify-center gap-2 flex-wrap">
+            <span>&copy; 2026 ConectAxé. Todos os direitos reservados.</span>
+            {cnpj && (
+              <>
+                <span className="hidden sm:inline">•</span>
+                <span>CNPJ: {cnpj}</span>
+              </>
+            )}
+          </p>
         </div>
       </footer>
 
-      {/* Floating Buttons Container */}
-      <div className="fixed bottom-6 left-6 z-[110] flex flex-col gap-4">
-        {showBackToTop && (
-          <button 
-            onClick={scrollToTop}
-            className="bg-orange-500 text-white w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex flex-col items-center justify-center text-[10px] md:text-xs font-bold hover:bg-orange-600 hover:-translate-y-1 transition-all animate-bounce-slow"
-            aria-label="Voltar para o topo"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-            </svg>
-            TOP
-          </button>
-        )}
-      </div>
-      <AIAssistant />
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 left-6 bg-slate-800 text-white px-4 py-3 rounded-full shadow-lg hover:bg-slate-700 transition-all z-40 flex items-center gap-2 animate-bounce-slow"
+          aria-label="Voltar ao topo"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+          </svg>
+          <span className="font-bold text-sm">Topo</span>
+        </button>
+      )}
+
+      <AIAssistant whatsappNumber={whatsappNumber} />
     </div>
   );
 };

@@ -58,9 +58,16 @@ const ProtectedLayout: React.FC = () => {
   const { 
     systemConfig, setSystemConfig, 
     updateProfile,
-    currentClient
+    currentClient,
+    roadmap
   } = useData();
   const [isSimulation, setIsSimulation] = useState(false);
+
+  const latestVersion = React.useMemo(() => {
+    if (!roadmap || roadmap.length === 0) return '0.0.0';
+    const sorted = [...roadmap].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return sorted[0]?.version || '0.0.0';
+  }, [roadmap]);
   
   // Dummy props for Layout since it handles routing internally now
   const handleLogout = async () => {
@@ -77,6 +84,7 @@ const ProtectedLayout: React.FC = () => {
       onUpdateProfile={updateProfile}
       isMasterMode={auth.isMasterMode}
       enabledModules={currentClient?.enabledModules || systemConfig.enabledModules}
+      systemVersion={latestVersion}
       isSimulation={isSimulation}
     >
       <Outlet />
@@ -265,9 +273,14 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   };
 
   // Entity Handlers
-  const handleAddEntity = async (name: string, type: SpiritualEntity['type']) => {
-    const newEntity: SpiritualEntity = { id: generateUUID(), name, type };
-    setEntities([...entities, newEntity]);
+  const handleAddEntity = async (entity: Partial<SpiritualEntity>) => {
+    const newEntity: SpiritualEntity = { 
+      id: entity.id || generateUUID(), 
+      name: entity.name || '', 
+      type: entity.type || 'entidade',
+      imageUrl: entity.imageUrl
+    };
+    setEntities(prev => [...prev, newEntity]);
     if (currentClient?.id) await EntityService.saveEntity(currentClient.id, newEntity).catch(console.error);
   };
   const handleUpdateEntity = async (id: string, data: Partial<SpiritualEntity>) => { 

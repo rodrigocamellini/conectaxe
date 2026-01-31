@@ -1,6 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { SpiritualEntity, SystemConfig } from '../types';
+import { DEFAULT_ENTITY_IMAGES } from '../constants';
 import { Image as ImageIcon, Upload, Camera, Trash2, Search, Info, Sparkles, Layers } from 'lucide-react';
 
 interface EntityImageManagementProps {
@@ -84,14 +85,26 @@ export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredEntities.map(entity => (
+              {filteredEntities.map(entity => {
+                const slug = slugify(entity.name);
+                // First check if there is a hardcoded default image for this entity ID or fallback to slug
+                const defaultImage = DEFAULT_ENTITY_IMAGES[entity.id] || `/images/entities/${slug}.png`;
+                const hasCustomImage = !!entity.imageUrl;
+                const showDefault = !hasCustomImage && !imageErrors[entity.id];
+
+                return (
                 <div key={entity.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl hover:border-indigo-100 transition-all duration-300">
                   <div className="aspect-square relative overflow-hidden bg-gray-50">
-                    {entity.imageUrl ? (
+                    {(hasCustomImage || showDefault) ? (
                       <img 
-                        src={entity.imageUrl} 
+                        src={hasCustomImage ? entity.imageUrl : defaultImage} 
                         alt={entity.name} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                        onError={() => {
+                          if (!hasCustomImage) {
+                            setImageErrors(prev => ({ ...prev, [entity.id]: true }));
+                          }
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 p-8">
@@ -132,7 +145,7 @@ export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({
                     <h4 className="text-sm font-black text-gray-800 leading-tight uppercase tracking-tight">{entity.name}</h4>
                   </div>
                 </div>
-              ))}
+              )})}
 
               {filteredEntities.length === 0 && (
                 <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">

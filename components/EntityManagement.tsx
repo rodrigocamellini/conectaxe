@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { SpiritualEntity, ModulePermission, SystemConfig } from '../types';
 import { Plus, Sparkles, X, Home, Layers, Award, Sprout, Droplets } from 'lucide-react';
-import { DEFAULT_SYSTEM_CONFIG } from '../constants';
+import { DEFAULT_SYSTEM_CONFIG, INITIAL_ENTITIES } from '../constants';
 
 interface EntityManagementProps {
   entities: SpiritualEntity[];
   permissions: ModulePermission;
   config: SystemConfig;
   onUpdateConfig: (config: SystemConfig) => void;
-  onAddEntity: (name: string, type: SpiritualEntity['type']) => void;
+  onAddEntity: (entity: Partial<SpiritualEntity>) => void;
   onDeleteEntity: (id: string) => void;
 }
 
@@ -36,6 +36,22 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
   const [newErvaType, setNewErvaType] = useState('');
   const [newBanhoCategory, setNewBanhoCategory] = useState('');
   const [newBanhoType, setNewBanhoType] = useState('');
+
+  // Initial population of entities if empty or missing default ones
+  React.useEffect(() => {
+    if (permissions.add) {
+      INITIAL_ENTITIES.forEach(initialEntity => {
+        const exists = entities.some(e => 
+          (initialEntity.id && e.id === initialEntity.id) || 
+          e.name === initialEntity.name
+        );
+        
+        if (!exists) {
+          onAddEntity(initialEntity);
+        }
+      });
+    }
+  }, [entities, permissions.add, onAddEntity]);
 
   const baseConfig = config || DEFAULT_SYSTEM_CONFIG;
 
@@ -269,7 +285,7 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
                     onChange={e => setNames({ ...names, [section.type]: e.target.value })}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && names[section.type]) {
-                        onAddEntity(names[section.type], section.type);
+                        onAddEntity({ name: names[section.type], type: section.type });
                         setNames({ ...names, [section.type]: '' });
                       }
                     }}
@@ -277,7 +293,7 @@ export const EntityManagement: React.FC<EntityManagementProps> = ({
                   <button
                     onClick={() => {
                       if (names[section.type]) {
-                        onAddEntity(names[section.type], section.type);
+                        onAddEntity({ name: names[section.type], type: section.type });
                         setNames({ ...names, [section.type]: '' });
                       }
                     }}

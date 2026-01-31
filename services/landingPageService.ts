@@ -1,5 +1,6 @@
+
 import { db } from '../services/firebaseConfig';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'system_config';
 const DOC_ID = 'landing_page';
@@ -48,5 +49,18 @@ export const LandingPageService = {
       console.error("Erro ao salvar dados da Landing Page:", error);
       throw error;
     }
+  },
+
+  subscribeToConfig: (callback: (config: LandingPageConfig) => void): () => void => {
+    const docRef = doc(db, COLLECTION_NAME, DOC_ID);
+    return onSnapshot(docRef, (doc) => {
+      if (doc.exists()) {
+        callback(doc.data() as LandingPageConfig);
+      } else {
+        callback({});
+      }
+    }, (error) => {
+      console.error("Erro no listener da Landing Page:", error);
+    });
   }
 };
