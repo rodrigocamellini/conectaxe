@@ -1,5 +1,6 @@
 
 import React from 'react';
+import PlanComparison from './PlanComparison';
 
 const plans = [
   {
@@ -44,11 +45,12 @@ const Pricing: React.FC = () => {
   return (
     <section id="preços" className="py-24 bg-slate-50">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-8">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">Planos Transparentes</h2>
           <p className="text-xl text-slate-600">Escolha o plano que melhor se adapta ao tamanho da sua corrente.</p>
         </div>
 
+        {/* Old Cards Hidden
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, idx) => (
             <div key={idx} className={`relative p-8 rounded-3xl transition-all duration-300 ${plan.recommended ? 'bg-indigo-900 text-white shadow-2xl scale-105 z-10' : 'bg-white text-slate-900 border border-slate-200 hover:border-indigo-200 shadow-xl'}`}>
@@ -79,8 +81,11 @@ const Pricing: React.FC = () => {
             </div>
           ))}
         </div>
+        */}
         
-        <p className="text-center mt-12 text-slate-500 text-sm">
+        <PlanComparison />
+
+        <p className="text-center mt-6 text-slate-500 text-sm">
           Sem taxas de adesão. Cancele quando quiser.
         </p>
       </div>
