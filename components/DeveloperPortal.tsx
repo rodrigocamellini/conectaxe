@@ -74,6 +74,7 @@ import { AuditTab } from './AuditTab';
 import { MenuManager } from './MenuManager';
 import { MasterService } from '../services/masterService';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, DEFAULT_SYSTEM_CONFIG } from '../constants';
+import { validateCPF, formatCPF } from '../utils/validators';
 
 interface DeveloperPortalProps {
   onLogout: () => void;
@@ -986,6 +987,33 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      CPF do Administrador
+                    </label>
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                      <input
+                        className={`w-full pl-9 p-3 bg-slate-950 border rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 ${
+                          newClient.adminCpf && newClient.adminCpf.length > 0
+                            ? validateCPF(newClient.adminCpf)
+                              ? "border-emerald-500 focus:ring-emerald-500"
+                              : "border-red-500 focus:ring-red-500"
+                            : "border-slate-800 focus:ring-emerald-500"
+                        }`}
+                        placeholder="000.000.000-00"
+                        value={newClient.adminCpf || ''}
+                        onChange={e => setNewClient(prev => ({ ...prev, adminCpf: formatCPF(e.target.value) }))}
+                      />
+                    </div>
+                    {newClient.adminCpf && newClient.adminCpf.length > 0 && (
+                      <p className={`text-[9px] font-black uppercase mt-1 ml-1 ${
+                        validateCPF(newClient.adminCpf) ? "text-emerald-500" : "text-red-500"
+                      }`}>
+                        {validateCPF(newClient.adminCpf) ? "CPF Válido" : "CPF Inválido"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
                       Telefone / WhatsApp
                     </label>
                     <div className="relative">
@@ -995,6 +1023,20 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                         placeholder="(00) 00000-0000"
                         value={newClient.adminPhone || ''}
                         onChange={e => setNewClient(prev => ({ ...prev, adminPhone: formatPhone(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">
+                      Endereço do Responsável
+                    </label>
+                    <div className="relative">
+                      <MapIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                      <input
+                        className="w-full pl-9 p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Rua, Número, Bairro"
+                        value={newClient.adminAddress || ''}
+                        onChange={e => setNewClient(prev => ({ ...prev, adminAddress: e.target.value }))}
                       />
                     </div>
                   </div>

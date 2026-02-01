@@ -230,6 +230,17 @@ export interface SaaSClient {
   createdAt?: string;
   payments?: Record<string, string>;
   metadata?: Record<string, any>;
+  adminName?: string;
+  adminPassword?: string;
+  adminCpf?: string;
+  adminPhone?: string;
+  adminCep?: string;
+  adminAddress?: string;
+  adminBairro?: string;
+  adminCidade?: string;
+  adminEstado?: string;
+  monthlyValue?: number;
+  lastActivity?: string;
 }
 
 export interface PaymentStatus {
