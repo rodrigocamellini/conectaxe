@@ -364,6 +364,7 @@ export const HomepageConfig: React.FC = () => {
   const [heroTitle, setHeroTitle] = useState<string>("Tudo o que seu terreiro precisa em um só lugar");
   const [heroSubtitle, setHeroSubtitle] = useState<string>("Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.");
   const [heroBackground, setHeroBackground] = useState<string>("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2070");
+  const [heroBackgroundError, setHeroBackgroundError] = useState(false);
   const [heroDashboard, setHeroDashboard] = useState<string>("/images/hero-dashboard.png");
 
   const [showEditor, setShowEditor] = useState(false);
@@ -846,13 +847,24 @@ export const HomepageConfig: React.FC = () => {
             <input
               type="text"
               value={heroBackground}
-              onChange={e => setHeroBackground(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+              onChange={e => {
+                setHeroBackground(e.target.value);
+                setHeroBackgroundError(false);
+              }}
+              className={`w-full bg-slate-900 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none ${heroBackgroundError ? 'border-red-500 text-red-400' : 'border-slate-700'}`}
               placeholder="https://..."
             />
+            {heroBackgroundError && (
+              <p className="text-red-500 text-xs mt-1">Erro ao carregar imagem. O link pode estar quebrado ou inacessível.</p>
+            )}
             {heroBackground && (
               <div className="mt-2 h-32 w-full rounded-lg overflow-hidden border border-slate-700">
-                <img src={heroBackground} alt="Preview" className="w-full h-full object-cover" />
+                <img 
+                  src={heroBackground} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover" 
+                  onError={() => setHeroBackgroundError(true)}
+                />
               </div>
             )}
           </div>

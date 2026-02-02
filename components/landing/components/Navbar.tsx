@@ -9,6 +9,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    setIsMenuOpen(false);
     const targetId = href.replace('#', '');
     const element = document.getElementById(targetId);
     if (element) {
@@ -37,8 +39,8 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
   };
 
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-white/90 backdrop-blur-md py-4 shadow-sm'}`}>
-      <div className="container mx-auto px-6 flex justify-between items-center">
+    <nav className={`fixed w-full z-[100] transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-white/90 backdrop-blur-md py-4 shadow-sm'}`}>
+      <div className="container mx-auto px-6 flex justify-between items-center relative z-[101]">
         <div className="flex items-center">
           <img
             src={logoUrl || '/images/logo_conectaxe.png'}
@@ -75,12 +77,58 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
           </button>
         </div>
 
-        <button className="md:hidden text-slate-900">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
+        <button 
+          className="md:hidden text-slate-900 focus:outline-none p-2 -mr-2 cursor-pointer z-[102] relative"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Menu"
+        >
+          {isMenuOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          )}
         </button>
       </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl py-4 px-6 flex flex-col space-y-4 z-[99]">
+          {[
+            { label: 'Funcionalidades', href: '#funcionalidades' },
+            { label: 'Depoimentos', href: '#depoimentos' },
+            { label: 'Preços', href: '#preços' },
+            { label: 'FAQ', href: '#faq' }
+          ].map((item) => (
+            <a 
+              key={item.label} 
+              href={item.href} 
+              onClick={(e) => handleNavClick(e, item.href)}
+              className="font-medium text-slate-700 hover:text-orange-500 py-2 border-b border-gray-50"
+            >
+              {item.label}
+            </a>
+          ))}
+          <div className="flex flex-col gap-3 pt-2">
+            <button 
+              className="flex items-center justify-center gap-2 border-2 border-orange-500 text-orange-600 px-6 py-3 rounded-full font-bold hover:bg-orange-50 transition-all"
+              onClick={() => {
+                setIsMenuOpen(false);
+                navigate('/login');
+              }}
+            >
+              <User size={18} />
+              Área do Cliente
+            </button>
+            <button className="bg-orange-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200">
+              Começar Agora
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

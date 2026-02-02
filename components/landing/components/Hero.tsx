@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface HeroProps {
   title?: string;
@@ -10,14 +10,29 @@ interface HeroProps {
   testMessage?: string;
 }
 
+const DEFAULT_BG = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2070";
+
 const Hero: React.FC<HeroProps> = ({ 
   title = "Gestão com Axé,\nOrganização com Fé.", 
   subtitle = "Simplifique a administração financeira, o cadastro de filhos de santo e a agenda de giras do seu terreiro com a ConectAxé.",
-  backgroundImage = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2070",
+  backgroundImage = DEFAULT_BG,
   dashboardImage = "/images/hero-dashboard.png",
   whatsappNumber,
   testMessage = "Olá! Gostaria de testar o sistema ConectAxé gratuitamente."
 }) => {
+  const [bgImage, setBgImage] = useState(backgroundImage);
+
+  useEffect(() => {
+    setBgImage(backgroundImage);
+  }, [backgroundImage]);
+
+  const handleImageError = () => {
+    console.warn(`Failed to load background image: ${bgImage}. Reverting to default.`);
+    if (bgImage !== DEFAULT_BG) {
+      setBgImage(DEFAULT_BG);
+    }
+  };
+
   const handleTestClick = () => {
     const phone = whatsappNumber?.replace(/\D/g, '') || '5511999999999';
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(testMessage)}`, '_blank');
@@ -28,9 +43,10 @@ const Hero: React.FC<HeroProps> = ({
       {/* Background with overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src={backgroundImage} 
+          src={bgImage} 
           alt="Spiritual background" 
           className="w-full h-full object-cover"
+          onError={handleImageError}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/70 to-transparent"></div>
       </div>

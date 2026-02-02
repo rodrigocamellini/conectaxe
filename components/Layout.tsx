@@ -384,6 +384,18 @@ export const Layout: React.FC<LayoutProps> = ({
     }
   }, [showProfileModal, user]);
 
+  // Prevent body scroll when mobile menu is open to fix scrolling issues
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (onUpdateProfile) {
@@ -401,7 +413,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden w-full">
+    <div className="flex h-[100dvh] bg-gray-50 overflow-hidden w-full fixed inset-0">
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
 
       <aside className={`fixed inset-y-0 left-0 w-64 text-white flex flex-col z-50 transition-transform duration-300 md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} shrink-0 shadow-2xl`} style={{ backgroundColor: isAtDeveloperPortal ? '#020617' : config.sidebarColor }}>
@@ -421,10 +433,16 @@ export const Layout: React.FC<LayoutProps> = ({
           <button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}><X size={20} /></button>
         </div>
         
-        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'thin' }}>
           {/* Botão de Retorno ao Painel Master - Visível para Master ou Rodrigo */}
           {((isRodrigo || isMasterMode) || (masterSettings?.email && user?.email === masterSettings.email)) && !isAtDeveloperPortal && !isSimulation && (
-            <button onClick={() => setActiveTab('developer-portal')} className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl transition-all bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95">
+            <button 
+              onClick={() => {
+                setActiveTab('developer-portal');
+                if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 mb-6 rounded-xl transition-all bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-95"
+            >
               <ShieldCheck size={18} className="shrink-0" /><span>Voltar para Master</span>
             </button>
           )}
@@ -441,7 +459,10 @@ export const Layout: React.FC<LayoutProps> = ({
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+                    }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border"
                     style={{ backgroundColor, color: textColor, borderColor, boxShadow: isActive ? '0 10px 25px rgba(15,23,42,0.6)' : undefined }}
                   >
@@ -451,7 +472,13 @@ export const Layout: React.FC<LayoutProps> = ({
                 );
               })}
               
-              <button onClick={() => setActiveTab('dashboard')} className="w-full flex items-center gap-3 px-4 py-3 mt-8 rounded-xl transition-all bg-white/5 text-slate-400 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest">
+              <button 
+                onClick={() => {
+                  setActiveTab('dashboard');
+                  if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 mt-8 rounded-xl transition-all bg-white/5 text-slate-400 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest"
+              >
                 <ArrowLeftCircle size={18} />
                 <span>Sair da Master</span>
               </button>
