@@ -176,7 +176,7 @@ export const MasterPlansManager: React.FC<MasterPlansManagerProps> = ({
       alert('Informe um nome para o plano.');
       return;
     }
-    if (plans.some(p => p.id !== editingPlan.id && p.name.toLowerCase() === name.toLowerCase())) {
+    if (plans.some(p => p.id !== editingPlan.id && (p.name || '').toLowerCase() === name.toLowerCase())) {
       alert('Já existe outro plano com este nome.');
       return;
     }

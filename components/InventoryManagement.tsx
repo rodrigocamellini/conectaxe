@@ -76,8 +76,8 @@ export const InventoryManagement: React.FC<InventoryManagementProps> = ({
   };
 
   const filteredLogs = logs.filter(l => 
-    l.itemName.toLowerCase().includes(logSearchQuery.toLowerCase()) || 
-    l.responsible.toLowerCase().includes(logSearchQuery.toLowerCase())
+    (l.itemName || '').toLowerCase().includes(logSearchQuery.toLowerCase()) || 
+    (l.responsible || '').toLowerCase().includes(logSearchQuery.toLowerCase())
   );
 
   return (

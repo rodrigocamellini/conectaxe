@@ -89,9 +89,9 @@ export const MasterTicketManager: React.FC<MasterTicketManagerProps> = ({ ticket
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(t => {
-      const matchesSearch = t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          t.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          t.id.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (t.clientName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (t.id || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'todos' ? true : t.status === statusFilter;
       return matchesSearch && matchesStatus;
     }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));

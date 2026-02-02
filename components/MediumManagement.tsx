@@ -26,7 +26,7 @@ export const MediumManagement: React.FC<MediumManagementProps> = ({
   const mediums = members.filter(m => m.isMedium && m.status !== 'desligado');
   
   const filteredMediums = mediums.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
     m.id.includes(searchQuery)
   );
 

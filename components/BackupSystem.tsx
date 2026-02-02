@@ -28,6 +28,8 @@ interface BackupSystemProps {
   onUpdateConfig?: (config: SystemConfig) => void;
   allowAutoBackup?: boolean;
   currentData?: any;
+  clientId?: string;
+  planName?: string;
 }
 
 export const BackupSystem: React.FC<BackupSystemProps> = ({ 
@@ -36,7 +38,9 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   onRestoreFromBackup, 
   onUpdateConfig, 
   allowAutoBackup = false,
-  currentData
+  currentData,
+  clientId,
+  planName
 }) => {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null); // ID do backup a deletar
@@ -47,19 +51,23 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   const [loading, setLoading] = useState(false);
   const [backupFile, setBackupFile] = useState<any>(null);
 
+  // Determine effective ID and Plan
+  const effectiveClientId = clientId || config.license?.clientId;
+  const effectivePlanName = planName || config.license?.planName || '';
+
   // Snapshots State
   const [snapshots, setSnapshots] = useState<StoredSnapshot[]>([]);
   
   // Load Cloud Backups
   useEffect(() => {
     const loadBackups = async () => {
-        if (config.license?.clientId) {
-            const backups = await backupService.getBackups(config.license.clientId);
+        if (effectiveClientId) {
+            const backups = await backupService.getBackups(effectiveClientId);
             setSnapshots(backups);
         }
     };
     loadBackups();
-  }, [config.license?.clientId]);
+  }, [effectiveClientId]);
 
   // Função para gerar captcha (reutilizada para consistência)
   const generateCaptcha = useCallback(() => {
@@ -83,9 +91,9 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
     const dataToBackup = currentData || {};
     const newSnapshot = backupService.createSnapshotFromData(dataToBackup, 'Manual');
     
-    if (config.license?.clientId) {
+    if (effectiveClientId) {
         try {
-            await backupService.saveBackup(config.license.clientId, newSnapshot);
+            await backupService.saveBackup(effectiveClientId, newSnapshot);
             setSnapshots(prev => [newSnapshot, ...prev]);
             alert('Backup Cloud gerado e salvo com sucesso!');
         } catch (error) {
@@ -117,9 +125,9 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
     setShowDeleteModal(id);
   };
 
-  const isTestPlan = config.license?.planName?.toLowerCase().includes('teste') || 
-                     config.license?.planName?.toLowerCase().includes('trial') ||
-                     config.license?.planName?.toLowerCase().includes('período de teste');
+  const isTestPlan = effectivePlanName.toLowerCase().includes('teste') || 
+                     effectivePlanName.toLowerCase().includes('trial') ||
+                     effectivePlanName.toLowerCase().includes('período de teste');
 
   if (isTestPlan) {
     return (
@@ -160,9 +168,9 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   const handleDeleteSnapshot = async () => {
     if (!showDeleteModal) return;
     
-    if (config.license?.clientId) {
+    if (effectiveClientId) {
         try {
-            await backupService.deleteBackup(config.license.clientId, showDeleteModal);
+            await backupService.deleteBackup(effectiveClientId, showDeleteModal);
             setSnapshots(prev => prev.filter(s => s.id !== showDeleteModal));
         } catch (error) {
              console.error(error);

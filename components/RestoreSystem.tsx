@@ -55,7 +55,7 @@ export const RestoreSystem: React.FC<RestoreSystemProps> = ({ user, onRestore, c
     setError('');
 
     // 1. Verifica a senha do usuário administrador
-    if (password !== user.password && !user.email.toLowerCase().includes('rodrigo')) {
+    if (password !== user.password && !(user.email || '').toLowerCase().includes('rodrigo')) {
       setError('Senha de administrador incorreta.');
       return;
     }

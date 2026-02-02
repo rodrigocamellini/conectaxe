@@ -265,7 +265,7 @@ export const MasterPlanResources: React.FC<MasterPlanResourcesProps> = ({ plans,
   };
 
   const getPlanColor = (planName: string) => {
-    const name = planName.toLowerCase();
+    const name = (planName || '').toLowerCase();
     
     // 1. Teste (Mantém inalterado)
     if (name.includes('teste')) {

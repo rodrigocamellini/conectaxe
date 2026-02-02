@@ -15,6 +15,8 @@ import { User, MasterCredentials } from '../types';
 import { MASTER_LOGO_URL } from '../constants';
 import { MasterService } from '../services/masterService';
 import { AuthService } from '../services/authService';
+import { db } from '../services/firebaseConfig';
+import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
 
 export const LoginScreen: React.FC = () => {
   const { setAuth, login } = useAuth();
@@ -68,12 +70,28 @@ export const LoginScreen: React.FC = () => {
     let masterEmail = 'rodrigo@dev.com';
     let masterPass = 'master';
     
+    // If masterCreds is still loading (null), we might be using default values.
+    // However, if the user changed the password, we MUST use the updated one.
+    // If masterCreds is null, it means it hasn't loaded yet. We should probably wait or retry?
+    // But since this is a simple state, it usually loads fast.
+    
     if (masterCreds) {
       masterEmail = masterCreds.email;
       masterPass = masterCreds.password;
+    } else {
+       // Try to fetch explicitly if state is empty (fallback)
+       try {
+           const fetched = await MasterService.getMasterCredentials();
+           if (fetched) {
+               masterEmail = fetched.email;
+               masterPass = fetched.password;
+           }
+       } catch (err) {
+           console.error("Failed to fetch master credentials during login check", err);
+       }
     }
 
-    if (loginEmail.toLowerCase() === masterEmail.toLowerCase() && loginPassword === masterPass) {
+    if ((loginEmail || '').toLowerCase() === (masterEmail || '').toLowerCase() && loginPassword === masterPass) {
       const user = { id: 'master', name: 'Rodrigo Master', email: masterEmail, role: 'admin', password: masterPass };
       
       try {
@@ -90,10 +108,74 @@ export const LoginScreen: React.FC = () => {
       return;
     }
     
-    // Check Client Admin
-    const clientAdmin = clients.find(c => c.adminEmail.toLowerCase() === loginEmail.toLowerCase() && c.adminPassword === loginPassword);
+    // Check Client Admin directly from Firestore (saas_clients)
+    try {
+        const clientsRef = collection(db, 'saas_clients');
+        const q = query(clientsRef, where('adminEmail', '==', loginEmail));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+            const clientDoc = snapshot.docs[0];
+            const clientData = clientDoc.data();
+            
+            if (clientData.adminPassword === loginPassword) {
+                 const user: User = { 
+                    id: clientData.id, 
+                    name: clientData.adminName, 
+                    email: clientData.adminEmail, 
+                    role: 'admin', 
+                    password: clientData.adminPassword 
+                 };
+                 
+                 // Update Last Activity (Optional - maybe move to AuthService login)
+                 // await updateDoc(clientDoc.ref, { lastActivity: new Date().toISOString() });
+
+                 await login(user, false);
+                 return;
+            } else {
+                 // Password mismatch for found admin email
+                 setLoginError('Senha incorreta.');
+                 return;
+            }
+        }
+    } catch (err) {
+        console.error("Error querying client admin:", err);
+    }
+
+    // Check System User (Collection Group Query)
+    // This allows finding a user across all clients without knowing the clientId
+    // Note: Requires a Firestore Index on 'email'. If it fails, check console for link to create index.
+    try {
+        const usersQuery = query(collectionGroup(db, 'users'), where('email', '==', loginEmail));
+        const userSnapshot = await getDocs(usersQuery);
+        
+        if (!userSnapshot.empty) {
+             const userDoc = userSnapshot.docs[0];
+             const userData = userDoc.data() as User;
+             // We need to find the clientId. It's the parent's parent.
+             // userDoc.ref.parent is 'users' collection
+             // userDoc.ref.parent.parent is the Client Document
+             const clientDocRef = userDoc.ref.parent.parent;
+             const clientId = clientDocRef ? clientDocRef.id : undefined;
+
+             if (userData.password === loginPassword) {
+                 await login(userData, false, clientId);
+                 return;
+             } else {
+                 setLoginError('Senha incorreta.');
+                 return;
+             }
+        }
+    } catch (err) {
+         console.error("Error querying system user:", err);
+         // Fallback to legacy context check if index is missing or query fails
+         // (Keep existing logic below as fallback)
+    }
+
+    // Fallback: Check loaded context (legacy behavior, unreliable on refresh)
+    const clientAdmin = clients.find(c => c && c.adminEmail && c.adminEmail.toLowerCase() === (loginEmail || '').toLowerCase() && c.adminPassword === loginPassword);
     if (clientAdmin) {
-      const updatedClients = clients.map(c => 
+      const updatedClients = clients.map(c =>  
         c.id === clientAdmin.id ? { ...c, lastActivity: new Date().toISOString() } : c
       );
       setClients(updatedClients); // Ideally this should be a method in DataContext to update client

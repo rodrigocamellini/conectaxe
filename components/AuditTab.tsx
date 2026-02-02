@@ -43,10 +43,10 @@ export const AuditTab: React.FC<AuditTabProps> = ({ logs, onReset }) => {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.action || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (log.clientName && log.clientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (log.details && log.details.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      log.masterEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      (log.masterEmail || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSeverity = filterSeverity === 'all' || log.severity === filterSeverity;
     const matchesCategory = filterCategory === 'all' || log.category === filterCategory;

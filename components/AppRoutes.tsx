@@ -827,7 +827,12 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
 
         {/* Afiliados */}
         <Route path="/indicacoes" element={
-          <AffiliateSystem config={systemConfig} referrals={referrals} activeTab="indicacoes" />
+          <AffiliateSystem 
+            config={systemConfig} 
+            referrals={referrals} 
+            activeTab="indicacoes" 
+            planName={currentClient?.planName || systemConfig.license?.planName}
+          />
         } />
 
         {/* Configurações e Admin */}
@@ -837,7 +842,18 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={handleUpdateEntity} onAddEntity={handleAddEntity} />} />
         <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
         
-        <Route path="/backup" element={<BackupSystem user={auth.user!} config={systemConfig} currentData={fullSystemData} onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} allowAutoBackup={hasModule('mod_backup_auto')} onUpdateConfig={setSystemConfig} />} />
+        <Route path="/backup" element={
+          <BackupSystem 
+            user={auth.user!} 
+            config={systemConfig} 
+            currentData={fullSystemData} 
+            onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} 
+            allowAutoBackup={hasModule('mod_backup_auto')} 
+            onUpdateConfig={setSystemConfig}
+            clientId={currentClient?.id || systemConfig.license?.clientId}
+            planName={currentClient?.planName || systemConfig.license?.planName}
+          />
+        } />
         <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fábrica desativado na versão Nuvem.")} />} />
         <Route path="/saas-manager" element={<SaaSManager config={systemConfig} onUpdateConfig={setSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />} />
         

@@ -186,7 +186,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ config, onUpdateConfig
     setEditingItem(null);
   };
 
-  const filteredIcons = MENU_ICONS_CATALOG.filter(i => i.toLowerCase().includes(iconSearch.toLowerCase()));
+  const filteredIcons = MENU_ICONS_CATALOG.filter(i => (i || '').toLowerCase().includes(iconSearch.toLowerCase()));
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-500 pb-20">

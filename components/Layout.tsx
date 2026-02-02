@@ -295,7 +295,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const isAtDeveloperPortal = useMemo(() => {
     return masterMenuItems.some(item => item.id === activeTab) || activeTab === 'developer-portal';
   }, [activeTab, masterMenuItems]);
-  const isRodrigo = user?.email?.toLowerCase().includes('rodrigo');
+  const isRodrigo = (user?.email || '').toLowerCase().includes('rodrigo');
 
   useEffect(() => {
     // Update expansion state when activeTab changes or config loads

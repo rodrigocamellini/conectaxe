@@ -1,7 +1,7 @@
 
 import { db } from './firebaseConfig';
 import { 
-  collection, doc, getDocs, getDoc, setDoc, deleteDoc, query, where 
+  collection, doc, getDocs, getDoc, getDocFromServer, setDoc, deleteDoc, query, where 
 } from 'firebase/firestore';
 import { 
   SaaSPlan, SaaSClient, GlobalBroadcast, ReleaseNote, GlobalCoupon, MasterAuditLog, MasterCredentials, MasterGlobalConfig 
@@ -89,6 +89,16 @@ export const MasterService = {
       await setDoc(configRef, config);
     } catch (error) {
       console.error("Error initializing client data:", error);
+      throw error;
+    }
+  },
+
+  updateClientLicense: async (clientId: string, license: any): Promise<void> => {
+    try {
+      const configRef = doc(db, CLIENTS_COLLECTION, clientId, CLIENT_CONFIG_SUBCOLLECTION, 'system_settings');
+      await setDoc(configRef, { license }, { merge: true });
+    } catch (error) {
+      console.error("Error updating client license:", error);
       throw error;
     }
   },
@@ -308,10 +318,22 @@ export const MasterService = {
     };
     try {
       const docRef = doc(db, CONFIG_COLLECTION, 'master_credentials');
-      const snap = await getDoc(docRef);
+      
+      // Attempt to fetch from server first to ensure we have the latest password
+      // This solves the issue where changing password and reloading still shows old password due to cache
+      let snap;
+      try {
+        snap = await getDocFromServer(docRef);
+      } catch (err) {
+        console.warn("Could not fetch master credentials from server (offline?), falling back to cache:", err);
+        snap = await getDoc(docRef);
+      }
+
       if (snap.exists()) {
+        console.log("Master credentials fetched:", snap.data());
         return { ...fallback, ...snap.data() } as MasterCredentials;
       }
+      console.log("Master credentials not found, using fallback");
       return fallback;
     } catch (error) {
       console.error("Error fetching master credentials:", error);
@@ -320,7 +342,9 @@ export const MasterService = {
   },
   saveMasterCredentials: async (credentials: MasterCredentials): Promise<void> => {
     try {
+      console.log('Saving Master Credentials:', credentials);
       await setDoc(doc(db, CONFIG_COLLECTION, 'master_credentials'), credentials);
+      console.log('Master Credentials Saved Successfully');
     } catch (error) {
       console.error("Error saving master credentials:", error);
       throw error;

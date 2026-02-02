@@ -429,10 +429,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   const handleSaveMasterSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Initiating Master Settings Save...', masterCreds);
       await MasterService.saveMasterCredentials(masterCreds);
-      setShowMasterSettings(false);
-      alert('Configurações do Ecossistema Master atualizadas com sucesso!');
-      window.location.reload(); 
+      
+      // Wait a moment to ensure Firestore persistence layer has processed it before reload
+      // Although await setDoc should be enough, a small delay can help in some edge cases with offline persistence
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Re-fetch credentials from server to confirm and update local state
+      try {
+        const freshCreds = await MasterService.getMasterCredentials();
+        setMasterCreds(freshCreds);
+        alert('Configurações do Ecossistema Master atualizadas com sucesso!');
+        setShowMasterSettings(false);
+      } catch (fetchErr) {
+        console.error("Error fetching fresh credentials:", fetchErr);
+        // Fallback to reload if fetch fails
+        window.location.reload();
+      }
     } catch (error) {
       console.error("Error saving master credentials:", error);
       alert('Erro ao salvar configurações.');
@@ -478,7 +492,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     return v.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, '($1) $2-$3');
   };
 
-  const handleSaveClient = (e: React.FormEvent) => {
+  const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (newClient.adminEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newClient.adminEmail)) {
@@ -490,27 +504,43 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     const { price, expirationDate } = getClientBillingFromPlan(planName);
 
     if (editingClient) {
-        const updatedClients = clients.map(c => c.id === editingClient.id ? {
-            ...c,
+        const updatedClient = {
+            ...editingClient,
             ...newClient,
-            id: c.id,
             monthlyValue: price,
-            expirationDate: (c.plan === planName) ? c.expirationDate : expirationDate,
-            createdAt: c.createdAt,
-            lastActivity: c.lastActivity,
-            adminPassword: newClient.adminPassword || c.adminPassword
-        } as SaaSClient : c);
-        
-        onUpdateClients(updatedClients);
-        
-        onAddAuditLog({
-          clientId: editingClient.id,
-          clientName: newClient.name || editingClient.name,
-          action: 'Atualização de Instância',
-          category: 'client_management',
-          severity: 'info',
-          details: `Instância atualizada. Plano: ${planName}`
-        });
+            expirationDate: (editingClient.plan === planName) ? editingClient.expirationDate : expirationDate,
+            adminPassword: newClient.adminPassword || editingClient.adminPassword
+        } as SaaSClient;
+
+        // Persist the updated client to Firestore
+        try {
+            await MasterService.saveClient(updatedClient);
+            
+            // Sync license to client's system config
+            await MasterService.updateClientLicense(updatedClient.id, {
+                clientId: updatedClient.id,
+                planName: updatedClient.plan,
+                status: updatedClient.status,
+                expirationDate: updatedClient.expirationDate,
+                affiliateLink: updatedClient.affiliateLink || ''
+            });
+
+            const updatedClients = clients.map(c => c.id === editingClient.id ? updatedClient : c);
+            onUpdateClients(updatedClients);
+            
+            onAddAuditLog({
+              clientId: editingClient.id,
+              clientName: newClient.name || editingClient.name,
+              action: 'Atualização de Instância',
+              category: 'client_management',
+              severity: 'info',
+              details: `Instância atualizada. Plano: ${planName}`
+            });
+        } catch (err) {
+             console.error("CRITICAL ERROR: Failed to update client in Firestore:", err);
+             alert("Erro crítico ao atualizar o terreiro no banco de dados.");
+             return; // Stop execution if save fails
+        }
     } else {
         const client: SaaSClient = {
           ...newClient,
@@ -521,24 +551,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
           createdAt: new Date().toISOString(),
           lastActivity: new Date().toISOString()
         } as SaaSClient;
-        onUpdateClients([...clients, client]);
-        
-        onAddAuditLog({
-          clientId: client.id,
-          clientName: client.name,
-          action: 'Criação de Instância',
-          category: 'client_management',
-          severity: 'info',
-          details: `Nova instância criada com plano ${planName}. Admin: ${client.adminEmail}`
-        });
-    
+
+        // Persist the new client to Firestore immediately
+        try {
+            await MasterService.saveClient(client);
+            
+            // Initialize Client Data in Firebase
+        // Para o admin principal (dono), usamos o ID do cliente como ID do usuário para facilitar o carregamento de dados
+        // conforme lógica do DataContext (if user.role === 'admin' loadClientData(user.id))
         const newAdminUser: User = {
-          id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+          id: client.id, 
           name: client.adminName || 'Admin',
           email: client.adminEmail || 'admin@terreiro.com',
           role: 'admin',
           password: client.adminPassword || '123456',
-          photo: ''
+          photo: '',
+          clientId: client.id,
+          createdAt: new Date().toISOString(),
+          active: true
         };
         
         const initialUsers = [newAdminUser];
@@ -552,14 +582,35 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                 sidebarTextColor: systemConfig.sidebarTextColor,
                 accentColor: systemConfig.accentColor,
                 spiritualSectionColors: systemConfig.spiritualSectionColors,
-                systemName: client.name
+                // systemName: client.name, // REMOVIDO: Manter o padrão do sistema (ex: "ConectAxé")
+                license: {
+                    clientId: client.id,
+                    planName: client.plan,
+                    status: 'active',
+                    expirationDate: client.expirationDate,
+                    affiliateLink: `https://conectaxe.com/cadastro?ref=${client.id}`
+                }
              };
         }
 
-        // Initialize Client Data in Firebase
-        if (newClientConfig) {
-          MasterService.initializeClientData(client.id, initialUsers, newClientConfig)
-            .catch(err => console.error("Error initializing client data:", err));
+            if (newClientConfig) {
+              await MasterService.initializeClientData(client.id, initialUsers, newClientConfig);
+            }
+
+            onUpdateClients([...clients, client]);
+            
+            onAddAuditLog({
+              clientId: client.id,
+              clientName: client.name,
+              action: 'Criação de Instância',
+              category: 'client_management',
+              severity: 'info',
+              details: `Nova instância criada com plano ${planName}. Admin: ${client.adminEmail}`
+            });
+        } catch (err) {
+            console.error("CRITICAL ERROR: Failed to save client to Firestore:", err);
+            alert("Erro crítico ao salvar o terreiro no banco de dados. As alterações podem ser perdidas ao recarregar.");
+            return; // Stop execution
         }
     }
 
@@ -1136,11 +1187,25 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                       {clients.filter(c => 
-                         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         c.adminName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         c.id.includes(searchQuery.toUpperCase())
-                       ).map(c => (
+                       {clients.filter(c => {
+                         if (!c) return false;
+                         // Defensive programming to prevent rendering errors with malformed data
+                         const name = typeof c.name === 'string' ? c.name : '';
+                         const adminName = typeof c.adminName === 'string' ? c.adminName : '';
+                         const id = c.id ? String(c.id) : '';
+                         const query = typeof searchQuery === 'string' ? searchQuery : '';
+
+                         try {
+                           return (
+                             name.toLowerCase().includes(query.toLowerCase()) || 
+                             adminName.toLowerCase().includes(query.toLowerCase()) ||
+                             id.toUpperCase().includes(query.toUpperCase())
+                           );
+                         } catch (err) {
+                           console.error('Error filtering client:', c, err);
+                           return false;
+                         }
+                       }).map(c => (
                           <tr key={c.id} className="hover:bg-slate-800/30 transition-colors group">
                              <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
@@ -1152,7 +1217,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                                          <p className="font-black text-white uppercase text-xs tracking-tight">{c.name}</p>
                                          <span className="text-[8px] font-black bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">#{c.id}</span>
                                       </div>
-                                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">{c.adminName} • {c.adminEmail}</p>
+                                      <p className="text-[10px] font-bold text-slate-400 mt-0.5">{c.adminName || 'N/A'} • {c.adminEmail || 'N/A'}</p>
                                    </div>
                                 </div>
                              </td>

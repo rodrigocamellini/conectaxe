@@ -104,7 +104,7 @@ export const EntityImageManagement: React.FC<EntityImageManagementProps> = ({
       {sections.map(section => {
         const filteredEntities = entities.filter(e => 
           e.type === section.type && 
-          e.name.toLowerCase().includes(searchQuery.toLowerCase())
+          (e.name || '').toLowerCase().includes(searchQuery.toLowerCase())
         );
 
         return (

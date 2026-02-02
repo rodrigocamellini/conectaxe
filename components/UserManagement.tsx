@@ -115,9 +115,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const handleAddRole = () => {
     if (!newRoleName.trim()) return;
-    const roleId = newRoleName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
+    const roleId = (newRoleName || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     
-    if (config.userRoles.find(r => r.id === roleId)) {
+    if (roles.some(r => r.id === roleId)) {
       alert('Esta categoria já existe!');
       return;
     }

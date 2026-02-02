@@ -288,7 +288,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const currentClient = useMemo(() => {
     if (!isAuthenticated || isMasterMode) return null;
-    return clients.find(c => c.adminEmail.toLowerCase() === user?.email.toLowerCase());
+    const userEmail = user?.email || '';
+    if (!userEmail) return null;
+    return clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
   }, [clients, user, isAuthenticated, isMasterMode]);
 
   const currentPlan = useMemo(() => {
@@ -298,7 +300,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const licenseState = useMemo(() => {
     if (!isAuthenticated || isMasterMode) return { valid: true, status: 'active' as const };
-    const client = clients.find(c => c.adminEmail.toLowerCase() === user?.email.toLowerCase());
+    const userEmail = user?.email || '';
+    if (!userEmail) return { valid: true, status: 'active' as const };
+    
+    const client = clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
     if (client) {
       if (client.status === 'blocked') return { valid: false, status: 'blocked' as const };
       if (client.status === 'frozen') return { valid: false, status: 'frozen' as const };
@@ -331,7 +336,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Clients
         let fetchedClients = await MasterService.getAllClients();
-        setClients(fetchedClients);
+        // Filter out any invalid clients to prevent rendering errors
+        setClients(fetchedClients.filter(c => c && c.id));
 
         // Broadcasts
         let fetchedBroadcasts = await PlatformService.getBroadcasts();

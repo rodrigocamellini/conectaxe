@@ -110,8 +110,27 @@ export const AuthService = {
         if (!clientId || !userId) return;
         // Ensure we don't save undefined fields
         const cleanData = JSON.parse(JSON.stringify(data));
+        
+        // If the user is the Client Admin (userId matches clientId), update the client document itself
+        if (clientId === userId) {
+            const clientUpdate: any = {};
+            if (cleanData.name) clientUpdate.adminName = cleanData.name;
+            if (cleanData.email) clientUpdate.adminEmail = cleanData.email;
+            if (cleanData.password) clientUpdate.adminPassword = cleanData.password;
+            
+            // Also update other common fields if necessary
+            
+            const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
+            await setDoc(clientRef, clientUpdate, { merge: true });
+            
+            // We also verify if there is a shadow user document and update it too for consistency
+            // But the primary source of truth for admin login is the client document
+        } 
+        
+        // Always attempt to update the user in the users subcollection as well (for listings, etc.)
         const userRef = doc(db, CLIENTS_COLLECTION, clientId, 'users', userId);
         await setDoc(userRef, cleanData, { merge: true });
+
     } catch (error) {
         console.error("Error updating user:", error);
         throw error;

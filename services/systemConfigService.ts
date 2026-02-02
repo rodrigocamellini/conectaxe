@@ -27,9 +27,11 @@ export const SystemConfigService = {
 
       const docSnap = await getDoc(docRef);
 
+      let config: SystemConfig;
+
       if (docSnap.exists()) {
         // Merge with default config to ensure all fields exist
-        return {
+        config = {
           ...DEFAULT_SYSTEM_CONFIG,
           ...docSnap.data()
         } as SystemConfig;
@@ -40,11 +42,40 @@ export const SystemConfigService = {
             const legacyDocRef = doc(db, LEGACY_COLLECTION_NAME, `client_${clientId}`);
             const legacySnap = await getDoc(legacyDocRef);
             if (legacySnap.exists()) {
-                return { ...DEFAULT_SYSTEM_CONFIG, ...legacySnap.data() } as SystemConfig;
+                config = { ...DEFAULT_SYSTEM_CONFIG, ...legacySnap.data() } as SystemConfig;
+            } else {
+                config = DEFAULT_SYSTEM_CONFIG;
             }
+        } else {
+            config = DEFAULT_SYSTEM_CONFIG;
         }
-        return DEFAULT_SYSTEM_CONFIG;
       }
+
+      // Ensure license data is populated (On-the-fly migration for existing clients)
+      if (clientId && (!config.license || !config.license.planName)) {
+        try {
+            const clientDocRef = doc(db, CLIENTS_COLLECTION, clientId);
+            const clientSnap = await getDoc(clientDocRef);
+            
+            if (clientSnap.exists()) {
+                const clientData = clientSnap.data();
+                // Merge existing license data with client data
+                config.license = {
+                    ...(config.license || {}),
+                    clientId: clientId,
+                    planName: clientData.plan || config.license?.planName || '',
+                    status: clientData.status || config.license?.status || 'active',
+                    expirationDate: clientData.expirationDate || config.license?.expirationDate || '',
+                    // Preserve affiliate link if it exists in config, otherwise generate default
+                    affiliateLink: config.license?.affiliateLink || `https://conectaxe.com/cadastro?ref=${clientId}`
+                };
+            }
+        } catch (err) {
+            console.error("Error syncing client license data:", err);
+        }
+      }
+
+      return config;
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
       return DEFAULT_SYSTEM_CONFIG;

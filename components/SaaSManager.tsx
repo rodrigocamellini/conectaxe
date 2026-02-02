@@ -79,7 +79,7 @@ export const SaaSManager: React.FC<SaaSManagerProps> = ({ config, onUpdateConfig
   });
 
   const formattedClientId = useMemo(() => license.clientId?.toUpperCase() || '---', [license.clientId]);
-  const isVitalicio = license.expirationDate === '2099-12-31' || license.planName.toLowerCase().includes('vitalício');
+  const isVitalicio = license.expirationDate === '2099-12-31' || (license.planName || '').toLowerCase().includes('vitalício');
   const isFrozen = license.status === 'frozen';
   const isExpired = !isAfter(new Date(license.expirationDate + 'T12:00:00'), new Date());
 

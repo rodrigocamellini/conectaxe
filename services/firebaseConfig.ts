@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 // Cole sua configuração aqui
 const firebaseConfig = {
@@ -14,5 +14,14 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// Habilita persistência offline para evitar perda de dados ao recarregar
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+      console.warn('Persistência falhou: Múltiplas abas abertas.');
+  } else if (err.code == 'unimplemented') {
+      console.warn('Persistência não suportada neste navegador.');
+  }
+});
 
 export { db };

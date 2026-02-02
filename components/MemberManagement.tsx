@@ -346,10 +346,10 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
   const funcoesCasa = entities.filter(e => e.type === 'funcao');
 
   const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
     m.cpf?.includes(searchQuery) ||
-    m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.id.includes(searchQuery)
+    (m.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.id || '').includes(searchQuery)
   );
 
   return (

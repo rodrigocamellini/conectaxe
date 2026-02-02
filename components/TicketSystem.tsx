@@ -58,8 +58,8 @@ export const TicketSystem: React.FC<TicketSystemProps> = ({ user, config, ticket
   }, [tickets, config, user]);
 
   const filteredTickets = myTickets.filter(t => 
-    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    t.id.toLowerCase().includes(searchQuery.toLowerCase())
+      (t.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (t.id || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isInitial: boolean) => {

@@ -27,12 +27,18 @@ interface AffiliateSystemProps {
   config: SystemConfig;
   referrals: Referral[];
   activeTab?: string;
+  planName?: string;
 }
 
-export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referrals, activeTab }) => {
+export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referrals, activeTab, planName }) => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [activeTableFilter, setActiveTableFilter] = useState<'todos' | 'aguardando' | 'aprovada' | 'reprovada'>('todos');
   
+  const effectivePlanName = planName || config.license?.planName || '';
+  const isTestPlan = effectivePlanName.toLowerCase().includes('teste') || 
+                     effectivePlanName.toLowerCase().includes('trial') ||
+                     effectivePlanName.toLowerCase().includes('período de teste');
+
   const affiliateLink = config.license?.affiliateLink || "Link não gerado";
   const isBlocked = config.license?.affiliateBlocked;
 
@@ -92,6 +98,22 @@ export const AffiliateSystem: React.FC<AffiliateSystemProps> = ({ config, referr
          <h3 className="text-3xl font-black text-slate-800 uppercase tracking-tighter text-center mb-3">Programa de Afiliados Suspenso</h3>
          <p className="text-slate-500 font-medium text-center max-w-lg mb-8 leading-relaxed">Identificamos uma violação nas diretrizes de indicação ou um comportamento incomum em sua conta. Por motivos de segurança, sua capacidade de gerar novos leads foi temporariamente desativada.</p>
          <button onClick={() => window.open(`mailto:${config.license?.supportContact}`)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">Falar com Suporte Master</button>
+      </div>
+    );
+  }
+
+  if (isTestPlan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-6 bg-white rounded-[3rem] border-4 border-slate-100 shadow-xl animate-in zoom-in duration-500">
+         <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-[2rem] flex items-center justify-center mb-8">
+            <Info size={48} />
+         </div>
+         <h3 className="text-3xl font-black text-slate-800 uppercase tracking-tighter text-center mb-3">Programa de Afiliados Indisponível</h3>
+         <p className="text-slate-500 font-medium text-center max-w-lg mb-8 leading-relaxed">
+            O programa de afiliados é exclusivo para assinantes de planos completos. 
+            Atualize seu plano para começar a indicar outros terreiros e ganhar mensalidades grátis.
+         </p>
+         {/* Botão opcional de upgrade poderia ir aqui */}
       </div>
     );
   }
