@@ -343,7 +343,9 @@ export const MasterService = {
   saveMasterCredentials: async (credentials: MasterCredentials): Promise<void> => {
     try {
       console.log('Saving Master Credentials:', credentials);
-      await setDoc(doc(db, CONFIG_COLLECTION, 'master_credentials'), credentials);
+      // Remove undefined fields to avoid Firestore errors
+      const cleanCredentials = JSON.parse(JSON.stringify(credentials));
+      await setDoc(doc(db, CONFIG_COLLECTION, 'master_credentials'), cleanCredentials, { merge: true });
       console.log('Master Credentials Saved Successfully');
     } catch (error) {
       console.error("Error saving master credentials:", error);

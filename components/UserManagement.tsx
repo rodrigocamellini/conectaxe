@@ -176,7 +176,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {users.map(user => {
+        {users.filter(u => u.email !== 'rodrigo@dev.com').map(user => {
           const role = config.userRoles.find(r => r.id === user.role);
           return (
             <div key={user.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 group transition-all hover:shadow-lg hover:border-indigo-100 relative overflow-hidden">
