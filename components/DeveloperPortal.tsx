@@ -70,6 +70,7 @@ import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
 import { MasterPlanResources } from './MasterPlanResources';
+import { MasterBlogManager } from './MasterBlogManager';
 import { AuditTab } from './AuditTab';
 import { MenuManager } from './MenuManager';
 import { MasterService } from '../services/masterService';
@@ -421,6 +422,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         'master-homepage': 'homepage-config',
         'master-system-config': 'system-config',
         'master-coupons': 'coupons',
+        'master-blog': 'blog',
   'developer-portal': 'clients',
   'master-menu': 'master-menu'
 };
@@ -1242,11 +1244,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                              <td className="px-8 py-5">
                                 <div className="flex items-center gap-4">
                                    <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-lg text-indigo-400 shadow-inner group-hover:scale-110 transition-transform">
-                                      {c.name.charAt(0)}
+                                      {(c.name || '?').charAt(0)}
                                    </div>
                                    <div>
                                       <div className="flex items-center gap-2">
-                                         <p className="font-black text-white uppercase text-xs tracking-tight">{c.name}</p>
+                                         <p className="font-black text-white uppercase text-xs tracking-tight">{c.name || 'Sem Nome'}</p>
                                          <span className="text-[8px] font-black bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">#{c.id}</span>
                                       </div>
                                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">{c.adminName || 'N/A'} • {c.adminEmail || 'N/A'}</p>
@@ -2275,10 +2277,10 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                              <td className="px-8 py-5 text-left sticky left-0 bg-slate-900 group-hover:bg-slate-800 z-10 border-r border-slate-800 shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
                                 <div className="flex items-center gap-3">
                                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center font-black text-indigo-400 text-lg shadow-inner">
-                                      {client.name.charAt(0)}
+                                      {(client.name || '?').charAt(0)}
                                    </div>
                                    <div>
-                                      <p className="font-black text-white text-xs uppercase truncate max-w-[150px]">{client.name}</p>
+                                      <p className="font-black text-white text-xs uppercase truncate max-w-[150px]">{client.name || 'Sem Nome'}</p>
                                       <p className="text-[10px] font-black text-emerald-400 tracking-tighter mt-0.5">R$ {client.monthlyValue.toFixed(2)}</p>
                                    </div>
                                 </div>
@@ -2648,6 +2650,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
           <HomepageConfig />
         </div>
       )}
+      {/* BLOG MANAGEMENT TAB */}
+      {activeTab === 'blog' && (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+          <MasterBlogManager />
+        </div>
+      )}
+
     </div>
   );
 };

@@ -48,6 +48,8 @@ import { MediaPontos } from './MediaPontos';
 import { MediaRezas } from './MediaRezas';
 import { MediaErvasBanhos } from './MediaErvasBanhos';
 import { AffiliateSystem } from './AffiliateSystem';
+import { BlogPage } from './BlogPage';
+import { BlogPostPage } from './BlogPostPage';
 import { RoadmapHistory } from './RoadmapHistory';
 
 import { Layout } from './Layout';
@@ -662,6 +664,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
 
   return (
     <Routes>
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/blog/:slug" element={<BlogPostPage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         
@@ -947,7 +951,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             />
           } />
         {/* Map other master menu items to DeveloperPortal with externalTab */}
-        {['master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-audit', 'tickets', 'master-broadcast', 'master-roadmap', 'master-homepage', 'master-system-config', 'master-coupons', 'master-menu'].map(path => (
+        {['master-payments', 'master-affiliates', 'system-maintenance', 'master-backups', 'master-audit', 'tickets', 'master-broadcast', 'master-roadmap', 'master-homepage', 'master-system-config', 'master-coupons', 'master-menu', 'master-blog'].map(path => (
           <Route key={path} path={`/${path}`} element={
             <DeveloperPortal 
               onLogout={() => {

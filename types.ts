@@ -81,6 +81,7 @@ export interface SystemConfig {
   accentColor?: string;
   sidebarTextColor?: string;
   dashboardFontSize?: string;
+  masterMenuConfig?: any[];
 }
 
 // --- Restored Types ---
@@ -241,6 +242,7 @@ export interface SaaSClient {
   adminEstado?: string;
   monthlyValue?: number;
   lastActivity?: string;
+  affiliateLink?: string;
 }
 
 export interface PaymentStatus {
@@ -351,13 +353,14 @@ export interface MasterAuditLog {
 export interface MasterCredentials {
   email: string;
   password: string;
-  whatsapp?: string;
-  pixKey?: string;
-  bankDetails?: string;
-  sidebarTitle?: string;
-  systemTitle?: string;
-  brandLogo?: string;
-  backupFrequency?: string;
+  whatsapp: string;
+  pixKey: string;
+  bankDetails: string;
+  sidebarTitle: string;
+  systemTitle: string;
+  brandLogo: string;
+  backupFrequency: 'disabled' | '7' | '15' | '30';
+  masterName?: string;
 }
 
 export interface CanteenItem {
@@ -483,16 +486,26 @@ export interface FinancialTransaction {
   paymentMethod?: string;
   notes?: string;
   relatedId?: string;
-export interface MasterCredentials {
-  email: string;
-  password: string;
-  whatsapp: string;
-  pixKey: string;
-  bankDetails: string;
-  sidebarTitle: string;
-  systemTitle: string;
-  brandLogo: string;
-  backupFrequency: 'disabled' | '7' | '15' | '30';
-  masterName?: string;
-}'daily' | 'weekly' | 'monthly';
+  recurrence?: 'daily' | 'weekly' | 'monthly';
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  coverImage: string;
+  category: string;
+  author: string;
+  status: 'draft' | 'published';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  image?: string; // Optional image for rectangular button display
 }

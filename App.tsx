@@ -6,6 +6,8 @@ import { AppRoutes } from './components/AppRoutes';
 import { LoginScreen, MaintenanceScreen, FrozenScreen } from './components/AuthScreens';
 import { TourGuide } from './components/TourGuide';
 import LandingPage from './components/landing/LandingPage';
+import { BlogPage } from './components/BlogPage';
+import { BlogPostPage } from './components/BlogPostPage';
 
 const AppContent: React.FC = () => {
   const auth = useAuth();
@@ -21,6 +23,8 @@ const AppContent: React.FC = () => {
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<LoginScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

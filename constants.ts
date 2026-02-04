@@ -231,7 +231,8 @@ export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'master-coupons', label: 'Cupons', icon: 'Tag', color: '#ff7300' },
   { id: 'master-roadmap', label: 'Roadmap', icon: 'ClipboardList', color: '#f264a1' },
   { id: 'master-homepage', label: 'Configs. da Homepage', icon: 'Monitor', color: '#ff7070'  },
-  { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings', color: '#d494ff' }
+  { id: 'master-system-config', label: 'Configs. do Sistema', icon: 'Settings', color: '#d494ff' },
+  { id: 'master-blog', label: 'Blog', icon: 'BookOpen', color: '#b16fdc' }
 ];
 
 export const INITIAL_ENTITIES: SpiritualEntity[] = [
