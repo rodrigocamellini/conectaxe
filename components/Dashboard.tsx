@@ -340,6 +340,90 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
+              <CalendarClock size={18} />
+              <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Atividades de Hoje</h3>
+            </div>
+            <span className={`${fs.label} font-black px-2 py-1 rounded-full bg-indigo-50 text-indigo-600`}>
+              {format(today, 'dd/MM')}
+            </span>
+          </div>
+          <div className="overflow-y-auto max-h-[320px]">
+            {todayEvents.length > 0 ? (
+              <div className="divide-y divide-gray-50">
+                {todayEvents.map((event) => (
+                  <div key={event.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+                      style={{ backgroundColor: event.color, color: event.color === '#ffffff' ? '#1f2937' : '#ffffff' }}
+                    >
+                      <RenderEventIcon name={event.icon} size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-sm truncate uppercase">{event.title}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Clock size={12} className="text-gray-400" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase">{event.time || '--:--'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 flex flex-col items-center justify-center text-center text-gray-400 px-8">
+                <CalendarClock size={32} className="opacity-10 mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhuma atividade agendada para hoje.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
+              <Calendar size={18} />
+              <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Aniversariantes do Mês</h3>
+            </div>
+            <span className={`${fs.label} font-black px-2 py-1 rounded-full`} style={{ backgroundColor: `${config.primaryColor}20`, color: config.primaryColor }}>
+              {birthdaysThisMonth.length} Membros
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <tbody className="divide-y divide-gray-50">
+                {birthdaysThisMonth.length > 0 ? (
+                  birthdaysThisMonth.map((m, idx) => (
+                    <tr key={m.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/30 transition-colors`}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Cake size={16} className="text-pink-500" />
+                          <div>
+                            <span className="font-bold text-gray-700">{m.name}</span>
+                            <span className={`${fs.label} ml-2 text-gray-400 font-black uppercase`}>({calculateAge(m.birthDate)} anos)</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={`px-6 py-4 text-right text-gray-500 font-bold ${fs.label}`}>
+                        {m.birthDate && !isNaN(new Date(m.birthDate).getTime()) ? format(new Date(m.birthDate), "dd 'de' MMMM", { locale: ptBR }) : 'Data inválida'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className={`px-6 py-12 text-center text-gray-400 italic ${fs.body}`}>
+                      Nenhum aniversariante encontrado para este mês.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
             <Clock size={18} />
             <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Últimos Cadastros</h3>
@@ -392,49 +476,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
-              <CalendarClock size={18} />
-              <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Atividades de Hoje</h3>
-            </div>
-            <span className={`${fs.label} font-black px-2 py-1 rounded-full bg-indigo-50 text-indigo-600`}>
-              {format(today, 'dd/MM')}
-            </span>
-          </div>
-          <div className="overflow-y-auto max-h-[320px]">
-            {todayEvents.length > 0 ? (
-              <div className="divide-y divide-gray-50">
-                {todayEvents.map((event) => (
-                  <div key={event.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
-                      style={{ backgroundColor: event.color, color: event.color === '#ffffff' ? '#1f2937' : '#ffffff' }}
-                    >
-                      <RenderEventIcon name={event.icon} size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 text-sm truncate uppercase">{event.title}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Clock size={12} className="text-gray-400" />
-                        <span className="text-[10px] font-black text-gray-400 uppercase">{event.time || '--:--'}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-12 flex flex-col items-center justify-center text-center text-gray-400 px-8">
-                <CalendarClock size={32} className="opacity-10 mb-2" />
-                <p className="text-[10px] font-black uppercase tracking-widest italic">Nenhuma atividade agendada para hoje.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Outras Seções de Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
               <Trophy size={18} />
               <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Ranking de Colaboradores ({currentYear})</h3>
             </div>
@@ -466,65 +507,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
                           <span className="font-bold text-gray-700 truncate max-w-[150px]">{item.member.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="font-black text-indigo-600">{item.paidCount}/12</span>
+                      <td className={`px-6 py-4 text-center font-black ${fs.body} text-indigo-600`}>
+                        {item.paidCount}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {item.medal && (
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${item.medal.bg} ${item.medal.color} border border-current/10 shadow-sm`}>
-                            <span className="text-lg leading-none">{item.medal.icon}</span>
-                            <span className="text-[10px] font-black uppercase tracking-tight">{item.medal.label}</span>
-                          </div>
-                        )}
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${item.medal.bg} ${item.medal.color} border border-current/10`}>
+                          <span className="text-sm">{item.medal.icon}</span>
+                          <span className={`${fs.label} font-black uppercase tracking-wider`}>{item.medal.label}</span>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={3} className={`px-6 py-12 text-center text-gray-400 italic ${fs.body}`}>
-                      Nenhum membro atingiu o critério de medalhas ainda este ano.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>
-              <Calendar size={18} />
-              <h3 className={`${fs.body} font-black uppercase tracking-widest`}>Aniversariantes do Mês</h3>
-            </div>
-            <span className={`${fs.label} font-black px-2 py-1 rounded-full`} style={{ backgroundColor: `${config.primaryColor}20`, color: config.primaryColor }}>
-              {birthdaysThisMonth.length} Membros
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <tbody className="divide-y divide-gray-50">
-                {birthdaysThisMonth.length > 0 ? (
-                  birthdaysThisMonth.map((m, idx) => (
-                    <tr key={m.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/30 transition-colors`}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <Cake size={16} className="text-pink-500" />
-                          <div>
-                            <span className="font-bold text-gray-700">{m.name}</span>
-                            <span className={`${fs.label} ml-2 text-gray-400 font-black uppercase`}>({calculateAge(m.birthDate)} anos)</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className={`px-6 py-4 text-right text-gray-500 font-bold ${fs.label}`}>
-                        {m.birthDate && !isNaN(new Date(m.birthDate).getTime()) ? format(new Date(m.birthDate), "dd 'de' MMMM", { locale: ptBR }) : 'Data inválida'}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className={`px-6 py-12 text-center text-gray-400 italic ${fs.body}`}>
-                      Nenhum aniversariante encontrado para este mês.
+                      Nenhum colaborador elegível para o ranking ainda.
                     </td>
                   </tr>
                 )}

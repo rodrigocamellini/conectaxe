@@ -10,9 +10,12 @@ export const UserService = {
   getAllUsers: async (clientId: string): Promise<User[]> => {
     if (!clientId) return [];
     try {
+      console.log(`[UserService] Fetching users for client: ${clientId}`);
       const q = collection(db, CLIENTS_COLLECTION, clientId, SUBCOL_USERS);
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as User);
+      const users = snapshot.docs.map(doc => doc.data() as User);
+      console.log(`[UserService] Found ${users.length} users for client ${clientId}:`, users);
+      return users;
     } catch (error) {
       console.error("Erro ao buscar usuários do sistema:", error);
       return [];

@@ -1,10 +1,43 @@
 import { db } from './firebaseConfig';
-import { collection, doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, deleteDoc, getDocFromServer } from 'firebase/firestore';
 import { User, MasterCredentials } from '../types';
-import { MasterService } from './masterService';
+// import { MasterService } from './masterService'; // Removed to avoid circular dependency
 
 const SESSIONS_COLLECTION = 'saas_sessions';
 const CLIENTS_COLLECTION = 'saas_clients';
+const CONFIG_COLLECTION = 'saas_config';
+
+// Helper to fetch master credentials locally
+const fetchMasterCredentials = async (): Promise<MasterCredentials> => {
+  const fallback: MasterCredentials = {
+    email: 'rodrigo@dev.com', 
+    password: 'master', 
+    whatsapp: '', 
+    pixKey: '', 
+    bankDetails: '',
+    sidebarTitle: 'Sistema de Gestão de Terreiros',
+    systemTitle: 'ConectAxé Painel de Desenvolvedor',
+    brandLogo: '/images/logo_sistema.png',
+    backupFrequency: 'disabled'
+  };
+  try {
+    const docRef = doc(db, CONFIG_COLLECTION, 'master_credentials');
+    let snap;
+    try {
+      snap = await getDocFromServer(docRef);
+    } catch (err) {
+      snap = await getDoc(docRef);
+    }
+
+    if (snap.exists()) {
+      return { ...fallback, ...snap.data() } as MasterCredentials;
+    }
+    return fallback;
+  } catch (error) {
+    console.error("Error fetching master credentials:", error);
+    return fallback;
+  }
+};
 
 export const AuthService = {
   createSession: async (userId: string, userType: 'master' | 'client_admin' | 'system_user', clientId?: string): Promise<string> => {
@@ -51,7 +84,7 @@ export const AuthService = {
 
       // Fetch User
       if (session.userType === 'master') {
-         const creds = await MasterService.getMasterCredentials();
+         const creds = await fetchMasterCredentials();
          const masterUser: User = { 
              id: 'master', 
              name: 'Rodrigo Master', 
@@ -74,10 +107,11 @@ export const AuthService = {
                      name: client.adminName, 
                      email: client.adminEmail, 
                      role: 'admin',
-                     password: client.adminPassword 
-                 },
-                 isMasterMode: false
-             };
+                    password: client.adminPassword,
+                    clientId: client.id
+                },
+                isMasterMode: false
+            };
          }
       } else if (session.userType === 'system_user' && session.clientId) {
          const userRef = doc(db, CLIENTS_COLLECTION, session.clientId, 'users', session.userId);

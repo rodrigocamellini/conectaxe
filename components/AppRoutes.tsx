@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { 
@@ -62,6 +62,39 @@ const ProtectedLayout: React.FC = () => {
     roadmap
   } = useData();
   const [isSimulation, setIsSimulation] = useState(false);
+
+  // Check for Blocked/Frozen Status
+  // We check both systemConfig.license (loaded from local/server config) and currentClient (loaded from Firestore)
+  const clientStatus = currentClient?.status || systemConfig.license?.status || 'active';
+  const isBlocked = clientStatus === 'blocked' || clientStatus === 'frozen';
+
+  // Allow Master to bypass block
+  if (isBlocked && !auth.isMasterMode) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-4">
+          <div className="max-w-md text-center space-y-6">
+            <div className="mx-auto w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+               <ShieldAlert className="w-12 h-12 text-red-500" />
+            </div>
+            <h1 className="text-3xl font-bold text-red-400">Acesso Suspenso</h1>
+            <p className="text-slate-300 text-lg">
+              {clientStatus === 'frozen' 
+                ? 'Esta conta encontra-se congelada temporariamente.'
+                : 'Esta conta encontra-se bloqueada.'}
+            </p>
+            <p className="text-slate-400">
+              Entre em contato com o suporte para regularizar sua situação.
+            </p>
+            <button 
+              onClick={() => auth.logout()}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+            >
+              Voltar ao Login
+            </button>
+          </div>
+        </div>
+      );
+  }
 
   const latestVersion = React.useMemo(() => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
@@ -144,7 +177,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     transactions,
     addTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    activeClientId
   } = useData();
 
   // Helpers for Plan Limits
@@ -850,8 +884,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} 
             allowAutoBackup={hasModule('mod_backup_auto')} 
             onUpdateConfig={setSystemConfig}
-            clientId={currentClient?.id || systemConfig.license?.clientId}
-            planName={currentClient?.planName || systemConfig.license?.planName}
+            clientId={activeClientId || systemConfig.license?.clientId}
+            planName={currentPlan?.name || systemConfig.license?.planName}
           />
         } />
         <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fábrica desativado na versão Nuvem.")} />} />

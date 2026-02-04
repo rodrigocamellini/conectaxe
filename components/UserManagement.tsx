@@ -78,6 +78,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     photo: '',
   });
 
+  // Debug: Log received users
+  console.log('[UserManagement] Received users:', users);
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setFormData({ name: '', email: '', role: 'medium', password: '', photo: '' });

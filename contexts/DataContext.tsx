@@ -14,6 +14,8 @@ import { PlatformService } from '../services/platformService';
 import { UserService } from '../services/userService';
 import { EntityService } from '../services/entityService';
 import { CourseService } from '../services/courseService';
+import { AttendanceService } from '../services/attendanceService';
+import { IdCardService } from '../services/idCardService';
 import { 
   Member, Consulente, User, SpiritualEntity, InventoryItem, InventoryCategory, 
   SystemConfig, CalendarEvent, Course, Enrollment, AttendanceRecord, SaaSClient, 
@@ -221,6 +223,55 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isSimulation, setIsSimulation] = useState(false);
 
+  // --- DERIVED STATE ---
+  // ORDER IS CRITICAL: currentClient -> activeClientId -> others
+  
+  // 1. Determine Current Client (from Email)
+  const currentClient = useMemo(() => {
+    if (!isAuthenticated || isMasterMode) return null;
+    const userEmail = user?.email || '';
+    if (!userEmail) return null;
+    return clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
+  }, [clients, user, isAuthenticated, isMasterMode]);
+
+  // 2. Determine Active Client ID (Depends on currentClient)
+  const activeClientId = useMemo(() => {
+    // Priority: User's explicitly assigned clientId > System Config License > Current Client (Admin)
+    if (user?.clientId) return user.clientId;
+    if (systemConfig.license?.clientId) return systemConfig.license.clientId;
+    
+    // SAFE ACCESS: Check if currentClient is defined and has an ID
+    if (currentClient && currentClient.id) {
+      return currentClient.id;
+    }
+    
+    return undefined;
+  }, [user, systemConfig, currentClient]);
+
+  // 3. Other Derived States
+  const currentPlan = useMemo(() => {
+    if (!currentClient) return null;
+    return plans.find(p => p.name === currentClient.plan) || null;
+  }, [currentClient, plans]);
+
+  const licenseState = useMemo(() => {
+    if (!isAuthenticated || isMasterMode) return { valid: true, status: 'active' as const };
+    const userEmail = user?.email || '';
+    if (!userEmail) return { valid: true, status: 'active' as const };
+    
+    const client = clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
+    if (client) {
+      if (client.status === 'blocked') return { valid: false, status: 'blocked' as const };
+      if (client.status === 'frozen') return { valid: false, status: 'frozen' as const };
+      const expiry = new Date(client.expirationDate + 'T23:59:59');
+      const isValidLicense = isAfter(expiry, new Date()); 
+      return { valid: isValidLicense, status: isValidLicense ? 'active' : 'expired' } as const;
+    }
+    return { valid: true, status: 'active' as const };
+  }, [clients, user, isAuthenticated, isMasterMode]);
+
+  // --- ACTIONS ---
+
   const loadClientData = useCallback(async (clientId: string) => {
     try {
       const config = await SystemConfigService.getConfig(clientId);
@@ -232,23 +283,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } 
       };
       setSystemConfig(configWithId);
+      
+      // Load System Users
+      const users = await UserService.getAllUsers(clientId);
+      setSystemUsers(users);
     } catch (e) {
       console.error("Error loading client data:", e);
     }
   }, []);
 
-  // Trigger loadClientData when user is authenticated
+  // Handle Initial Data Loading
   useEffect(() => {
-    if (isAuthenticated && user && !isMasterMode) {
-      if (user.role === 'admin') {
-        loadClientData(user.id);
-      } else if (user.clientId) {
+    if (isAuthenticated) {
+      if (isMasterMode) {
+        // Master doesn't load client-specific data by default
+      } else if (user?.clientId) {
+        // Client Admin / System User
         loadClientData(user.clientId);
       }
     }
   }, [isAuthenticated, user, isMasterMode, loadClientData]);
-
-  const activeClientId = systemConfig.license?.clientId;
 
   const addTransaction = async (transaction: FinancialTransaction) => {
     try {
@@ -285,34 +339,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
        console.error("Erro ao excluir transação:", error);
     }
   };
-
-  const currentClient = useMemo(() => {
-    if (!isAuthenticated || isMasterMode) return null;
-    const userEmail = user?.email || '';
-    if (!userEmail) return null;
-    return clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
-  }, [clients, user, isAuthenticated, isMasterMode]);
-
-  const currentPlan = useMemo(() => {
-    if (!currentClient) return null;
-    return plans.find(p => p.name === currentClient.plan) || null;
-  }, [currentClient, plans]);
-
-  const licenseState = useMemo(() => {
-    if (!isAuthenticated || isMasterMode) return { valid: true, status: 'active' as const };
-    const userEmail = user?.email || '';
-    if (!userEmail) return { valid: true, status: 'active' as const };
-    
-    const client = clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
-    if (client) {
-      if (client.status === 'blocked') return { valid: false, status: 'blocked' as const };
-      if (client.status === 'frozen') return { valid: false, status: 'frozen' as const };
-      const expiry = new Date(client.expirationDate + 'T23:59:59');
-      const isValidLicense = isAfter(expiry, new Date()); 
-      return { valid: isValidLicense, status: isValidLicense ? 'active' : 'expired' } as const;
-    }
-    return { valid: true, status: 'active' as const };
-  }, [clients, user, isAuthenticated, isMasterMode]);
 
   // Derived user permissions
   const userPermissions = useMemo(() => {

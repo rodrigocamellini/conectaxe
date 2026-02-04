@@ -13,10 +13,47 @@ import { EcosystemPreview } from './EcosystemPreview';
 import { TicketSystem } from './TicketSystem';
 import { User, MasterCredentials } from '../types';
 import { MASTER_LOGO_URL } from '../constants';
-import { MasterService } from '../services/masterService';
+// import { MasterService } from '../services/masterService'; // Removed to avoid circular dependency
 import { AuthService } from '../services/authService';
 import { db } from '../services/firebaseConfig';
-import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup, getDoc, doc, getDocFromServer } from 'firebase/firestore';
+
+const CONFIG_COLLECTION = 'saas_config';
+
+// Helper to fetch master credentials directly to avoid circular dependency
+const fetchMasterCredentials = async (): Promise<MasterCredentials> => {
+  const fallback: MasterCredentials = {
+    email: 'rodrigo@dev.com', 
+    password: 'master', 
+    whatsapp: '', 
+    pixKey: '', 
+    bankDetails: '',
+    sidebarTitle: 'Sistema de Gestão de Terreiros',
+    systemTitle: 'ConectAxé Painel de Desenvolvedor',
+    brandLogo: MASTER_LOGO_URL,
+    backupFrequency: 'disabled'
+  };
+  try {
+    const docRef = doc(db, CONFIG_COLLECTION, 'master_credentials');
+    
+    // Attempt to fetch from server first to ensure we have the latest password
+    let snap;
+    try {
+      snap = await getDocFromServer(docRef);
+    } catch (err) {
+      console.warn("Could not fetch master credentials from server (offline?), falling back to cache:", err);
+      snap = await getDoc(docRef);
+    }
+
+    if (snap.exists()) {
+      return { ...fallback, ...snap.data() } as MasterCredentials;
+    }
+    return fallback;
+  } catch (error) {
+    console.error("Error fetching master credentials:", error);
+    return fallback;
+  }
+};
 
 export const LoginScreen: React.FC = () => {
   const { setAuth, login } = useAuth();
@@ -33,7 +70,7 @@ export const LoginScreen: React.FC = () => {
   useEffect(() => {
     const loadMasterCreds = async () => {
       try {
-        const creds = await MasterService.getMasterCredentials();
+        const creds = await fetchMasterCredentials();
         setMasterCreds(creds);
       } catch (error) {
         console.error("Error loading master credentials:", error);
@@ -70,25 +107,23 @@ export const LoginScreen: React.FC = () => {
     let masterEmail = 'rodrigo@dev.com';
     let masterPass = 'master';
     
-    // If masterCreds is still loading (null), we might be using default values.
-    // However, if the user changed the password, we MUST use the updated one.
-    // If masterCreds is null, it means it hasn't loaded yet. We should probably wait or retry?
-    // But since this is a simple state, it usually loads fast.
-    
-    if (masterCreds) {
-      masterEmail = masterCreds.email;
-      masterPass = masterCreds.password;
-    } else {
-       // Try to fetch explicitly if state is empty (fallback)
-       try {
-           const fetched = await MasterService.getMasterCredentials();
-           if (fetched) {
-               masterEmail = fetched.email;
-               masterPass = fetched.password;
-           }
-       } catch (err) {
-           console.error("Failed to fetch master credentials during login check", err);
-       }
+    // Always fetch fresh credentials for Master login to ensure password updates apply immediately
+    // This avoids the need for Ctrl+F5 after changing password
+    try {
+        const fetched = await fetchMasterCredentials();
+        if (fetched) {
+            masterEmail = fetched.email;
+            masterPass = fetched.password;
+            // Update local state too to keep UI in sync
+            setMasterCreds(fetched);
+        }
+    } catch (err) {
+        console.error("Failed to fetch fresh master credentials", err);
+        // Fallback to existing state if fetch fails
+        if (masterCreds) {
+            masterEmail = masterCreds.email;
+            masterPass = masterCreds.password;
+        }
     }
 
     if ((loginEmail || '').toLowerCase() === (masterEmail || '').toLowerCase() && loginPassword === masterPass) {
@@ -119,12 +154,17 @@ export const LoginScreen: React.FC = () => {
             const clientData = clientDoc.data();
             
             if (clientData.adminPassword === loginPassword) {
+                 if (clientData.status && clientData.status !== 'active') {
+                    setLoginError('ACESSO BLOQUEADO. Entre em contato com o suporte.');
+                    return;
+                 }
                  const user: User = { 
                     id: clientData.id, 
                     name: clientData.adminName, 
                     email: clientData.adminEmail, 
                     role: 'admin', 
-                    password: clientData.adminPassword 
+                    password: clientData.adminPassword,
+                    clientId: clientData.id
                  };
                  
                  // Update Last Activity (Optional - maybe move to AuthService login)
@@ -158,6 +198,17 @@ export const LoginScreen: React.FC = () => {
              const clientDocRef = userDoc.ref.parent.parent;
              const clientId = clientDocRef ? clientDocRef.id : undefined;
 
+             if (clientDocRef) {
+                const clientDocSnap = await getDoc(clientDocRef);
+                if (clientDocSnap.exists()) {
+                    const clientData = clientDocSnap.data();
+                    if (clientData.status && clientData.status !== 'active') {
+                        setLoginError('ACESSO BLOQUEADO. Entre em contato com o suporte.');
+                        return;
+                    }
+                }
+             }
+
              if (userData.password === loginPassword) {
                  await login(userData, false, clientId);
                  return;
@@ -175,6 +226,11 @@ export const LoginScreen: React.FC = () => {
     // Fallback: Check loaded context (legacy behavior, unreliable on refresh)
     const clientAdmin = clients.find(c => c && c.adminEmail && c.adminEmail.toLowerCase() === (loginEmail || '').toLowerCase() && c.adminPassword === loginPassword);
     if (clientAdmin) {
+      if (clientAdmin.status && clientAdmin.status !== 'active') {
+         setLoginError('ACESSO BLOQUEADO. Entre em contato com o suporte.');
+         return;
+      }
+      
       const updatedClients = clients.map(c =>  
         c.id === clientAdmin.id ? { ...c, lastActivity: new Date().toISOString() } : c
       );
@@ -185,7 +241,8 @@ export const LoginScreen: React.FC = () => {
         email: clientAdmin.adminEmail, 
         name: clientAdmin.adminName, 
         role: 'admin', 
-        password: clientAdmin.adminPassword 
+        password: clientAdmin.adminPassword,
+        clientId: clientAdmin.id
       };
       
       try {

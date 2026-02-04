@@ -362,7 +362,9 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   useEffect(() => {
     const loadMasterCreds = async () => {
       try {
+        console.log('Fetching master credentials from server...');
         const creds = await MasterService.getMasterCredentials();
+        console.log('Master credentials fetched:', creds);
         setMasterCreds(creds);
       } catch (error) {
         console.error("Error loading master credentials:", error);
@@ -503,6 +505,19 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     const planName = newClient.plan || ((plans && plans[0]?.name) || SAAS_PLANS[0]);
     const { price, expirationDate } = getClientBillingFromPlan(planName);
 
+    const isTestPlan = (() => {
+      const p = planName.toLowerCase();
+      return p.includes('teste') || 
+             p.includes('trial') || 
+             p.includes('gratuito') || 
+             p.includes('free') ||
+             p.includes('iniciante') || 
+             p.includes('starter') ||
+             p.includes('basico') ||
+             p.includes('básico') ||
+             p === 'basic';
+    })();
+
     if (editingClient) {
         const updatedClient = {
             ...editingClient,
@@ -549,8 +564,13 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
           monthlyValue: price,
           expirationDate,
           createdAt: new Date().toISOString(),
-          lastActivity: new Date().toISOString()
+          lastActivity: new Date().toISOString(),
+          // Generate affiliate link only for non-test plans
+          affiliateLink: !isTestPlan ? `https://conectaxe.com/cadastro?ref=${Math.random().toString(36).substr(2, 6).toUpperCase()}` : '' // Using random ID for ref if needed, or use client ID below
         } as SaaSClient;
+
+        // Fix affiliate link to use client ID
+        client.affiliateLink = !isTestPlan ? `https://conectaxe.com/cadastro?ref=${client.id}` : '';
 
         // Persist the new client to Firestore immediately
         try {
@@ -588,7 +608,7 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                     planName: client.plan,
                     status: 'active',
                     expirationDate: client.expirationDate,
-                    affiliateLink: `https://conectaxe.com/cadastro?ref=${client.id}`
+                    affiliateLink: client.affiliateLink
                 }
              };
         }

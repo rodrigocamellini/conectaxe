@@ -52,22 +52,52 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   const [backupFile, setBackupFile] = useState<any>(null);
 
   // Determine effective ID and Plan
-  const effectiveClientId = clientId || config.license?.clientId;
-  const effectivePlanName = planName || config.license?.planName || '';
+  // Fallback to config.license if props are empty, critical for correct plan detection
+  // Also check user.clientId as a reliable fallback if currentData/props are missing
+  const effectiveClientId = clientId || user?.clientId || config.license?.clientId;
+  const effectivePlanName = (planName || config.license?.planName || '').trim();
 
-  // Snapshots State
+  // Robust Test Plan Check
+  const isTestPlan = (() => {
+    const p = effectivePlanName.toLowerCase();
+    return p.includes('teste') || 
+           p.includes('trial') || 
+           p.includes('gratuito') || 
+           p.includes('free') ||
+           p.includes('iniciante') ||
+           p.includes('starter') ||
+           p.includes('basico') ||
+           p.includes('básico') ||
+           p === 'basic';
+  })();
+
+  console.log('[BackupSystem] Plan Check Debug:', { 
+    propPlanName: planName,
+    configPlanName: config.license?.planName,
+    effectivePlanName, 
+    isTestPlan 
+  });
   const [snapshots, setSnapshots] = useState<StoredSnapshot[]>([]);
   
   // Load Cloud Backups
-  useEffect(() => {
-    const loadBackups = async () => {
-        if (effectiveClientId) {
-            const backups = await backupService.getBackups(effectiveClientId);
-            setSnapshots(backups);
-        }
-    };
-    loadBackups();
+  const loadBackups = useCallback(async () => {
+      console.log('[BackupSystem] Loading backups for client:', effectiveClientId);
+      if (effectiveClientId) {
+          try {
+              const backups = await backupService.getBackups(effectiveClientId);
+              console.log('[BackupSystem] Loaded backups:', backups);
+              setSnapshots(backups);
+          } catch (err) {
+              console.error('[BackupSystem] Error loading backups:', err);
+          }
+      } else {
+          console.warn('[BackupSystem] No effectiveClientId found, skipping backup load.');
+      }
   }, [effectiveClientId]);
+
+  useEffect(() => {
+    loadBackups();
+  }, [loadBackups]);
 
   // Função para gerar captcha (reutilizada para consistência)
   const generateCaptcha = useCallback(() => {
@@ -88,13 +118,21 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
 
   // Gerar Backup e Salvar na Lista
   const handleGenerateBackup = async () => {
+    if (isTestPlan) {
+      alert('Funcionalidade indisponível no plano de teste.');
+      return;
+    }
+
     const dataToBackup = currentData || {};
     const newSnapshot = backupService.createSnapshotFromData(dataToBackup, 'Manual');
     
     if (effectiveClientId) {
         try {
             await backupService.saveBackup(effectiveClientId, newSnapshot);
+            // Update local state immediately
             setSnapshots(prev => [newSnapshot, ...prev]);
+            // Force reload to ensure consistency with server
+            loadBackups();
             alert('Backup Cloud gerado e salvo com sucesso!');
         } catch (error) {
             console.error(error);
@@ -124,46 +162,6 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
   const confirmDeleteSnapshot = (id: string) => {
     setShowDeleteModal(id);
   };
-
-  const isTestPlan = effectivePlanName.toLowerCase().includes('teste') || 
-                     effectivePlanName.toLowerCase().includes('trial') ||
-                     effectivePlanName.toLowerCase().includes('período de teste');
-
-  if (isTestPlan) {
-    return (
-      <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-8 bg-slate-900 text-white flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                <Lock size={32} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black uppercase tracking-tight">Segurança de Dados</h3>
-                <p className="text-white/70 text-sm font-medium">Backup e Restauração</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="p-16 flex flex-col items-center justify-center text-center space-y-6">
-            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
-              <Lock size={48} />
-            </div>
-            <div className="max-w-md space-y-2">
-              <h3 className="text-xl font-black text-slate-800 uppercase">Funcionalidade Bloqueada</h3>
-              <p className="text-slate-500 font-medium">
-                A geração e exportação de backups não está disponível no Plano de Teste.
-                Para garantir a segurança dos seus dados e habilitar esta função, atualize para um plano completo.
-              </p>
-            </div>
-            <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all">
-              Ver Planos Disponíveis
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const handleDeleteSnapshot = async () => {
     if (!showDeleteModal) return;
@@ -222,6 +220,50 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
     }, 2000);
   };
 
+  const handleRestoreFromSnapshot = async (snapshot: StoredSnapshot) => {
+    if (!confirm(`Deseja restaurar o sistema para a versão de ${new Date(snapshot.date).toLocaleString()}? Esta ação substituirá os dados atuais.`)) {
+      return;
+    }
+    setBackupFile(snapshot.data);
+    setShowRestoreModal(true);
+  };
+
+  if (isTestPlan) {
+    return (
+      <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-8 bg-slate-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                <Lock size={32} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Segurança de Dados</h3>
+                <p className="text-white/70 text-sm font-medium">Backup e Restauração</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-16 flex flex-col items-center justify-center text-center space-y-6">
+            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+              <Lock size={48} />
+            </div>
+            <div className="max-w-md space-y-2">
+              <h3 className="text-xl font-black text-slate-800 uppercase">Funcionalidade Bloqueada</h3>
+              <p className="text-slate-500 font-medium">
+                A geração e exportação de backups não está disponível no Plano de Teste.
+                Para garantir a segurança dos seus dados e habilitar esta função, atualize para um plano completo.
+              </p>
+            </div>
+            <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all">
+              Ver Planos Disponíveis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -259,8 +301,15 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
 
            {/* Card Restaurar Backup */}
            <div className="bg-indigo-50 border-2 border-indigo-100 p-8 rounded-[2rem] flex flex-col items-center text-center space-y-6">
-              <div className="p-6 bg-white rounded-full text-indigo-600 shadow-xl shadow-indigo-100">
+              <div className="p-6 bg-white rounded-full text-indigo-600 shadow-xl shadow-indigo-100 relative">
                  <Upload size={48} />
+                 <button 
+                    onClick={loadBackups}
+                    className="absolute -top-2 -right-2 p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all shadow-md"
+                    title="Recarregar Lista"
+                 >
+                    <RefreshCcw size={14} />
+                 </button>
               </div>
               <div className="space-y-2">
                  <h4 className="text-xl font-black text-indigo-800 uppercase tracking-tight">Restaurar de Arquivo</h4>
@@ -345,6 +394,13 @@ export const BackupSystem: React.FC<BackupSystemProps> = ({
                          title="Baixar"
                        >
                          <Download size={18} />
+                       </button>
+                       <button 
+                         onClick={() => handleRestoreFromSnapshot(snap)}
+                         className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                         title="Restaurar"
+                       >
+                         <RefreshCcw size={18} />
                        </button>
                        <button 
                         onClick={() => confirmDeleteSnapshot(snap.id)}
