@@ -876,11 +876,19 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     executeStatusChange(id, newStatus);
   };
 
-  const executeStatusChange = (id: string, newStatus: SaaSClient['status']) => {
+  const executeStatusChange = async (id: string, newStatus: SaaSClient['status']) => {
     const client = clients.find(c => c.id === id);
-    onUpdateClients(clients.map(c => c.id === id ? { ...c, status: newStatus } : c));
+    if (!client) return;
+
+    const updatedClient = { ...client, status: newStatus };
     
-    if (client) {
+    try {
+      // Persist to Firestore
+      await MasterService.saveClient(updatedClient);
+      
+      // Update local state
+      onUpdateClients(clients.map(c => c.id === id ? updatedClient : c));
+      
       onAddAuditLog({
         clientId: client.id,
         clientName: client.name,
@@ -889,7 +897,11 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         severity: newStatus === 'blocked' || newStatus === 'frozen' ? 'warning' : 'info',
         details: `Status alterado de ${client.status} para ${newStatus}`
       });
+    } catch (error) {
+      console.error("Error updating client status:", error);
+      alert("Erro ao atualizar status do cliente. Tente novamente.");
     }
+
     setFreezeConfirm(null);
     setBlockConfirm(null);
   };

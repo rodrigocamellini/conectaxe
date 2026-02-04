@@ -885,7 +885,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             allowAutoBackup={hasModule('mod_backup_auto')} 
             onUpdateConfig={setSystemConfig}
             clientId={activeClientId || systemConfig.license?.clientId}
-            planName={currentPlan?.name || systemConfig.license?.planName}
+            planName={currentClient?.planName || currentPlan?.name || systemConfig.license?.planName}
           />
         } />
         <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fábrica desativado na versão Nuvem.")} />} />

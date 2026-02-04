@@ -483,8 +483,6 @@ export interface FinancialTransaction {
   paymentMethod?: string;
   notes?: string;
   relatedId?: string;
-}
-
 export interface MasterCredentials {
   email: string;
   password: string;
@@ -494,5 +492,7 @@ export interface MasterCredentials {
   sidebarTitle: string;
   systemTitle: string;
   brandLogo: string;
-  backupFrequency: 'disabled' | 'daily' | 'weekly' | 'monthly';
+  backupFrequency: 'disabled' | '7' | '15' | '30';
+  masterName?: string;
+}'daily' | 'weekly' | 'monthly';
 }
