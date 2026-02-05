@@ -460,7 +460,7 @@ export const INITIAL_SAAS_PLANS: SaaSPlan[] = [
     id: 'p_teste', 
     name: 'Plano de Teste', 
     price: 0, 
-    durationDays: 10,
+    durationDays: 7,
     enabledModules: ['agenda', 'gestao_eventos', 'eventos_lista', 'eventos_portaria', 'cursos', 'cursos_ead', 'cursos_gestao', 'midia', 'midia_pontos', 'midia_rezas', 'midia_ervas', 'cantina', 'cantina_pdv', 'cantina_gestao', 'cantina_historico', 'financeiro', 'financeiro_mensalidades', 'financeiro_doacoes', 'financeiro_relatorios', 'financeiro_config', 'estoque', 'estoque_dashboard', 'estoque_gestao', 'estoque_movimentacao'],
     limits: { maxMembers: 30, maxConsulentes: 30 }
   },

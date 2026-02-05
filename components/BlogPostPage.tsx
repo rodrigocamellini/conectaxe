@@ -6,7 +6,7 @@ import { BlogPost } from '../types';
 import Navbar from './landing/components/Navbar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Share2, Facebook, Twitter, Linkedin, Link as LinkIcon, MessageCircle } from 'lucide-react';
 
 export const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -42,6 +42,36 @@ export const BlogPostPage: React.FC = () => {
       </div>
     );
   }
+
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  
+  const handleShare = (platform: string) => {
+    let url = '';
+    const text = post.title;
+    switch (platform) {
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        break;
+      case 'twitter':
+        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(text)}`;
+        break;
+      case 'whatsapp':
+        url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + shareUrl)}`;
+        break;
+    }
+    if (url) window.open(url, '_blank', 'width=600,height=400');
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    // You might want a toast here, but for now a simple alert or just action is fine.
+    // Let's assume the user knows it worked or add a temporary text change if needed.
+    // For simplicity, we won't add a toast state right now unless requested.
+    alert('Link copiado para a área de transferência!');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -81,6 +111,31 @@ export const BlogPostPage: React.FC = () => {
                       {post.content.split('\n').map((paragraph, idx) => (
                         <p key={idx} className="mb-4">{paragraph}</p>
                       ))}
+                   </div>
+
+                   {/* Social Share Section */}
+                   <div className="mt-12 pt-8 border-t border-gray-100">
+                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                       <Share2 size={20} className="text-indigo-600" />
+                       Compartilhar este artigo
+                     </h3>
+                     <div className="flex flex-wrap gap-3">
+                       <button onClick={() => handleShare('facebook')} className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors" title="Facebook">
+                         <Facebook size={20} />
+                       </button>
+                       <button onClick={() => handleShare('twitter')} className="p-3 bg-sky-500 text-white rounded-full hover:bg-sky-600 transition-colors" title="Twitter">
+                         <Twitter size={20} />
+                       </button>
+                       <button onClick={() => handleShare('linkedin')} className="p-3 bg-blue-700 text-white rounded-full hover:bg-blue-800 transition-colors" title="LinkedIn">
+                         <Linkedin size={20} />
+                       </button>
+                       <button onClick={() => handleShare('whatsapp')} className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors" title="WhatsApp">
+                         <MessageCircle size={20} />
+                       </button>
+                       <button onClick={copyLink} className="p-3 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors" title="Copiar Link">
+                         <LinkIcon size={20} />
+                       </button>
+                     </div>
                    </div>
                 </div>
               </article>

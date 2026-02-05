@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { BlogSidebar } from './BlogSidebar';
 import { BlogService } from '../services/blogService';
-import { BlogPost } from '../types';
+import { BlogPost, BlogCategory, BlogBanner } from '../types';
 import Navbar from './landing/components/Navbar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,21 +13,26 @@ export const BlogPage: React.FC = () => {
   const searchQuery = searchParams.get('search');
   
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [headerBanner, setHeaderBanner] = useState<BlogBanner | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        let allPosts = await BlogService.getPublishedPosts();
+        const [allPostsData, allCategories, banner] = await Promise.all([
+          BlogService.getPublishedPosts(),
+          BlogService.getAllCategories(),
+          BlogService.getBannerByLocation('header')
+        ]);
+        
+        setCategories(allCategories);
+        setHeaderBanner(banner);
+        let allPosts = allPostsData;
         
         if (categorySlug) {
-           // Fetch categories to find ID from slug, or filter if post has slug.
-           // Assuming post.category is ID. 
-           // For now, let's filter by checking if any category matches.
-           // Ideally, we should fetch category by slug to get ID, then filter posts by category ID.
-           const categories = await BlogService.getAllCategories();
-           const category = categories.find(c => c.slug === categorySlug);
+           const category = allCategories.find(c => c.slug === categorySlug);
            if (category) {
              allPosts = allPosts.filter(p => p.category === category.id);
            } else {
@@ -67,10 +72,46 @@ export const BlogPage: React.FC = () => {
               ← Voltar para Home
            </button>
         </div>
-        <div className="text-center mb-16">
-           <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">Blog ConectAxé</h1>
-           <p className="text-xl text-gray-600 max-w-2xl mx-auto">Notícias, atualizações e conhecimento para gestão de terreiros.</p>
-        </div>
+
+        {headerBanner && headerBanner.active ? (
+          <div className="mb-12 rounded-3xl overflow-hidden shadow-xl border border-gray-100 group relative">
+            {headerBanner.linkUrl ? (
+              <a href={headerBanner.linkUrl} target="_blank" rel="noopener noreferrer" className="block relative">
+                 <img 
+                   src={headerBanner.imageUrl} 
+                   alt={headerBanner.title} 
+                   className="w-full h-auto max-h-[400px] object-cover hover:opacity-95 transition-opacity"
+                 />
+              </a>
+            ) : (
+               <img 
+                 src={headerBanner.imageUrl} 
+                 alt={headerBanner.title} 
+                 className="w-full h-auto max-h-[400px] object-cover"
+               />
+            )}
+          </div>
+        ) : (
+          <div className="text-center mb-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-8 text-white shadow-xl group">
+             <div className="relative z-10">
+               <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">Blog ConectAxé</h1>
+               <p className="text-lg md:text-xl font-medium text-orange-100 max-w-3xl mx-auto whitespace-nowrap overflow-hidden text-ellipsis">Notícias, atualizações e conhecimento para gestão de terreiros.</p>
+             </div>
+             {/* Decorative Background Elements */}
+             <div className="absolute top-0 left-0 w-full h-full opacity-20">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+             </div>
+             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
+             <div className="absolute -top-24 -left-24 w-64 h-64 bg-yellow-400/20 rounded-full blur-3xl group-hover:bg-yellow-400/30 transition-all duration-1000"></div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
            {/* Main Content */}
@@ -78,36 +119,41 @@ export const BlogPage: React.FC = () => {
               {loading ? (
                 <div className="text-center py-20">Carregando...</div>
               ) : posts.length > 0 ? (
-                posts.map(post => (
-                  <article key={post.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group">
-                    <div className="aspect-video overflow-hidden bg-gray-100 relative">
-                       {post.coverImage && (
-                         <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                       )}
-                       <div className="absolute top-4 left-4">
-                          <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-indigo-600 shadow-lg">
-                            Artigo
-                          </span>
-                       </div>
-                    </div>
-                    <div className="p-8 md:p-10">
-                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 font-medium">
-                          <span>{format(new Date(post.createdAt), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
-                          <span>•</span>
-                          <span>{post.author || 'Equipe ConectAxé'}</span>
-                       </div>
-                       <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors">
-                         {post.title}
-                       </h2>
-                       <p className="text-gray-600 leading-relaxed mb-8 line-clamp-3">
-                         {post.excerpt}
-                       </p>
-                       <a href={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-indigo-600 uppercase tracking-widest text-xs hover:gap-4 transition-all">
-                         Ler Artigo Completo <span className="text-lg">→</span>
-                       </a>
-                    </div>
-                  </article>
-                ))
+                posts.map(post => {
+                  const categoryName = categories.find(c => c.id === post.category)?.name || 'Geral';
+                  return (
+                    <article key={post.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col h-full">
+                      <Link to={`/blog/${post.slug}`} className="block aspect-video overflow-hidden bg-gray-100 relative">
+                         {post.coverImage && (
+                           <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                         )}
+                         <div className="absolute top-4 left-4">
+                            <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-indigo-600 shadow-lg">
+                              {categoryName}
+                            </span>
+                         </div>
+                      </Link>
+                      <div className="p-8 md:p-10 flex flex-col flex-1">
+                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 font-medium">
+                            <span>{format(new Date(post.createdAt), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
+                            <span>•</span>
+                            <span>{post.author || 'Equipe ConectAxé'}</span>
+                         </div>
+                         <Link to={`/blog/${post.slug}`} className="block">
+                           <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors">
+                             {post.title}
+                           </h2>
+                         </Link>
+                         <p className="text-gray-600 leading-relaxed mb-8 line-clamp-3 flex-1">
+                           {post.excerpt}
+                         </p>
+                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-indigo-600 uppercase tracking-widest text-xs hover:gap-4 transition-all mt-auto">
+                           Ler Artigo Completo <span className="text-lg">→</span>
+                         </Link>
+                      </div>
+                    </article>
+                  );
+                })
               ) : (
                 <div className="text-center py-20 bg-white rounded-[2rem] border border-gray-100">
                    <p className="text-gray-500 font-medium">Nenhum post encontrado.</p>

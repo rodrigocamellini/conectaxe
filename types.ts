@@ -501,6 +501,7 @@ export interface BlogPost {
   status: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
+  keywords?: string; // Comma separated keywords
 }
 
 export interface BlogCategory {
@@ -508,4 +509,13 @@ export interface BlogCategory {
   name: string;
   slug: string;
   image?: string; // Optional image for rectangular button display
+}
+
+export interface BlogBanner {
+  id: string;
+  location: string; // e.g., 'header', 'sidebar'
+  title: string;
+  imageUrl: string;
+  linkUrl?: string;
+  active: boolean;
 }

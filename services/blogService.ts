@@ -11,10 +11,11 @@ import {
   limit 
 } from 'firebase/firestore';
 import { db } from "./firebaseConfig";
-import { BlogPost, BlogCategory } from '../types';
+import { BlogPost, BlogCategory, BlogBanner } from '../types';
 
 const BLOG_POSTS_COLLECTION = 'blog_posts';
 const BLOG_CATEGORIES_COLLECTION = 'blog_categories';
+const BLOG_BANNERS_COLLECTION = 'blog_banners';
 
 export const BlogService = {
   // Posts
@@ -31,13 +32,11 @@ export const BlogService = {
 
   getPublishedPosts: async (): Promise<BlogPost[]> => {
     try {
-      const q = query(
-        collection(db, BLOG_POSTS_COLLECTION), 
-        where('status', '==', 'published'),
-        orderBy('createdAt', 'desc')
-      );
+      // Fetch all posts ordered by date and filter in client to avoid Firestore Composite Index requirements
+      const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+      const allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+      return allPosts.filter(p => p.status === 'published');
     } catch (error) {
       console.error("Error fetching published blog posts:", error);
       return [];
@@ -46,14 +45,13 @@ export const BlogService = {
 
   getRecentPosts: async (count: number = 3): Promise<BlogPost[]> => {
     try {
-      const q = query(
-        collection(db, BLOG_POSTS_COLLECTION),
-        where('status', '==', 'published'),
-        orderBy('createdAt', 'desc'),
-        limit(count)
-      );
+      // Use client-side filtering to avoid index issues
+      const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+      const allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+      return allPosts
+        .filter(p => p.status === 'published')
+        .slice(0, count);
     } catch (error) {
       console.error("Error fetching recent posts:", error);
       return [];
@@ -117,6 +115,48 @@ export const BlogService = {
       await deleteDoc(doc(db, BLOG_CATEGORIES_COLLECTION, id));
     } catch (error) {
       console.error("Error deleting blog category:", error);
+      throw error;
+    }
+  },
+
+  // Banners
+  getBanners: async (): Promise<BlogBanner[]> => {
+    try {
+      const snapshot = await getDocs(collection(db, BLOG_BANNERS_COLLECTION));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogBanner));
+    } catch (error) {
+      console.error("Error fetching blog banners:", error);
+      return [];
+    }
+  },
+
+  getBannerByLocation: async (location: string): Promise<BlogBanner | null> => {
+    try {
+      const q = query(collection(db, BLOG_BANNERS_COLLECTION), where('location', '==', location), where('active', '==', true), limit(1));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as BlogBanner;
+    } catch (error) {
+      console.error("Error fetching blog banner by location:", error);
+      return null;
+    }
+  },
+
+  saveBanner: async (banner: BlogBanner): Promise<void> => {
+    try {
+      const bannerRef = doc(db, BLOG_BANNERS_COLLECTION, banner.id);
+      await setDoc(bannerRef, banner);
+    } catch (error) {
+      console.error("Error saving blog banner:", error);
+      throw error;
+    }
+  },
+
+  deleteBanner: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, BLOG_BANNERS_COLLECTION, id));
+    } catch (error) {
+      console.error("Error deleting blog banner:", error);
       throw error;
     }
   }

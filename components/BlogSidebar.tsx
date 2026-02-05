@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { BlogService } from '../services/blogService';
-import { BlogPost, BlogCategory } from '../types';
+import { BlogPost, BlogCategory, BlogBanner } from '../types';
 
 interface BlogSidebarProps {
   onSearch?: (query: string) => void;
@@ -13,16 +13,19 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [banner, setBanner] = useState<BlogBanner | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [posts, cats] = await Promise.all([
+        const [posts, cats, adBanner] = await Promise.all([
           BlogService.getRecentPosts(3),
-          BlogService.getAllCategories()
+          BlogService.getAllCategories(),
+          BlogService.getBannerByLocation('sidebar-top')
         ]);
         setRecentPosts(posts);
         setCategories(cats);
+        setBanner(adBanner);
       } catch (error) {
         console.error("Error loading sidebar data:", error);
       }
@@ -43,7 +46,7 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
     <div className="space-y-8">
       {/* Search Widget */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Pesquisar</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-4 border-l-4 border-orange-500 pl-3">Pesquisar</h3>
         <form onSubmit={handleSearch} className="relative">
           <input
             type="text"
@@ -58,9 +61,33 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
         </form>
       </div>
 
+      {/* Ad Banner Widget */}
+      {banner && banner.active && (
+        <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 group relative">
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded">
+            Publicidade
+          </div>
+          {banner.linkUrl ? (
+            <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="block relative">
+              <img 
+                src={banner.imageUrl} 
+                alt={banner.title} 
+                className="w-full h-auto object-cover hover:opacity-95 transition-opacity" 
+              />
+            </a>
+          ) : (
+             <img 
+                src={banner.imageUrl} 
+                alt={banner.title} 
+                className="w-full h-auto object-cover" 
+              />
+          )}
+        </div>
+      )}
+
       {/* Recent Posts Widget */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 border-l-4 border-indigo-600 pl-3">Posts Recentes</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-6 border-l-4 border-orange-500 pl-3">Posts Recentes</h3>
         <div className="space-y-6">
           {recentPosts.length > 0 ? (
             recentPosts.map(post => (
@@ -95,7 +122,7 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
 
       {/* Categories Widget */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 border-l-4 border-indigo-600 pl-3">Categorias</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-6 border-l-4 border-orange-500 pl-3">Categorias</h3>
         <div className="space-y-2">
           {categories.length > 0 ? (
             categories.map(cat => (

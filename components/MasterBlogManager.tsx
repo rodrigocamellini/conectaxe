@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { BlogPost, BlogCategory } from '../types';
 import { BlogService } from '../services/blogService';
@@ -16,129 +15,203 @@ import {
   CheckCircle2, 
   AlertCircle,
   Eye,
-  Calendar
+  Calendar,
+  BookOpen,
+  Megaphone,
+  Globe,
+  Link as LinkIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 
+// Helper for safe ID generation
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
 export const MasterBlogManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'categories'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'banners'>('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [banners, setBanners] = useState<any[]>([]); // Using any for simplicity or import BlogBanner
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   // Editing States
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [currentPost, setCurrentPost] = useState<Partial<BlogPost>>({});
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Partial<BlogCategory>>({});
+  const [isEditingBanner, setIsEditingBanner] = useState(false);
+  const [currentBanner, setCurrentBanner] = useState<any>({});
+
+  // Delete Confirmation State
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    type: 'post' | 'category' | 'banner';
+    id: string;
+    title: string;
+  }>({ isOpen: false, type: 'post', id: '', title: '' });
 
   // Refs for file inputs
   const postImageInputRef = useRef<HTMLInputElement>(null);
   const categoryImageInputRef = useRef<HTMLInputElement>(null);
+  const bannerImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fetchedPosts, fetchedCategories] = await Promise.all([
+      const [fetchedPosts, fetchedCategories, fetchedBanners] = await Promise.all([
         BlogService.getAllPosts(),
-        BlogService.getAllCategories()
+        BlogService.getAllCategories(),
+        BlogService.getBanners()
       ]);
       setPosts(fetchedPosts);
       setCategories(fetchedCategories);
+      setBanners(fetchedBanners);
     } catch (error) {
       console.error("Error loading blog data:", error);
+      showNotification("Erro ao carregar dados do blog", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const seedInitialData = async () => {
-    if (loading) return;
+  const seedInitialData = async (passedPosts?: BlogPost[] | any, passedCategories?: BlogCategory[]) => {
+    // Handle arguments (if called via onClick, first arg is event)
+    const currentPosts = Array.isArray(passedPosts) ? passedPosts : posts;
+    const currentCategories = Array.isArray(passedCategories) ? passedCategories : categories;
+
+    const isManual = !Array.isArray(passedPosts);
+    if (loading && isManual) return; 
     
     try {
-      setLoading(true);
+      if (isManual) setLoading(true);
+      
       // Ensure we have categories
-      let catGeral = categories.find(c => c.name === 'Geral');
-      let catDatas = categories.find(c => c.name === 'Datas Comemorativas');
-      let catReflexao = categories.find(c => c.name === 'Reflexão');
-      let catNoticias = categories.find(c => c.name === 'Notícias');
+      let catGeral = currentCategories.find(c => c.name === 'Geral');
+      let catDatas = currentCategories.find(c => c.name === 'Datas Comemorativas');
+      let catReflexao = currentCategories.find(c => c.name === 'Reflexão');
+      let catNoticias = currentCategories.find(c => c.name === 'Notícias');
 
       if (!catGeral) {
-        const id = await BlogService.saveCategory({ name: 'Geral', slug: 'geral' });
+        const id = generateId();
+        await BlogService.saveCategory({ id, name: 'Geral', slug: 'geral' });
         catGeral = { id, name: 'Geral', slug: 'geral' };
       }
       if (!catDatas) {
-        const id = await BlogService.saveCategory({ name: 'Datas Comemorativas', slug: 'datas-comemorativas' });
+        const id = generateId();
+        await BlogService.saveCategory({ id, name: 'Datas Comemorativas', slug: 'datas-comemorativas' });
         catDatas = { id, name: 'Datas Comemorativas', slug: 'datas-comemorativas' };
       }
       if (!catReflexao) {
-         const id = await BlogService.saveCategory({ name: 'Reflexão', slug: 'reflexao' });
+         const id = generateId();
+         await BlogService.saveCategory({ id, name: 'Reflexão', slug: 'reflexao' });
          catReflexao = { id, name: 'Reflexão', slug: 'reflexao' };
       }
       if (!catNoticias) {
-         const id = await BlogService.saveCategory({ name: 'Notícias', slug: 'noticias' });
+         const id = generateId();
+         await BlogService.saveCategory({ id, name: 'Notícias', slug: 'noticias' });
          catNoticias = { id, name: 'Notícias', slug: 'noticias' };
       }
 
       // Check and add posts
-      const iemanjaExists = posts.some(p => p.title.includes('Iemanjá'));
+      const iemanjaExists = currentPosts.some(p => p.title.includes('Iemanjá'));
       if (!iemanjaExists) {
         await BlogService.savePost({
+          id: generateId(),
           title: 'Dia de Iemanjá: A Rainha do Mar',
           slug: 'dia-de-iemanja-rainha-do-mar',
           content: 'No dia 2 de fevereiro, celebramos Iemanjá, a Rainha do Mar. Orixá de grande poder, protetora dos pescadores e mãe de todas as cabeças. Neste dia, devotos levam oferendas ao mar, vestem branco e pedem por proteção e caminhos abertos. Iemanjá representa a fertilidade, a família e o amor incondicional. Salve a Rainha do Mar! Odoyá!',
           excerpt: 'Celebração do dia 2 de fevereiro, dia de Iemanjá, a Rainha do Mar. Conheça a importância desta data.',
           status: 'published',
           category: catDatas?.id || catGeral?.id || '',
-          coverImage: 'https://images.unsplash.com/photo-1568817765239-688164019688?q=80&w=1000&auto=format&fit=crop' // Generic ocean/spiritual image
+          coverImage: 'https://images.unsplash.com/photo-1568817765239-688164019688?q=80&w=1000&auto=format&fit=crop', // Generic ocean/spiritual image
+          author: 'Master',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       }
 
-      const intoleranceExists = posts.some(p => p.title.includes('Intolerância'));
+      const intoleranceExists = currentPosts.some(p => p.title.includes('Intolerância'));
       if (!intoleranceExists) {
         await BlogService.savePost({
+          id: generateId(),
           title: 'Combate à Intolerância Religiosa',
           slug: 'combate-a-intolerancia-religiosa',
           content: 'A intolerância religiosa é um crime que fere a liberdade de crença e a dignidade humana. É fundamental respeitar todas as manifestações de fé. As religiões de matriz africana, em especial, sofrem com preconceitos históricos. O diálogo e a educação são as principais armas contra o ódio. Juntos somos mais fortes na luta por um mundo com mais respeito e axé.',
           excerpt: 'Reflexão sobre a importância do respeito e da luta contra a intolerância religiosa no Brasil.',
           status: 'published',
           category: catReflexao?.id || catGeral?.id || '',
-          coverImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=1000&auto=format&fit=crop' // Hands/unity image
+          coverImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=1000&auto=format&fit=crop', // Hands/unity image
+          author: 'Master',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       }
 
-      const growthExists = posts.some(p => p.title.includes('Crescimento'));
+      const growthExists = currentPosts.some(p => p.title.includes('Crescimento'));
       if (!growthExists) {
         await BlogService.savePost({
-           title: 'O Crescimento da Umbanda e Candomblé',
-           slug: 'o-crescimento-da-umbanda-e-candomble',
-           content: 'Nos últimos anos, observamos um crescimento significativo no interesse e na adesão às religiões de matriz africana. Esse movimento reflete uma busca por reconexão com a ancestralidade e por uma espiritualidade mais acolhedora e inclusiva. Terreiros estão se abrindo mais para a comunidade, desmistificando preconceitos e levando a mensagem de amor e caridade para mais pessoas.',
-           excerpt: 'Análise sobre o aumento de adeptos e o fortalecimento das religiões de matriz africana.',
-           status: 'published',
-           category: catNoticias?.id || catGeral?.id || '',
-           coverImage: 'https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=1000&auto=format&fit=crop' // Spiritual gathering/nature
+          id: generateId(),
+          title: 'O Crescimento da Umbanda e Candomblé',
+          slug: 'o-crescimento-da-umbanda-e-candomble',
+          content: 'Nos últimos anos, observamos um crescimento significativo no interesse e na adesão às religiões de matriz africana. Esse movimento reflete uma busca por reconexão com a ancestralidade e por uma espiritualidade mais acolhedora e inclusiva. Terreiros estão se abrindo mais para a comunidade, desmistificando preconceitos e levando a mensagem de amor e caridade para mais pessoas.',
+          excerpt: 'Análise sobre o aumento de adeptos e o fortalecimento das religiões de matriz africana.',
+          status: 'published',
+          category: catNoticias?.id || catGeral?.id || '',
+          coverImage: 'https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=1000&auto=format&fit=crop', // Spiritual gathering/nature
+          author: 'Master',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       }
 
-      alert('Posts iniciais criados com sucesso!');
+      if (isManual) {
+        showNotification('Posts iniciais criados com sucesso!', 'success');
+      }
       loadData();
     } catch (err) {
       console.error("Error seeding data:", err);
-      alert('Erro ao criar posts iniciais.');
+      if (isManual) {
+        showNotification('Erro ao criar posts iniciais. Verifique o console.', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (isManual) setLoading(false);
     }
   };
-  // Cleanup
+
+  // Auto-seed effect
+  const hasSeeded = useRef(false);
+  useEffect(() => {
+    if (!loading && !hasSeeded.current) {
+      // Wait a bit to ensure categories are fully loaded if they come from async
+      const timer = setTimeout(() => {
+        hasSeeded.current = true;
+        seedInitialData(posts, categories);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   const handleSavePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPost.title || !currentPost.content) return;
+    if (!currentPost.title || !currentPost.content) {
+      showNotification("Preencha o título e o conteúdo.", "error");
+      return;
+    }
 
     try {
       const slug = currentPost.slug || currentPost.title.toLowerCase()
@@ -146,7 +219,7 @@ export const MasterBlogManager: React.FC = () => {
         .replace(/\s+/g, '-');
 
       const postToSave: BlogPost = {
-        id: currentPost.id || crypto.randomUUID(),
+        id: currentPost.id || generateId(),
         title: currentPost.title,
         slug,
         content: currentPost.content,
@@ -155,6 +228,7 @@ export const MasterBlogManager: React.FC = () => {
         category: currentPost.category || '',
         author: currentPost.author || 'Master',
         status: currentPost.status || 'draft',
+        keywords: currentPost.keywords || '',
         createdAt: currentPost.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -162,26 +236,38 @@ export const MasterBlogManager: React.FC = () => {
       await BlogService.savePost(postToSave);
       setIsEditingPost(false);
       setCurrentPost({});
+      showNotification("Postagem salva com sucesso!", "success");
       loadData();
     } catch (error) {
       console.error("Error saving post:", error);
-      alert("Erro ao salvar postagem");
+      showNotification("Erro ao salvar postagem", "error");
     }
   };
 
-  const handleDeletePost = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta postagem?")) return;
-    try {
-      await BlogService.deletePost(id);
-      loadData();
-    } catch (error) {
-      console.error("Error deleting post:", error);
-    }
+  const handleDeletePost = (post: BlogPost) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      type: 'post',
+      id: post.id,
+      title: post.title
+    });
+  };
+
+  const handleDeleteCategory = (cat: BlogCategory) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      type: 'category',
+      id: cat.id,
+      title: cat.name
+    });
   };
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentCategory.name) return;
+    if (!currentCategory.name) {
+      showNotification("Preencha o nome da categoria.", "error");
+      return;
+    }
 
     try {
       const slug = currentCategory.slug || currentCategory.name.toLowerCase()
@@ -189,7 +275,7 @@ export const MasterBlogManager: React.FC = () => {
         .replace(/\s+/g, '-');
 
       const categoryToSave: BlogCategory = {
-        id: currentCategory.id || crypto.randomUUID(),
+        id: currentCategory.id || generateId(),
         name: currentCategory.name,
         slug,
         image: currentCategory.image
@@ -198,24 +284,66 @@ export const MasterBlogManager: React.FC = () => {
       await BlogService.saveCategory(categoryToSave);
       setIsEditingCategory(false);
       setCurrentCategory({});
+      showNotification("Categoria salva com sucesso!", "success");
       loadData();
     } catch (error) {
       console.error("Error saving category:", error);
-      alert("Erro ao salvar categoria");
+      showNotification("Erro ao salvar categoria", "error");
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta categoria?")) return;
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentBanner.title || !currentBanner.imageUrl) {
+      showNotification("Preencha o título e a imagem.", "error");
+      return;
+    }
+
     try {
-      await BlogService.deleteCategory(id);
+      const bannerToSave = {
+        id: currentBanner.id || generateId(),
+        location: currentBanner.location || 'sidebar-top',
+        title: currentBanner.title,
+        imageUrl: currentBanner.imageUrl,
+        linkUrl: currentBanner.linkUrl || '',
+        active: currentBanner.active !== false
+      };
+
+      await BlogService.saveBanner(bannerToSave);
+      setIsEditingBanner(false);
+      setCurrentBanner({});
+      showNotification("Banner salvo com sucesso!", "success");
       loadData();
     } catch (error) {
-      console.error("Error deleting category:", error);
+      console.error("Error saving banner:", error);
+      showNotification("Erro ao salvar banner", "error");
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'post' | 'category') => {
+  const confirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
+    setDeleteConfirmation(prev => ({ ...prev, isOpen: false }));
+    
+    try {
+      if (deleteConfirmation.type === 'post') {
+        await BlogService.deletePost(deleteConfirmation.id);
+        showNotification("Postagem excluída com sucesso!", "success");
+      } else if (deleteConfirmation.type === 'category') {
+        await BlogService.deleteCategory(deleteConfirmation.id);
+        showNotification("Categoria excluída com sucesso!", "success");
+      } else if (deleteConfirmation.type === 'banner') {
+        await BlogService.deleteBanner(deleteConfirmation.id);
+        showNotification("Banner excluído com sucesso!", "success");
+      }
+      loadData();
+    } catch (error) {
+      console.error("Error deleting:", error);
+      showNotification("Erro ao excluir item", "error");
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'post' | 'category' | 'banner') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -224,45 +352,69 @@ export const MasterBlogManager: React.FC = () => {
       const base64 = reader.result as string;
       if (type === 'post') {
         setCurrentPost(prev => ({ ...prev, coverImage: base64 }));
-      } else {
+      } else if (type === 'category') {
         setCurrentCategory(prev => ({ ...prev, image: base64 }));
+      } else if (type === 'banner') {
+        setCurrentBanner(prev => ({ ...prev, imageUrl: base64 }));
       }
     };
     reader.readAsDataURL(file);
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Carregando blog...</div>;
+    return <div className="p-8 text-center text-slate-400">Carregando blog...</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 text-white relative">
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`fixed top-4 right-4 p-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-right border ${notification.type === 'success' ? 'bg-emerald-900/90 border-emerald-500 text-emerald-100' : 'bg-red-900/90 border-red-500 text-red-100'}`}>
+          {notification.type === 'success' ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
+          <p className="font-medium">{notification.message}</p>
+          <button onClick={() => setNotification(null)} className="ml-2 hover:opacity-70"><X size={18} /></button>
+        </div>
+      )}
+
       {/* Header Tabs */}
-      <div className="flex gap-4 border-b border-gray-200 pb-1">
+      <div className="flex gap-4 border-b border-slate-700 pb-1">
         <button
           onClick={() => setActiveTab('posts')}
           className={`px-4 py-2 text-sm font-bold uppercase transition-colors relative ${
             activeTab === 'posts' 
-              ? 'text-indigo-600' 
-              : 'text-gray-400 hover:text-gray-600'
+              ? 'text-indigo-400' 
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           Postagens
           {activeTab === 'posts' && (
-            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-600 rounded-full" />
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
           )}
         </button>
         <button
           onClick={() => setActiveTab('categories')}
           className={`px-4 py-2 text-sm font-bold uppercase transition-colors relative ${
             activeTab === 'categories' 
-              ? 'text-indigo-600' 
-              : 'text-gray-400 hover:text-gray-600'
+              ? 'text-indigo-400' 
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           Categorias
           {activeTab === 'categories' && (
-            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-600 rounded-full" />
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('banners')}
+          className={`px-4 py-2 text-sm font-bold uppercase transition-colors relative ${
+            activeTab === 'banners' 
+              ? 'text-indigo-400' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Banners & Anúncios
+          {activeTab === 'banners' && (
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
           )}
         </button>
       </div>
@@ -273,82 +425,78 @@ export const MasterBlogManager: React.FC = () => {
           {!isEditingPost ? (
             <>
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-black text-gray-800 uppercase">Gerenciar Postagens</h2>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <BookOpen className="text-indigo-400" />
+                  Gerenciar Postagens
+                </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={seedInitialData}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold text-xs uppercase"
+                    onClick={() => seedInitialData()}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold text-sm"
                   >
-                    <Upload size={16} /> Semear Posts
+                    <Save size={16} />
+                    Semear Posts (3 Iniciais)
                   </button>
                   <button
                     onClick={() => {
-                      setCurrentPost({ status: 'draft' });
+                      setCurrentPost({});
                       setIsEditingPost(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-bold text-xs uppercase"
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
                   >
-                    <Plus size={16} /> Nova Postagem
+                    <Plus size={16} />
+                    Nova Postagem
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid gap-4">
                 {posts.length === 0 ? (
-                  <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 text-gray-400">
-                    Nenhuma postagem encontrada.
+                  <div className="text-center py-12 bg-slate-800/40 rounded-2xl border border-slate-700/50">
+                    <p className="text-slate-400 mb-4">Nenhuma postagem encontrada.</p>
+                    <button onClick={() => seedInitialData()} className="text-indigo-400 hover:underline">
+                      Clique aqui para criar posts de exemplo
+                    </button>
                   </div>
                 ) : (
                   posts.map(post => (
-                    <div key={post.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 hover:shadow-md transition-shadow">
-                      <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden shrink-0">
-                        {post.coverImage ? (
+                    <div key={post.id} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col md:flex-row gap-4 items-start hover:border-indigo-500/30 transition-colors">
+                      {post.coverImage && (
+                        <div className="w-full md:w-32 h-32 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
                           <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
-                            <ImageIcon size={24} />
-                          </div>
-                        )}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${post.status === 'published' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                            {post.status === 'published' ? 'Publicado' : 'Rascunho'}
+                          </span>
+                          <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <Calendar size={12} />
+                            {format(new Date(post.createdAt), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-white truncate">{post.title}</h3>
+                        <p className="text-slate-400 text-sm line-clamp-2 mt-1">{post.excerpt}</p>
                       </div>
-                      <div className="flex-1 min-w-0 py-1">
-                        <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-gray-800 text-lg truncate pr-4">{post.title}</h3>
-                          <div className="flex gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                              post.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {post.status === 'published' ? 'Publicado' : 'Rascunho'}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">{post.excerpt}</p>
-                        <div className="flex items-center justify-between mt-auto">
-                          <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase">
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {format(new Date(post.createdAt), "d 'de' MMM, yyyy", { locale: ptBR })}
-                            </span>
-                            {post.category && (
-                              <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md">
-                                {categories.find(c => c.id === post.category)?.name || 'Categoria Removida'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => { setCurrentPost(post); setIsEditingPost(true); }}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeletePost(post.id)}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2 mt-2 md:mt-0">
+                        <button
+                          onClick={() => {
+                            setCurrentPost(post);
+                            setIsEditingPost(true);
+                          }}
+                          className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post)}
+                          className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </div>
                   ))
@@ -356,127 +504,148 @@ export const MasterBlogManager: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                <h3 className="text-lg font-black text-gray-800 uppercase">
+            <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 animate-in fade-in zoom-in-95">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Pencil className="text-indigo-400" />
                   {currentPost.id ? 'Editar Postagem' : 'Nova Postagem'}
-                </h3>
-                <button 
-                  onClick={() => { setIsEditingPost(false); setCurrentPost({}); }}
-                  className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                </h2>
+                <button
+                  onClick={() => setIsEditingPost(false)}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                 >
-                  <X size={20} />
+                  <X size={24} />
                 </button>
               </div>
 
               <form onSubmit={handleSavePost} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2 space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Título</label>
                       <input
                         type="text"
                         value={currentPost.title || ''}
                         onChange={e => setCurrentPost(prev => ({ ...prev, title: e.target.value }))}
-                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
-                        placeholder="Título da postagem..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        placeholder="Título da postagem"
                         required
                       />
                     </div>
-
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Resumo (Excerpt)</label>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Resumo (Excerpt)</label>
                       <textarea
                         value={currentPost.excerpt || ''}
                         onChange={e => setCurrentPost(prev => ({ ...prev, excerpt: e.target.value }))}
-                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm h-20 resize-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none h-24 text-white"
                         placeholder="Breve resumo para exibição nos cards..."
                       />
                     </div>
-
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Categoria</label>
+                        <select
+                          value={currentPost.category || ''}
+                          onChange={e => setCurrentPost(prev => ({ ...prev, category: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        >
+                          <option value="">Selecione...</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Status</label>
+                        <select
+                          value={currentPost.status || 'draft'}
+                          onChange={e => setCurrentPost(prev => ({ ...prev, status: e.target.value as 'draft' | 'published' }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        >
+                          <option value="draft">Rascunho</option>
+                          <option value="published">Publicado</option>
+                        </select>
+                      </div>
+                    </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Conteúdo</label>
-                      <textarea
-                        value={currentPost.content || ''}
-                        onChange={e => setCurrentPost(prev => ({ ...prev, content: e.target.value }))}
-                        className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all min-h-[300px] font-mono text-sm leading-relaxed"
-                        placeholder="Escreva seu conteúdo aqui..."
-                        required
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Palavras-chave (Keywords)</label>
+                      <input
+                        type="text"
+                        value={currentPost.keywords || ''}
+                        onChange={e => setCurrentPost(prev => ({ ...prev, keywords: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        placeholder="Ex: orixá, umbanda, festa (separadas por vírgula)"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                      <select
-                        value={currentPost.status || 'draft'}
-                        onChange={e => setCurrentPost(prev => ({ ...prev, status: e.target.value as 'draft' | 'published' }))}
-                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-gray-700"
-                      >
-                        <option value="draft">Rascunho</option>
-                        <option value="published">Publicado</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoria</label>
-                      <select
-                        value={currentPost.category || ''}
-                        onChange={e => setCurrentPost(prev => ({ ...prev, category: e.target.value }))}
-                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-gray-700"
-                      >
-                        <option value="">Selecione uma categoria...</option>
-                        {categories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Imagem de Capa</label>
-                      <div 
-                        onClick={() => postImageInputRef.current?.click()}
-                        className="w-full aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors group relative overflow-hidden"
-                      >
-                        {currentPost.coverImage ? (
-                          <>
-                            <img src={currentPost.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Upload className="text-white" />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="text-gray-300 mb-2" />
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">Upload Imagem</span>
-                          </>
-                        )}
-                      </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Imagem de Capa</label>
+                    <div 
+                      onClick={() => postImageInputRef.current?.click()}
+                      className="w-full h-64 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800/50 transition-colors bg-slate-900 overflow-hidden relative group"
+                    >
+                      {currentPost.coverImage ? (
+                        <>
+                          <img src={currentPost.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-white font-medium flex items-center gap-2"><Upload size={20} /> Alterar Imagem</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-slate-500 flex flex-col items-center gap-2">
+                          <ImageIcon size={48} className="opacity-50" />
+                          <span className="font-medium">Clique para adicionar imagem</span>
+                          <span className="text-xs">Recomendado: 1200x630px</span>
+                        </div>
+                      )}
                       <input 
                         type="file" 
-                        ref={postImageInputRef} 
+                        ref={postImageInputRef}
                         className="hidden" 
                         accept="image/*"
-                        onChange={e => handleImageUpload(e, 'post')} 
+                        onChange={e => handleImageUpload(e, 'post')}
+                      />
+                    </div>
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium text-slate-400 mb-1">Ou URL da imagem</label>
+                      <input
+                        type="text"
+                        value={currentPost.coverImage || ''}
+                        onChange={e => setCurrentPost(prev => ({ ...prev, coverImage: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:ring-1 focus:ring-indigo-500 outline-none text-slate-300"
+                        placeholder="https://..."
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Conteúdo Completo</label>
+                  <textarea
+                    value={currentPost.content || ''}
+                    onChange={e => setCurrentPost(prev => ({ ...prev, content: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none h-64 font-mono text-sm text-white"
+                    placeholder="Escreva o conteúdo do post aqui..."
+                    required
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Dica: Você pode usar HTML básico para formatação.</p>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                   <button
                     type="button"
-                    onClick={() => { setIsEditingPost(false); setCurrentPost({}); }}
-                    className="px-6 py-2.5 rounded-xl text-xs font-bold uppercase text-gray-500 hover:bg-gray-100 transition-colors"
+                    onClick={() => setIsEditingPost(false)}
+                    className="px-6 py-2 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
                   >
-                    <Save size={16} /> Salvar Postagem
+                    <Save size={18} />
+                    Salvar Postagem
                   </button>
                 </div>
               </form>
@@ -488,126 +657,353 @@ export const MasterBlogManager: React.FC = () => {
       {/* CATEGORIES TAB */}
       {activeTab === 'categories' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Category Form */}
-            <div className="md:col-span-1">
-              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm sticky top-6">
-                <h3 className="text-lg font-black text-gray-800 uppercase mb-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Layout className="text-indigo-400" />
+              Gerenciar Categorias
+            </h2>
+            <button
+              onClick={() => {
+                setCurrentCategory({});
+                setIsEditingCategory(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
+            >
+              <Plus size={16} />
+              Nova Categoria
+            </button>
+          </div>
+
+          {isEditingCategory && (
+            <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 mb-6 animate-in fade-in slide-in-from-top-4">
+               <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">
                   {currentCategory.id ? 'Editar Categoria' : 'Nova Categoria'}
                 </h3>
-                <form onSubmit={handleSaveCategory} className="space-y-4">
+                <button onClick={() => setIsEditingCategory(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+              </div>
+              <form onSubmit={handleSaveCategory} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Nome da Categoria</label>
                     <input
                       type="text"
                       value={currentCategory.name || ''}
                       onChange={e => setCurrentCategory(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
-                      placeholder="Nome da categoria..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                      placeholder="Ex: Datas Comemorativas"
                       required
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Imagem de Fundo (Botão)</label>
+                     <div className="flex gap-4 items-start">
+                        <div 
+                          onClick={() => categoryImageInputRef.current?.click()}
+                          className="h-24 w-full border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800/50 transition-colors bg-slate-900 overflow-hidden relative group"
+                        >
+                          {currentCategory.image ? (
+                             <>
+                              <img src={currentCategory.image} alt="Preview" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Upload size={16} className="text-white" />
+                              </div>
+                             </>
+                          ) : (
+                            <span className="text-slate-500 text-xs text-center p-2">Clique para adicionar imagem (Retangular)</span>
+                          )}
+                           <input 
+                            type="file" 
+                            ref={categoryImageInputRef}
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={e => handleImageUpload(e, 'category')}
+                          />
+                        </div>
+                     </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                   <button
+                    type="button"
+                    onClick={() => setIsEditingCategory(false)}
+                    className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 text-sm"
+                  >
+                    <Save size={16} />
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categories.map(cat => (
+              <div key={cat.id} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex justify-between items-center group hover:border-indigo-500/30 transition-all">
+                <div className="flex items-center gap-3">
+                  {cat.image ? (
+                    <div className="w-12 h-8 rounded bg-slate-900 overflow-hidden">
+                       <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-8 rounded bg-slate-900 flex items-center justify-center text-slate-600">
+                      <Layout size={16} />
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-white">{cat.name}</h4>
+                    <p className="text-xs text-slate-500">/{cat.slug}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setCurrentCategory(cat);
+                      setIsEditingCategory(true);
+                    }}
+                    className="p-1.5 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCategory(cat)}
+                    className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* BANNERS TAB */}
+      {activeTab === 'banners' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Megaphone className="text-indigo-400" />
+              Gerenciar Banners
+            </h2>
+            <button
+              onClick={() => {
+                setCurrentBanner({ location: 'sidebar-top', active: true });
+                setIsEditingBanner(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
+            >
+              <Plus size={16} />
+              Novo Banner
+            </button>
+          </div>
+
+          {isEditingBanner && (
+             <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 mb-6 animate-in fade-in slide-in-from-top-4">
+               <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">
+                  {currentBanner.id ? 'Editar Banner' : 'Novo Banner'}
+                </h3>
+                <button onClick={() => setIsEditingBanner(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+              </div>
+              <form onSubmit={handleSaveBanner} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Localização</label>
+                      <select
+                        value={currentBanner.location || 'sidebar-top'}
+                        onChange={e => setCurrentBanner(prev => ({ ...prev, location: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                      >
+                        <option value="sidebar-top">Sidebar (Acima dos Posts Recentes)</option>
+                        <option value="header">Cabeçalho (Topo da Página do Blog)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Título (Identificação Interna)</label>
+                      <input
+                        type="text"
+                        value={currentBanner.title || ''}
+                        onChange={e => setCurrentBanner(prev => ({ ...prev, title: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        placeholder="Ex: Promoção de Natal"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-2">Link de Destino (Opcional)</label>
+                      <div className="relative">
+                        <LinkIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                        <input
+                          type="text"
+                          value={currentBanner.linkUrl || ''}
+                          onChange={e => setCurrentBanner(prev => ({ ...prev, linkUrl: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                     <div>
+                        <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={currentBanner.active !== false}
+                            onChange={e => setCurrentBanner(prev => ({ ...prev, active: e.target.checked }))}
+                            className="rounded border-slate-700 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          Banner Ativo
+                        </label>
+                     </div>
+                  </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Imagem do Botão (Opcional)</label>
-                    <p className="text-[10px] text-gray-400 mb-2">
-                      Use uma imagem retangular (tipo 1 dedo de altura) para substituir o texto no botão.
-                    </p>
+                    <label className="block text-sm font-medium text-slate-400 mb-2">Imagem do Banner</label>
                     <div 
-                      onClick={() => categoryImageInputRef.current?.click()}
-                      className="w-full h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors group relative overflow-hidden"
+                      onClick={() => bannerImageInputRef.current?.click()}
+                      className="w-full h-48 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800/50 transition-colors bg-slate-900 overflow-hidden relative group"
                     >
-                      {currentCategory.image ? (
+                      {currentBanner.imageUrl ? (
                         <>
-                          <img src={currentCategory.image} alt="Category Button" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Upload className="text-white" size={16} />
+                          <img src={currentBanner.imageUrl} alt="Banner" className="w-full h-full object-contain" />
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-white font-medium flex items-center gap-2"><Upload size={20} /> Alterar Imagem</span>
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center">
-                          <ImageIcon size={16} className="text-gray-300" />
-                          <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">Upload Botão</span>
+                        <div className="text-slate-500 flex flex-col items-center gap-2">
+                          <ImageIcon size={48} className="opacity-50" />
+                          <span className="font-medium">Clique para adicionar imagem</span>
+                          <span className="text-xs">Recomendado: Vertical ou Quadrado</span>
                         </div>
                       )}
+                      <input 
+                        type="file" 
+                        ref={bannerImageInputRef}
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={e => handleImageUpload(e, 'banner')}
+                      />
                     </div>
-                    <input 
-                      type="file" 
-                      ref={categoryImageInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={e => handleImageUpload(e, 'category')} 
-                    />
-                    {currentCategory.image && (
-                      <button
-                        type="button"
-                        onClick={() => setCurrentCategory(prev => ({ ...prev, image: undefined }))}
-                        className="text-[10px] text-rose-500 font-bold uppercase mt-2 hover:underline"
-                      >
-                        Remover Imagem
-                      </button>
-                    )}
                   </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingBanner(false)}
+                    className="px-6 py-2 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    Salvar Banner
+                  </button>
+                </div>
+              </form>
+             </div>
+          )}
 
-                  <div className="flex gap-2 pt-2">
-                    {currentCategory.id && (
-                      <button
-                        type="button"
-                        onClick={() => { setIsEditingCategory(false); setCurrentCategory({}); }}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase text-gray-500 hover:bg-gray-100 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase hover:bg-indigo-700 transition-colors"
-                    >
-                      {currentCategory.id ? 'Atualizar' : 'Adicionar'}
-                    </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {banners.map(banner => (
+              <div key={banner.id} className="bg-slate-800/40 rounded-xl border border-slate-700/50 overflow-hidden group hover:border-indigo-500/30 transition-all flex flex-col">
+                <div className="h-40 bg-slate-900 relative">
+                  <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-2 right-2">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${banner.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700/50 text-slate-400'}`}>
+                      {banner.active ? 'ATIVO' : 'INATIVO'}
+                    </span>
                   </div>
-                </form>
-              </div>
-            </div>
-
-            {/* Category List */}
-            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {categories.map(cat => (
-                <div key={cat.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-black shrink-0 overflow-hidden">
-                      {cat.image ? (
-                        <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                      ) : (
-                        cat.name.charAt(0).toUpperCase()
-                      )}
-                    </div>
+                </div>
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="font-bold text-gray-800 text-sm">{cat.name}</h4>
-                      <p className="text-[10px] text-gray-400 font-mono">/{cat.slug}</p>
+                      <p className="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-1">{banner.location}</p>
+                      <h3 className="font-bold text-white text-lg leading-tight">{banner.title}</h3>
                     </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => { setCurrentCategory(cat); setIsEditingCategory(true); }}
-                      className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteCategory(cat.id)}
-                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  {banner.linkUrl && (
+                    <div className="flex items-center gap-1 text-slate-400 text-xs mb-4 truncate">
+                      <LinkIcon size={12} />
+                      <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 truncate">
+                        {banner.linkUrl}
+                      </a>
+                    </div>
+                  )}
+                  
+                  <div className="mt-auto flex gap-2 pt-4 border-t border-slate-700/50">
+                     <button
+                        onClick={() => {
+                          setCurrentBanner(banner);
+                          setIsEditingBanner(true);
+                        }}
+                        className="flex-1 py-2 bg-slate-700 hover:bg-indigo-600 hover:text-white text-slate-300 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      >
+                        <Pencil size={16} /> Editar
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmation({
+                          isOpen: true,
+                          type: 'banner',
+                          id: banner.id,
+                          title: banner.title
+                        })}
+                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                   </div>
                 </div>
-              ))}
-              {categories.length === 0 && (
-                <div className="col-span-full p-8 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                  Nenhuma categoria cadastrada.
-                </div>
-              )}
+              </div>
+            ))}
+            {banners.length === 0 && !isEditingBanner && (
+              <div className="col-span-full py-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-xl">
+                <Megaphone size={48} className="mx-auto mb-4 opacity-20" />
+                <p>Nenhum banner cadastrado.</p>
+                <button onClick={() => setIsEditingBanner(true)} className="text-indigo-400 hover:underline mt-2">Criar primeiro banner</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl scale-100 animate-in zoom-in-95">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 text-red-500">
+                <AlertCircle size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Confirmar Exclusão</h3>
+              <p className="text-slate-400">
+                Tem certeza que deseja excluir {deleteConfirmation.type === 'post' ? 'a postagem' : deleteConfirmation.type === 'category' ? 'a categoria' : 'o banner'} <span className="text-white font-semibold">"{deleteConfirmation.title}"</span>?
+                <br />
+                <span className="text-red-400 text-sm mt-2 block">Esta ação não pode ser desfeita.</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmation(prev => ({ ...prev, isOpen: false }))}
+                className="flex-1 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg shadow-red-500/20 transition-all"
+              >
+                Sim, Excluir
+              </button>
             </div>
           </div>
         </div>
