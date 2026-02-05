@@ -73,49 +73,56 @@ export const BlogPage: React.FC = () => {
            </button>
         </div>
 
-        {headerBanner && headerBanner.active ? (
-          <div className="mb-12 rounded-3xl overflow-hidden shadow-xl border border-gray-100 group relative">
+        {/* Default Orange Banner */}
+        <div className="text-center mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-6 md:p-10 text-white shadow-xl group">
+          <div className="relative z-10">
+            <h1 className="text-2xl md:text-4xl font-black mb-2 tracking-tight">Blog ConectAxé</h1>
+            <p className="text-base md:text-lg font-medium text-orange-100 max-w-3xl mx-auto whitespace-nowrap overflow-hidden text-ellipsis">Notícias, atualizações e conhecimento para gestão de terreiros.</p>
+          </div>
+           {/* Decorative Background Elements */}
+           <div className="absolute top-0 left-0 w-full h-full opacity-20">
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+              </svg>
+           </div>
+           <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
+           <div className="absolute -top-24 -left-24 w-64 h-64 bg-yellow-400/20 rounded-full blur-3xl group-hover:bg-yellow-400/30 transition-all duration-1000"></div>
+        </div>
+
+        {/* Ad Banner (Header Location) */}
+        {headerBanner && headerBanner.active && (
+          <div className="mb-12 mx-auto max-w-[900px] rounded-2xl overflow-hidden shadow-md border border-gray-100 group relative">
+            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded z-10">
+              Publicidade
+            </div>
             {headerBanner.linkUrl ? (
               <a href={headerBanner.linkUrl} target="_blank" rel="noopener noreferrer" className="block relative">
                  <img 
                    src={headerBanner.imageUrl} 
                    alt={headerBanner.title} 
-                   className="w-full h-auto max-h-[400px] object-cover hover:opacity-95 transition-opacity"
+                   className="w-full h-auto object-cover hover:opacity-95 transition-opacity"
+                   style={{ aspectRatio: '900/300' }}
                  />
               </a>
             ) : (
                <img 
                  src={headerBanner.imageUrl} 
                  alt={headerBanner.title} 
-                 className="w-full h-auto max-h-[400px] object-cover"
+                 className="w-full h-auto object-cover"
+                 style={{ aspectRatio: '900/300' }}
                />
             )}
           </div>
-        ) : (
-          <div className="text-center mb-12 relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-8 text-white shadow-xl group">
-             <div className="relative z-10">
-               <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">Blog ConectAxé</h1>
-               <p className="text-lg md:text-xl font-medium text-orange-100 max-w-3xl mx-auto whitespace-nowrap overflow-hidden text-ellipsis">Notícias, atualizações e conhecimento para gestão de terreiros.</p>
-             </div>
-             {/* Decorative Background Elements */}
-             <div className="absolute top-0 left-0 w-full h-full opacity-20">
-                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-             </div>
-             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
-             <div className="absolute -top-24 -left-24 w-64 h-64 bg-yellow-400/20 rounded-full blur-3xl group-hover:bg-yellow-400/30 transition-all duration-1000"></div>
-          </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
            {/* Main Content */}
-           <div className="lg:col-span-8 space-y-12">
+           <div className="lg:col-span-8 space-y-8">
               {loading ? (
                 <div className="text-center py-20">Carregando...</div>
               ) : posts.length > 0 ? (
@@ -144,10 +151,10 @@ export const BlogPage: React.FC = () => {
                              {post.title}
                            </h2>
                          </Link>
-                         <p className="text-gray-600 leading-relaxed mb-8 line-clamp-3 flex-1">
+                         <p className="text-gray-600 leading-relaxed mb-4 line-clamp-3">
                            {post.excerpt}
                          </p>
-                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-indigo-600 uppercase tracking-widest text-xs hover:gap-4 transition-all mt-auto">
+                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-indigo-600 uppercase tracking-widest text-xs hover:gap-4 transition-all">
                            Ler Artigo Completo <span className="text-lg">→</span>
                          </Link>
                       </div>

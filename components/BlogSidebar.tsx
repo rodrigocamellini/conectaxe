@@ -63,12 +63,12 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
 
       {/* Ad Banner Widget */}
       {banner && banner.active && (
-        <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 group relative">
-          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 group relative">
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded z-10">
             Publicidade
           </div>
           {banner.linkUrl ? (
-            <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="block relative">
+            <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="block relative rounded-lg overflow-hidden">
               <img 
                 src={banner.imageUrl} 
                 alt={banner.title} 
@@ -76,11 +76,13 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
               />
             </a>
           ) : (
-             <img 
-                src={banner.imageUrl} 
-                alt={banner.title} 
-                className="w-full h-auto object-cover" 
-              />
+             <div className="rounded-lg overflow-hidden">
+               <img 
+                  src={banner.imageUrl} 
+                  alt={banner.title} 
+                  className="w-full h-auto object-cover" 
+                />
+             </div>
           )}
         </div>
       )}

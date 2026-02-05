@@ -16,8 +16,53 @@ import { BlogPost, BlogCategory, BlogBanner } from '../types';
 const BLOG_POSTS_COLLECTION = 'blog_posts';
 const BLOG_CATEGORIES_COLLECTION = 'blog_categories';
 const BLOG_BANNERS_COLLECTION = 'blog_banners';
+const BLOG_AUTHORS_COLLECTION = 'blog_authors';
 
 export const BlogService = {
+  // Authors
+  getAllAuthors: async (): Promise<any[]> => {
+    try {
+      const snapshot = await getDocs(collection(db, BLOG_AUTHORS_COLLECTION));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error("Error fetching blog authors:", error);
+      return [];
+    }
+  },
+
+  getAuthorById: async (id: string): Promise<any | null> => {
+    try {
+      const docRef = doc(db, BLOG_AUTHORS_COLLECTION, id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching author by id:", error);
+      return null;
+    }
+  },
+
+  saveAuthor: async (author: any): Promise<void> => {
+    try {
+      const authorRef = doc(db, BLOG_AUTHORS_COLLECTION, author.id);
+      await setDoc(authorRef, author);
+    } catch (error) {
+      console.error("Error saving blog author:", error);
+      throw error;
+    }
+  },
+
+  deleteAuthor: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, BLOG_AUTHORS_COLLECTION, id));
+    } catch (error) {
+      console.error("Error deleting blog author:", error);
+      throw error;
+    }
+  },
+
   // Posts
   getAllPosts: async (): Promise<BlogPost[]> => {
     try {

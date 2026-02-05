@@ -19,7 +19,8 @@ import {
   BookOpen,
   Megaphone,
   Globe,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -33,10 +34,11 @@ const generateId = () => {
 };
 
 export const MasterBlogManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'banners'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'banners' | 'authors'>('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
-  const [banners, setBanners] = useState<any[]>([]); // Using any for simplicity or import BlogBanner
+  const [banners, setBanners] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
@@ -47,6 +49,8 @@ export const MasterBlogManager: React.FC = () => {
   const [currentCategory, setCurrentCategory] = useState<Partial<BlogCategory>>({});
   const [isEditingBanner, setIsEditingBanner] = useState(false);
   const [currentBanner, setCurrentBanner] = useState<any>({});
+  const [isEditingAuthor, setIsEditingAuthor] = useState(false);
+  const [currentAuthor, setCurrentAuthor] = useState<any>({});
 
   // Delete Confirmation State
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -60,6 +64,7 @@ export const MasterBlogManager: React.FC = () => {
   const postImageInputRef = useRef<HTMLInputElement>(null);
   const categoryImageInputRef = useRef<HTMLInputElement>(null);
   const bannerImageInputRef = useRef<HTMLInputElement>(null);
+  const authorImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -73,14 +78,16 @@ export const MasterBlogManager: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fetchedPosts, fetchedCategories, fetchedBanners] = await Promise.all([
+      const [fetchedPosts, fetchedCategories, fetchedBanners, fetchedAuthors] = await Promise.all([
         BlogService.getAllPosts(),
         BlogService.getAllCategories(),
-        BlogService.getBanners()
+        BlogService.getBanners(),
+        BlogService.getAllAuthors()
       ]);
       setPosts(fetchedPosts);
       setCategories(fetchedCategories);
       setBanners(fetchedBanners);
+      setAuthors(fetchedAuthors);
     } catch (error) {
       console.error("Error loading blog data:", error);
       showNotification("Erro ao carregar dados do blog", "error");
@@ -320,6 +327,43 @@ export const MasterBlogManager: React.FC = () => {
     }
   };
 
+  const handleSaveAuthor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentAuthor.name || !currentAuthor.bio) {
+      showNotification("Preencha o nome e a biografia.", "error");
+      return;
+    }
+
+    try {
+      const authorToSave = {
+        id: currentAuthor.id || generateId(),
+        name: currentAuthor.name,
+        bio: currentAuthor.bio,
+        role: currentAuthor.role || '',
+        photo: currentAuthor.photo || '',
+        socialLinks: currentAuthor.socialLinks || {}
+      };
+
+      await BlogService.saveAuthor(authorToSave);
+      setIsEditingAuthor(false);
+      setCurrentAuthor({});
+      showNotification("Autor salvo com sucesso!", "success");
+      loadData();
+    } catch (error) {
+      console.error("Error saving author:", error);
+      showNotification("Erro ao salvar autor", "error");
+    }
+  };
+
+  const handleDeleteAuthor = (author: any) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      type: 'author',
+      id: author.id,
+      title: author.name
+    });
+  };
+
   const confirmDelete = async () => {
     if (!deleteConfirmation.id) return;
     
@@ -335,6 +379,9 @@ export const MasterBlogManager: React.FC = () => {
       } else if (deleteConfirmation.type === 'banner') {
         await BlogService.deleteBanner(deleteConfirmation.id);
         showNotification("Banner excluído com sucesso!", "success");
+      } else if (deleteConfirmation.type === 'author') {
+        await BlogService.deleteAuthor(deleteConfirmation.id);
+        showNotification("Autor excluído com sucesso!", "success");
       }
       loadData();
     } catch (error) {
@@ -356,6 +403,8 @@ export const MasterBlogManager: React.FC = () => {
         setCurrentCategory(prev => ({ ...prev, image: base64 }));
       } else if (type === 'banner') {
         setCurrentBanner(prev => ({ ...prev, imageUrl: base64 }));
+      } else if (type === 'author') {
+        setCurrentAuthor(prev => ({ ...prev, photo: base64 }));
       }
     };
     reader.readAsDataURL(file);
@@ -414,6 +463,19 @@ export const MasterBlogManager: React.FC = () => {
         >
           Banners & Anúncios
           {activeTab === 'banners' && (
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('authors')}
+          className={`px-4 py-2 text-sm font-bold uppercase transition-colors relative ${
+            activeTab === 'authors' 
+              ? 'text-indigo-400' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Autores
+          {activeTab === 'authors' && (
             <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
           )}
         </button>
@@ -552,6 +614,27 @@ export const MasterBlogManager: React.FC = () => {
                           <option value="">Selecione...</option>
                           {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">Autor</label>
+                        <select
+                          value={currentPost.authorId || ''}
+                          onChange={e => {
+                            const authorId = e.target.value;
+                            const author = authors.find(a => a.id === authorId);
+                            setCurrentPost(prev => ({ 
+                              ...prev, 
+                              authorId: authorId,
+                              author: author ? author.name : 'Master' // Fallback for legacy
+                            }));
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
+                        >
+                          <option value="">Selecione...</option>
+                          {authors.map(author => (
+                            <option key={author.id} value={author.id}>{author.name}</option>
                           ))}
                         </select>
                       </div>
@@ -1006,6 +1089,238 @@ export const MasterBlogManager: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* AUTHORS TAB */}
+      {activeTab === 'authors' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {!isEditingAuthor ? (
+            <>
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Users className="text-indigo-400" />
+                  Gerenciar Autores
+                </h2>
+                <button
+                  onClick={() => {
+                    setCurrentAuthor({});
+                    setIsEditingAuthor(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
+                >
+                  <Plus size={16} />
+                  Novo Autor
+                </button>
+              </div>
+
+              <div className="grid gap-4">
+                {authors.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-800/40 rounded-2xl border border-slate-700/50">
+                    <p className="text-slate-400">Nenhum autor encontrado.</p>
+                  </div>
+                ) : (
+                  authors.map(author => (
+                    <div key={author.id} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col md:flex-row gap-4 items-center hover:border-indigo-500/30 transition-colors">
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-700 flex-shrink-0">
+                        {author.photo ? (
+                          <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-500">
+                            <Users size={24} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg">{author.name}</h3>
+                        <p className="text-slate-400 text-sm line-clamp-1">{author.role || 'Sem cargo'}</p>
+                        <p className="text-slate-500 text-xs mt-1 line-clamp-2">{author.bio}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setCurrentAuthor(author);
+                            setIsEditingAuthor(true);
+                          }}
+                          className="p-2 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAuthor(author)}
+                          className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="bg-slate-800/60 p-6 rounded-2xl border border-slate-700/50">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  {currentAuthor.id ? 'Editar Autor' : 'Novo Autor'}
+                </h3>
+                <button
+                  onClick={() => setIsEditingAuthor(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAuthor} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-1">Nome</label>
+                      <input
+                        type="text"
+                        value={currentAuthor.name || ''}
+                        onChange={e => setCurrentAuthor({ ...currentAuthor, name: e.target.value })}
+                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="Ex: João Silva"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-1">Cargo / Título</label>
+                      <input
+                        type="text"
+                        value={currentAuthor.role || ''}
+                        onChange={e => setCurrentAuthor({ ...currentAuthor, role: e.target.value })}
+                        className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="Ex: Sacerdote, Colaborador"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-1">Foto de Perfil</label>
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-700 border border-slate-600">
+                          {currentAuthor.photo ? (
+                            <img src={currentAuthor.photo} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <Users size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            ref={authorImageInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, 'author')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => authorImageInputRef.current?.click()}
+                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                          >
+                            <Upload size={16} />
+                            Carregar Foto
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-400 mb-1">Biografia</label>
+                      <textarea
+                        value={currentAuthor.bio || ''}
+                        onChange={e => setCurrentAuthor({ ...currentAuthor, bio: e.target.value })}
+                        className="w-full h-32 bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                        placeholder="Breve descrição sobre o autor..."
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-3 p-4 bg-slate-900/30 rounded-lg border border-slate-700/30">
+                      <label className="block text-sm font-bold text-slate-300 mb-2">Redes Sociais</label>
+                      <div className="grid grid-cols-1 gap-3">
+                         <div className="flex items-center gap-2">
+                           <span className="text-slate-500 w-24 text-sm">Instagram</span>
+                           <input
+                             type="text"
+                             value={currentAuthor.socialLinks?.instagram || ''}
+                             onChange={e => setCurrentAuthor({ 
+                               ...currentAuthor, 
+                               socialLinks: { ...currentAuthor.socialLinks, instagram: e.target.value } 
+                             })}
+                             className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                             placeholder="@usuario"
+                           />
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <span className="text-slate-500 w-24 text-sm">Facebook</span>
+                           <input
+                             type="text"
+                             value={currentAuthor.socialLinks?.facebook || ''}
+                             onChange={e => setCurrentAuthor({ 
+                               ...currentAuthor, 
+                               socialLinks: { ...currentAuthor.socialLinks, facebook: e.target.value } 
+                             })}
+                             className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                             placeholder="URL do perfil"
+                           />
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <span className="text-slate-500 w-24 text-sm">Twitter/X</span>
+                           <input
+                             type="text"
+                             value={currentAuthor.socialLinks?.twitter || ''}
+                             onChange={e => setCurrentAuthor({ 
+                               ...currentAuthor, 
+                               socialLinks: { ...currentAuthor.socialLinks, twitter: e.target.value } 
+                             })}
+                             className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                             placeholder="@usuario"
+                           />
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <span className="text-slate-500 w-24 text-sm">LinkedIn</span>
+                           <input
+                             type="text"
+                             value={currentAuthor.socialLinks?.linkedin || ''}
+                             onChange={e => setCurrentAuthor({ 
+                               ...currentAuthor, 
+                               socialLinks: { ...currentAuthor.socialLinks, linkedin: e.target.value } 
+                             })}
+                             className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                             placeholder="URL do perfil"
+                           />
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAuthor(false)}
+                    className="px-6 py-2 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    Salvar Autor
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
     </div>

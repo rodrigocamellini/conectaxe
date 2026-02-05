@@ -489,19 +489,34 @@ export interface FinancialTransaction {
   recurrence?: 'daily' | 'weekly' | 'monthly';
 }
 
+export interface BlogAuthor {
+  id: string;
+  name: string;
+  bio: string;
+  role?: string; // e.g., "Sacerdote", "Colaborador"
+  photo?: string;
+  socialLinks?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+    linkedin?: string;
+  };
+}
+
 export interface BlogPost {
   id: string;
   title: string;
   slug: string;
   content: string;
   excerpt: string;
-  coverImage: string;
+  coverImage?: string;
+  author: string; // Legacy string or Author Name
+  authorId?: string; // Reference to BlogAuthor
   category: string;
-  author: string;
   status: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
-  keywords?: string; // Comma separated keywords
+  keywords?: string; // Comma separated tags
 }
 
 export interface BlogCategory {
