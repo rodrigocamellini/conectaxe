@@ -53,9 +53,9 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
             placeholder="Buscar no blog..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
           />
-          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600">
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600">
             <Search size={20} />
           </button>
         </form>
@@ -105,13 +105,13 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 text-sm leading-snug mb-1 group-hover:text-indigo-600 transition-colors line-clamp-2">
+                    <h4 className="font-bold text-gray-900 text-sm leading-snug mb-1 group-hover:text-orange-600 transition-colors line-clamp-2">
                       {post.title}
                     </h4>
                     <p className="text-xs text-gray-500 line-clamp-2 mb-2">
                       {post.excerpt}
                     </p>
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider group-hover:underline">Leia mais</span>
+                    <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider group-hover:underline">Leia mais</span>
                   </div>
                 </div>
               </div>
@@ -141,7 +141,7 @@ export const BlogSidebar: React.FC<BlogSidebarProps> = ({ onSearch }) => {
                 ) : (
                   <button
                     onClick={() => navigate(`/blog?category=${cat.slug}`)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-indigo-600 transition-all border border-transparent hover:border-gray-100"
+                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 text-gray-600 hover:text-orange-600 transition-all border border-transparent hover:border-gray-100"
                   >
                     <span className="font-medium">{cat.name}</span>
                     <span className="text-gray-300 text-xs">→</span>

@@ -74,6 +74,7 @@ import { MasterBlogManager } from './MasterBlogManager';
 import { AuditTab } from './AuditTab';
 import { MenuManager } from './MenuManager';
 import { MasterService } from '../services/masterService';
+import { SystemConfigService } from '../services/systemConfigService';
 import { SAAS_PLANS, BRAZILIAN_STATES, MASTER_LOGO_URL, DEFAULT_SYSTEM_CONFIG } from '../constants';
 import { validateCPF, formatCPF } from '../utils/validators';
 
@@ -2601,7 +2602,6 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                    // If we are in Master Mode, we might be editing the global default or the master's own config.
                    // Assuming this updates the currently loaded config.
                    // We need to import SystemConfigService.
-                   const { SystemConfigService } = await import('../services/systemConfigService');
                    
                    // Determine clientId. If systemConfig has a license.clientId, use it.
                    const targetClientId = updatedConfig.license?.clientId;
@@ -2629,7 +2629,6 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
             config={systemConfig || DEFAULT_SYSTEM_CONFIG}
             onUpdateConfig={async (updatedConfig) => {
                try {
-                 const { SystemConfigService } = await import('../services/systemConfigService');
                  const targetClientId = updatedConfig.license?.clientId;
                  await SystemConfigService.saveConfig(updatedConfig, targetClientId);
                  if (onUpdateSystemConfig) {

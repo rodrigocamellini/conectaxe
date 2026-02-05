@@ -67,7 +67,7 @@ export const BlogPage: React.FC = () => {
         <div className="mb-8">
            <button 
              onClick={() => window.location.href = '/'} 
-             className="flex items-center gap-2 text-indigo-600 font-bold hover:underline"
+             className="flex items-center gap-2 text-orange-600 font-bold hover:underline"
            >
               ← Voltar para Home
            </button>
@@ -96,7 +96,7 @@ export const BlogPage: React.FC = () => {
 
         {/* Ad Banner (Header Location) */}
         {headerBanner && headerBanner.active && (
-          <div className="mb-12 mx-auto max-w-[900px] rounded-2xl overflow-hidden shadow-md border border-gray-100 group relative">
+          <div className="mb-8 mx-auto max-w-[800px] rounded-2xl overflow-hidden shadow-md border border-gray-100 group relative">
             <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded z-10">
               Publicidade
             </div>
@@ -106,7 +106,7 @@ export const BlogPage: React.FC = () => {
                    src={headerBanner.imageUrl} 
                    alt={headerBanner.title} 
                    className="w-full h-auto object-cover hover:opacity-95 transition-opacity"
-                   style={{ aspectRatio: '900/300' }}
+                   style={{ aspectRatio: '800/267' }}
                  />
               </a>
             ) : (
@@ -114,7 +114,7 @@ export const BlogPage: React.FC = () => {
                  src={headerBanner.imageUrl} 
                  alt={headerBanner.title} 
                  className="w-full h-auto object-cover"
-                 style={{ aspectRatio: '900/300' }}
+                 style={{ aspectRatio: '800/267' }}
                />
             )}
           </div>
@@ -122,39 +122,39 @@ export const BlogPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
            {/* Main Content */}
-           <div className="lg:col-span-8 space-y-8">
+           <div className="lg:col-span-8 space-y-4">
               {loading ? (
                 <div className="text-center py-20">Carregando...</div>
               ) : posts.length > 0 ? (
                 posts.map(post => {
                   const categoryName = categories.find(c => c.id === post.category)?.name || 'Geral';
                   return (
-                    <article key={post.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col h-full">
+                    <article key={post.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col">
                       <Link to={`/blog/${post.slug}`} className="block aspect-video overflow-hidden bg-gray-100 relative">
                          {post.coverImage && (
                            <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                          )}
                          <div className="absolute top-4 left-4">
-                            <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-indigo-600 shadow-lg">
+                            <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-orange-600 shadow-lg">
                               {categoryName}
                             </span>
                          </div>
                       </Link>
-                      <div className="p-8 md:p-10 flex flex-col flex-1">
-                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 font-medium">
+                      <div className="px-6 pt-5 pb-2 flex flex-col">
+                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-2 font-medium">
                             <span>{format(new Date(post.createdAt), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
                             <span>•</span>
                             <span>{post.author || 'Equipe ConectAxé'}</span>
                          </div>
                          <Link to={`/blog/${post.slug}`} className="block">
-                           <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors">
+                           <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
                              {post.title}
                            </h2>
                          </Link>
-                         <p className="text-gray-600 leading-relaxed mb-4 line-clamp-3">
+                         <p className="text-gray-600 leading-relaxed mb-2 line-clamp-3">
                            {post.excerpt}
                          </p>
-                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-indigo-600 uppercase tracking-widest text-xs hover:gap-4 transition-all">
+                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-orange-600 uppercase tracking-widest text-xs hover:gap-4 transition-all mt-4 py-2">
                            Ler Artigo Completo <span className="text-lg">→</span>
                          </Link>
                       </div>

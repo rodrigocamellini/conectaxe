@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BlogPost, BlogCategory } from '../types';
+import { BlogPost, BlogCategory, BlogComment } from '../types';
 import { BlogService } from '../services/blogService';
 import { 
   Plus, 
@@ -20,7 +20,10 @@ import {
   Megaphone,
   Globe,
   Link as LinkIcon,
-  Users
+  Users,
+  MessageCircle,
+  Check,
+  Ban
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -34,11 +37,12 @@ const generateId = () => {
 };
 
 export const MasterBlogManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'banners' | 'authors'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'categories' | 'banners' | 'authors' | 'comments'>('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
+  const [comments, setComments] = useState<BlogComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
@@ -55,7 +59,7 @@ export const MasterBlogManager: React.FC = () => {
   // Delete Confirmation State
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
-    type: 'post' | 'category' | 'banner';
+    type: 'post' | 'category' | 'banner' | 'author' | 'comment';
     id: string;
     title: string;
   }>({ isOpen: false, type: 'post', id: '', title: '' });
@@ -78,16 +82,18 @@ export const MasterBlogManager: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fetchedPosts, fetchedCategories, fetchedBanners, fetchedAuthors] = await Promise.all([
+      const [fetchedPosts, fetchedCategories, fetchedBanners, fetchedAuthors, fetchedComments] = await Promise.all([
         BlogService.getAllPosts(),
         BlogService.getAllCategories(),
         BlogService.getBanners(),
-        BlogService.getAllAuthors()
+        BlogService.getAllAuthors(),
+        BlogService.getAllComments()
       ]);
       setPosts(fetchedPosts);
       setCategories(fetchedCategories);
       setBanners(fetchedBanners);
       setAuthors(fetchedAuthors);
+      setComments(fetchedComments);
     } catch (error) {
       console.error("Error loading blog data:", error);
       showNotification("Erro ao carregar dados do blog", "error");
@@ -234,6 +240,7 @@ export const MasterBlogManager: React.FC = () => {
         coverImage: currentPost.coverImage || '',
         category: currentPost.category || '',
         author: currentPost.author || 'Master',
+        authorId: currentPost.authorId, // Saved for relation
         status: currentPost.status || 'draft',
         keywords: currentPost.keywords || '',
         createdAt: currentPost.createdAt || new Date().toISOString(),
@@ -364,6 +371,37 @@ export const MasterBlogManager: React.FC = () => {
     });
   };
 
+  const handleApproveComment = async (comment: BlogComment) => {
+    try {
+      await BlogService.saveComment({ ...comment, status: 'approved' });
+      showNotification("Comentário aprovado com sucesso!", "success");
+      loadData();
+    } catch (error) {
+      console.error("Error approving comment:", error);
+      showNotification("Erro ao aprovar comentário", "error");
+    }
+  };
+
+  const handleRejectComment = async (comment: BlogComment) => {
+    try {
+      await BlogService.saveComment({ ...comment, status: 'rejected' });
+      showNotification("Comentário rejeitado com sucesso!", "success");
+      loadData();
+    } catch (error) {
+      console.error("Error rejecting comment:", error);
+      showNotification("Erro ao rejeitar comentário", "error");
+    }
+  };
+
+  const handleDeleteComment = (comment: BlogComment) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      type: 'comment',
+      id: comment.id,
+      title: `Comentário de ${comment.authorName}`
+    });
+  };
+
   const confirmDelete = async () => {
     if (!deleteConfirmation.id) return;
     
@@ -382,6 +420,9 @@ export const MasterBlogManager: React.FC = () => {
       } else if (deleteConfirmation.type === 'author') {
         await BlogService.deleteAuthor(deleteConfirmation.id);
         showNotification("Autor excluído com sucesso!", "success");
+      } else if (deleteConfirmation.type === 'comment') {
+        await BlogService.deleteComment(deleteConfirmation.id);
+        showNotification("Comentário excluído com sucesso!", "success");
       }
       loadData();
     } catch (error) {
@@ -463,6 +504,24 @@ export const MasterBlogManager: React.FC = () => {
         >
           Banners & Anúncios
           {activeTab === 'banners' && (
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('comments')}
+          className={`px-4 py-2 text-sm font-bold uppercase transition-colors relative flex items-center gap-2 ${
+            activeTab === 'comments' 
+              ? 'text-indigo-400' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Comentários
+          {comments.filter(c => c.status === 'pending').length > 0 && (
+            <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {comments.filter(c => c.status === 'pending').length}
+            </span>
+          )}
+          {activeTab === 'comments' && (
             <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-indigo-500 rounded-full" />
           )}
         </button>
@@ -1091,6 +1150,78 @@ export const MasterBlogManager: React.FC = () => {
           </div>
         </div>
       )}
+      {/* COMMENTS TAB */}
+      {activeTab === 'comments' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <MessageCircle className="text-indigo-400" />
+              Gerenciar Comentários
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+             {comments.length === 0 ? (
+                <div className="text-center py-12 bg-slate-800/40 rounded-2xl border border-slate-700/50">
+                  <p className="text-slate-400">Nenhum comentário encontrado.</p>
+                </div>
+             ) : (
+                comments.map(comment => (
+                  <div key={comment.id} className={`p-4 rounded-xl border flex flex-col gap-3 transition-colors ${comment.status === 'pending' ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-slate-800/40 border-slate-700/50'}`}>
+                     <div className="flex justify-between items-start">
+                        <div>
+                           <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-white">{comment.authorName}</span>
+                              <span className="text-slate-500 text-xs">•</span>
+                              <span className="text-slate-400 text-xs">{format(new Date(comment.createdAt), "dd 'de' MMM, HH:mm", { locale: ptBR })}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
+                                comment.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
+                                comment.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                'bg-yellow-500/20 text-yellow-400'
+                              }`}>
+                                {comment.status === 'approved' ? 'Aprovado' : comment.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                              </span>
+                           </div>
+                           <p className="text-slate-300 text-sm">{comment.content}</p>
+                           {comment.postTitle && (
+                              <p className="text-indigo-400 text-xs mt-2 font-medium">Em: {comment.postTitle}</p>
+                           )}
+                        </div>
+                        <div className="flex gap-2">
+                           {comment.status === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => handleApproveComment(comment)}
+                                  className="p-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg transition-colors"
+                                  title="Aprovar"
+                                >
+                                   <Check size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectComment(comment)}
+                                  className="p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
+                                  title="Rejeitar"
+                                >
+                                   <Ban size={18} />
+                                </button>
+                              </>
+                           )}
+                           <button 
+                              onClick={() => handleDeleteComment(comment)}
+                              className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"
+                              title="Excluir"
+                           >
+                              <Trash2 size={18} />
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                ))
+             )}
+          </div>
+        </div>
+      )}
+
       {/* AUTHORS TAB */}
       {activeTab === 'authors' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

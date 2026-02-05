@@ -52,6 +52,36 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                if (id.includes('firebase')) {
+                  return 'firebase';
+                }
+                if (id.includes('lucide-react')) {
+                  return 'icons';
+                }
+                if (id.includes('react-joyride')) {
+                  return 'joyride';
+                }
+                if (id.includes('@google/genai')) {
+                  return 'genai';
+                }
+                if (id.includes('date-fns')) {
+                  return 'date-fns';
+                }
+                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                  return 'react-vendor';
+                }
+                return 'vendor';
+              }
+            }
+          }
+        }
       }
     };
 });

@@ -534,3 +534,13 @@ export interface BlogBanner {
   linkUrl?: string;
   active: boolean;
 }
+
+export interface BlogComment {
+  id: string;
+  postId: string;
+  authorName: string;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  postTitle?: string; // For admin display convenience
+}

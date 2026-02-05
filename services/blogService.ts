@@ -11,14 +11,59 @@ import {
   limit 
 } from 'firebase/firestore';
 import { db } from "./firebaseConfig";
-import { BlogPost, BlogCategory, BlogBanner } from '../types';
+import { BlogPost, BlogCategory, BlogBanner, BlogComment } from '../types';
 
 const BLOG_POSTS_COLLECTION = 'blog_posts';
 const BLOG_CATEGORIES_COLLECTION = 'blog_categories';
 const BLOG_BANNERS_COLLECTION = 'blog_banners';
 const BLOG_AUTHORS_COLLECTION = 'blog_authors';
+const BLOG_COMMENTS_COLLECTION = 'blog_comments';
 
 export const BlogService = {
+  // Comments
+  getCommentsByPost: async (postId: string): Promise<BlogComment[]> => {
+    try {
+      // Use client-side filtering for simplicity or composite index
+      const q = query(collection(db, BLOG_COMMENTS_COLLECTION), where('postId', '==', postId));
+      const snapshot = await getDocs(q);
+      const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogComment));
+      return comments.filter(c => c.status === 'approved').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      return [];
+    }
+  },
+
+  getAllComments: async (): Promise<BlogComment[]> => {
+    try {
+      const q = query(collection(db, BLOG_COMMENTS_COLLECTION), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogComment));
+    } catch (error) {
+      console.error("Error fetching all comments:", error);
+      return [];
+    }
+  },
+
+  saveComment: async (comment: BlogComment): Promise<void> => {
+    try {
+      const commentRef = doc(db, BLOG_COMMENTS_COLLECTION, comment.id);
+      await setDoc(commentRef, comment);
+    } catch (error) {
+      console.error("Error saving comment:", error);
+      throw error;
+    }
+  },
+
+  deleteComment: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, BLOG_COMMENTS_COLLECTION, id));
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
+  },
+
   // Authors
   getAllAuthors: async (): Promise<any[]> => {
     try {
