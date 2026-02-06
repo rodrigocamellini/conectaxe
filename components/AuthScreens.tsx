@@ -106,6 +106,7 @@ export const LoginScreen: React.FC = () => {
     // Check Master Credentials
     let masterEmail = 'rodrigo@dev.com';
     let masterPass = 'master';
+    let masterName = 'Rodrigo Master';
     
     // Always fetch fresh credentials for Master login to ensure password updates apply immediately
     // This avoids the need for Ctrl+F5 after changing password
@@ -114,6 +115,7 @@ export const LoginScreen: React.FC = () => {
         if (fetched) {
             masterEmail = fetched.email;
             masterPass = fetched.password;
+            if (fetched.masterName) masterName = fetched.masterName;
             // Update local state too to keep UI in sync
             setMasterCreds(fetched);
         }
@@ -123,11 +125,12 @@ export const LoginScreen: React.FC = () => {
         if (masterCreds) {
             masterEmail = masterCreds.email;
             masterPass = masterCreds.password;
+            if (masterCreds.masterName) masterName = masterCreds.masterName;
         }
     }
 
     if ((loginEmail || '').toLowerCase() === (masterEmail || '').toLowerCase() && loginPassword === masterPass) {
-      const user = { id: 'master', name: 'Rodrigo Master', email: masterEmail, role: 'admin', password: masterPass };
+      const user = { id: 'master', name: masterName, email: masterEmail, role: 'admin', password: masterPass };
       
       try {
         await login(user, true);
@@ -170,6 +173,17 @@ export const LoginScreen: React.FC = () => {
                  // Update Last Activity (Optional - maybe move to AuthService login)
                  // await updateDoc(clientDoc.ref, { lastActivity: new Date().toISOString() });
 
+                 // Save credentials if "Remember Me" is checked
+                 if (rememberAccess) {
+                   localStorage.setItem('saved_email', loginEmail);
+                   localStorage.setItem('saved_password', loginPassword);
+                   localStorage.setItem('remember_access', 'true');
+                 } else {
+                   localStorage.removeItem('saved_email');
+                   localStorage.removeItem('saved_password');
+                   localStorage.removeItem('remember_access');
+                 }
+
                  await login(user, false);
                  return;
             } else {
@@ -210,6 +224,16 @@ export const LoginScreen: React.FC = () => {
              }
 
              if (userData.password === loginPassword) {
+                 // Save credentials if "Remember Me" is checked
+                 if (rememberAccess) {
+                   localStorage.setItem('saved_email', loginEmail);
+                   localStorage.setItem('saved_password', loginPassword);
+                   localStorage.setItem('remember_access', 'true');
+                 } else {
+                   localStorage.removeItem('saved_email');
+                   localStorage.removeItem('saved_password');
+                   localStorage.removeItem('remember_access');
+                 }
                  await login(userData, false, clientId);
                  return;
              } else {

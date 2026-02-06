@@ -361,6 +361,7 @@ export interface MasterCredentials {
   brandLogo: string;
   backupFrequency: 'disabled' | '7' | '15' | '30';
   masterName?: string;
+  masterPhoto?: string;
 }
 
 export interface CanteenItem {
@@ -540,7 +541,7 @@ export interface BlogComment {
   postId: string;
   authorName: string;
   content: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'hidden';
   createdAt: string;
   postTitle?: string; // For admin display convenience
 }

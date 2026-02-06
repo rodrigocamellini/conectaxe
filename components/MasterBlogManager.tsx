@@ -23,7 +23,9 @@ import {
   Users,
   MessageCircle,
   Check,
-  Ban
+  Ban,
+  EyeOff,
+  RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -55,6 +57,9 @@ export const MasterBlogManager: React.FC = () => {
   const [currentBanner, setCurrentBanner] = useState<any>({});
   const [isEditingAuthor, setIsEditingAuthor] = useState(false);
   const [currentAuthor, setCurrentAuthor] = useState<any>({});
+  
+  // Keyword Input State
+  const [keywordInput, setKeywordInput] = useState('');
 
   // Delete Confirmation State
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -393,6 +398,29 @@ export const MasterBlogManager: React.FC = () => {
     }
   };
 
+  const handleHideComment = async (comment: BlogComment) => {
+    try {
+      // @ts-ignore
+      await BlogService.saveComment({ ...comment, status: 'hidden' });
+      showNotification("Comentário ocultado com sucesso!", "success");
+      loadData();
+    } catch (error) {
+      console.error("Error hiding comment:", error);
+      showNotification("Erro ao ocultar comentário", "error");
+    }
+  };
+
+  const handleResetComment = async (comment: BlogComment) => {
+    try {
+      await BlogService.saveComment({ ...comment, status: 'pending' });
+      showNotification("Comentário movido para pendente!", "success");
+      loadData();
+    } catch (error) {
+      console.error("Error resetting comment:", error);
+      showNotification("Erro ao redefinir comentário", "error");
+    }
+  };
+
   const handleDeleteComment = (comment: BlogComment) => {
     setDeleteConfirmation({
       isOpen: true,
@@ -431,9 +459,14 @@ export const MasterBlogManager: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'post' | 'category' | 'banner') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'post' | 'category' | 'banner' | 'author') => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 500 * 1024) { // 500KB limit (approx 680KB base64)
+      showNotification("A imagem deve ter no máximo 500KB.", "error");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -449,6 +482,29 @@ export const MasterBlogManager: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddKeyword = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent) => {
+    if (e.type === 'keydown' && (e as React.KeyboardEvent).key !== 'Enter' && (e as React.KeyboardEvent).key !== ',') {
+      return;
+    }
+    
+    e.preventDefault();
+    const value = keywordInput.trim().replace(/,/g, '');
+    if (!value) return;
+
+    const currentKeywords = currentPost.keywords ? currentPost.keywords.split(',').map(k => k.trim()).filter(k => k) : [];
+    if (!currentKeywords.includes(value)) {
+      const newKeywords = [...currentKeywords, value].join(', ');
+      setCurrentPost(prev => ({ ...prev, keywords: newKeywords }));
+    }
+    setKeywordInput('');
+  };
+
+  const handleRemoveKeyword = (keywordToRemove: string) => {
+    const currentKeywords = currentPost.keywords ? currentPost.keywords.split(',').map(k => k.trim()).filter(k => k) : [];
+    const newKeywords = currentKeywords.filter(k => k !== keywordToRemove).join(', ');
+    setCurrentPost(prev => ({ ...prev, keywords: newKeywords }));
   };
 
   if (loading) {
@@ -711,13 +767,32 @@ export const MasterBlogManager: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-400 mb-2">Palavras-chave (Keywords)</label>
-                      <input
-                        type="text"
-                        value={currentPost.keywords || ''}
-                        onChange={e => setCurrentPost(prev => ({ ...prev, keywords: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none text-white"
-                        placeholder="Ex: orixá, umbanda, festa (separadas por vírgula)"
-                      />
+                      <div className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus-within:ring-2 focus-within:ring-indigo-500 flex flex-wrap gap-2 min-h-[42px]">
+                        {currentPost.keywords && currentPost.keywords.split(',').map(k => k.trim()).filter(k => k).map((keyword, idx) => (
+                          <span key={idx} className="bg-indigo-900/50 text-indigo-300 px-2 py-1 rounded text-sm flex items-center gap-1 border border-indigo-500/30">
+                            {keyword}
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveKeyword(keyword)}
+                              className="hover:text-white"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          value={keywordInput}
+                          onChange={e => setKeywordInput(e.target.value)}
+                          onKeyDown={handleAddKeyword}
+                          onBlur={(e) => {
+                            if (keywordInput.trim()) handleAddKeyword(e as any);
+                          }}
+                          className="bg-transparent outline-none flex-1 text-white min-w-[150px]"
+                          placeholder={!currentPost.keywords ? "Digite e aperte Enter..." : ""}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">Pressione Enter ou vírgula para adicionar tags.</p>
                     </div>
                   </div>
 
@@ -839,7 +914,7 @@ export const MasterBlogManager: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Imagem de Fundo (Botão)</label>
-                     <div className="flex gap-4 items-start">
+                     <div className="space-y-2">
                         <div 
                           onClick={() => categoryImageInputRef.current?.click()}
                           className="h-24 w-full border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-800/50 transition-colors bg-slate-900 overflow-hidden relative group"
@@ -862,6 +937,18 @@ export const MasterBlogManager: React.FC = () => {
                             onChange={e => handleImageUpload(e, 'category')}
                           />
                         </div>
+                        <div className="flex items-center gap-2">
+                           <div className="h-px bg-slate-700 flex-1"></div>
+                           <span className="text-xs text-slate-500 font-medium">OU URL</span>
+                           <div className="h-px bg-slate-700 flex-1"></div>
+                        </div>
+                        <input
+                          type="text"
+                          value={currentCategory.image || ''}
+                          onChange={e => setCurrentCategory(prev => ({ ...prev, image: e.target.value }))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none text-slate-300"
+                          placeholder="https://..."
+                        />
                      </div>
                   </div>
                 </div>
@@ -1177,9 +1264,13 @@ export const MasterBlogManager: React.FC = () => {
                               <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
                                 comment.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
                                 comment.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                comment.status === 'hidden' ? 'bg-slate-500/20 text-slate-400' :
                                 'bg-yellow-500/20 text-yellow-400'
                               }`}>
-                                {comment.status === 'approved' ? 'Aprovado' : comment.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                                {comment.status === 'approved' ? 'Aprovado' : 
+                                 comment.status === 'rejected' ? 'Rejeitado' : 
+                                 comment.status === 'hidden' ? 'Oculto' : 
+                                 'Pendente'}
                               </span>
                            </div>
                            <p className="text-slate-300 text-sm">{comment.content}</p>
@@ -1188,24 +1279,46 @@ export const MasterBlogManager: React.FC = () => {
                            )}
                         </div>
                         <div className="flex gap-2">
-                           {comment.status === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={() => handleApproveComment(comment)}
-                                  className="p-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg transition-colors"
-                                  title="Aprovar"
-                                >
-                                   <Check size={18} />
-                                </button>
-                                <button 
-                                  onClick={() => handleRejectComment(comment)}
-                                  className="p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
-                                  title="Rejeitar"
-                                >
-                                   <Ban size={18} />
-                                </button>
-                              </>
+                           {comment.status !== 'approved' && (
+                              <button 
+                                onClick={() => handleApproveComment(comment)}
+                                className="p-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg transition-colors"
+                                title="Aprovar"
+                              >
+                                 <Check size={18} />
+                              </button>
                            )}
+                           
+                           {comment.status !== 'rejected' && comment.status !== 'hidden' && (
+                              <button 
+                                onClick={() => handleRejectComment(comment)}
+                                className="p-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
+                                title="Rejeitar"
+                              >
+                                 <Ban size={18} />
+                              </button>
+                           )}
+
+                           {comment.status !== 'hidden' && (
+                              <button 
+                                onClick={() => handleHideComment(comment)}
+                                className="p-2 bg-slate-600/20 hover:bg-slate-600 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                title="Ocultar"
+                              >
+                                 <EyeOff size={18} />
+                              </button>
+                           )}
+
+                           {comment.status !== 'pending' && (
+                              <button 
+                                onClick={() => handleResetComment(comment)}
+                                className="p-2 bg-yellow-600/20 hover:bg-yellow-600 text-yellow-400 hover:text-white rounded-lg transition-colors"
+                                title="Mover para Pendente"
+                              >
+                                 <RotateCcw size={18} />
+                              </button>
+                           )}
+
                            <button 
                               onClick={() => handleDeleteComment(comment)}
                               className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"

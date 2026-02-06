@@ -610,10 +610,20 @@ export const Layout: React.FC<LayoutProps> = ({
             title="Clique para editar seu perfil"
           >
             <div className={`w-10 h-10 rounded-lg border flex items-center justify-center font-black text-sm overflow-hidden shrink-0 ${isAtDeveloperPortal ? 'bg-indigo-600 border-indigo-500' : 'bg-white/10 border-white/10'}`}>
-              {user?.photo ? <img src={user.photo} className="w-full h-full object-cover" /> : user?.name?.charAt(0) || '?'}
+              {isAtDeveloperPortal ? (
+                masterSettings.masterPhoto ? (
+                  <img src={masterSettings.masterPhoto} className="w-full h-full object-cover" />
+                ) : (
+                  (masterSettings.masterName || user?.name || 'M').charAt(0)
+                )
+              ) : (
+                user?.photo ? <img src={user.photo} className="w-full h-full object-cover" /> : user?.name?.charAt(0) || '?'
+              )}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-xs font-black truncate uppercase leading-tight group-hover/profile:text-white transition-colors" style={{ color: config.sidebarTextColor }}>{user?.name || 'Visitante'}</p>
+              <p className="text-xs font-black truncate uppercase leading-tight group-hover/profile:text-white transition-colors" style={{ color: config.sidebarTextColor }}>
+                {isAtDeveloperPortal ? (masterSettings.masterName || user?.name || 'Master') : (user?.name || 'Visitante')}
+              </p>
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase text-white mt-1 w-fit shadow-sm" style={{ backgroundColor: isAtDeveloperPortal ? '#4f46e5' : (userRoleConfig?.color || '#64748b') }}>
                 {!isAtDeveloperPortal && <RoleIconComponent name={userRoleConfig?.iconName} size={10} />}
                 {isAtDeveloperPortal ? 'MASTER DEV' : (userRoleConfig?.label || user?.role)}

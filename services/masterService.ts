@@ -314,7 +314,8 @@ export const MasterService = {
       sidebarTitle: 'Sistema de Gestão de Terreiros',
       systemTitle: 'ConectAxé Painel de Desenvolvedor',
       brandLogo: MASTER_LOGO_URL,
-      backupFrequency: 'disabled'
+      backupFrequency: 'disabled',
+      masterName: 'Rodrigo Master'
     };
     try {
       const docRef = doc(db, CONFIG_COLLECTION, 'master_credentials');

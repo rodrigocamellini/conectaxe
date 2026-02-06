@@ -62,7 +62,8 @@ import {
   RefreshCcw,
   Eye,
   EyeOff,
-  Pencil
+  Pencil,
+  Camera
 } from 'lucide-react';
 import { format, addDays, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -367,7 +368,8 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
         console.log('Fetching master credentials from server...');
         const creds = await MasterService.getMasterCredentials();
         console.log('Master credentials fetched:', creds);
-        setMasterCreds(creds);
+        // Merge with defaults to ensure new fields like masterName exist
+        setMasterCreds(prev => ({ ...prev, ...creds }));
       } catch (error) {
         console.error("Error loading master credentials:", error);
       }
@@ -435,26 +437,30 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
     e.preventDefault();
     try {
       console.log('Initiating Master Settings Save...', masterCreds);
+      
+      // 1. Save to Firestore
       await MasterService.saveMasterCredentials(masterCreds);
       
-      // Wait a moment to ensure Firestore persistence layer has processed it before reload
-      // Although await setDoc should be enough, a small delay can help in some edge cases with offline persistence
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 2. Wait to ensure persistence
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Re-fetch credentials from server to confirm and update local state
-      try {
-        const freshCreds = await MasterService.getMasterCredentials();
-        setMasterCreds(freshCreds);
-        alert('Configurações do Ecossistema Master atualizadas com sucesso!');
-        setShowMasterSettings(false);
-      } catch (fetchErr) {
-        console.error("Error fetching fresh credentials:", fetchErr);
-        // Fallback to reload if fetch fails
-        window.location.reload();
+      // 3. Verify the save by reading back from server
+      const freshCreds = await MasterService.getMasterCredentials();
+      console.log('Verification read:', freshCreds);
+
+      // Check if values match
+      if (freshCreds.email !== masterCreds.email || freshCreds.password !== masterCreds.password || freshCreds.masterName !== masterCreds.masterName) {
+        alert('AVISO: Os dados salvos parecem diferir do que foi lido do servidor. Pode haver um atraso na propagação. Por favor, aguarde alguns segundos e recarregue a página.');
+      } else {
+        alert('Configurações salvas com sucesso! O sistema será recarregado para aplicar as mudanças.');
       }
+
+      // 4. Reload to force AuthScreens to pick up new creds
+      window.location.reload();
+
     } catch (error) {
       console.error("Error saving master credentials:", error);
-      alert('Erro ao salvar configurações.');
+      alert('Erro crítico ao salvar configurações: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -1699,6 +1705,56 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
                       <Lock size={14} /> 03. Credenciais Master
                     </h4>
                     <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Nome do Desenvolvedor (Master)</label>
+                        <input
+                          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500"
+                          value={masterCreds.masterName || ''}
+                          onChange={e => setMasterCreds({ ...masterCreds, masterName: e.target.value })}
+                          placeholder="Ex: Rodrigo Master"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Foto do Desenvolvedor</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                            {masterCreds.masterPhoto ? (
+                              <img src={masterCreds.masterPhoto} className="w-full h-full object-cover" />
+                            ) : (
+                              <UserIcon size={24} className="text-slate-700" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold outline-none focus:ring-2 focus:ring-amber-500 text-xs mb-2"
+                              value={masterCreds.masterPhoto || ''}
+                              onChange={e => setMasterCreds({ ...masterCreds, masterPhoto: e.target.value })}
+                              placeholder="URL da imagem (ou upload abaixo)"
+                            />
+                            <div className="relative">
+                               <input 
+                                  type="file" 
+                                  accept="image/*"
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => setMasterCreds({ ...masterCreds, masterPhoto: reader.result as string });
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                               />
+                               <button type="button" className="text-[10px] font-black uppercase text-amber-500 hover:text-amber-400 flex items-center gap-1">
+                                 <Camera size={12} /> Fazer Upload de Arquivo Local
+                               </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">E-mail Master (Acesso)</label>
                         <input
