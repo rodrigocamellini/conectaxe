@@ -45,7 +45,7 @@ const Navbar: React.FC<NavbarProps> = ({ logoUrl }) => {
   };
 
   return (
-    <nav className={`fixed w-full z-[100] transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-white/90 backdrop-blur-md py-4 shadow-sm'}`}>
+    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-white/90 backdrop-blur-md py-4 shadow-sm'}`}>
       <div className="container mx-auto px-6 flex justify-between items-center relative z-[101]">
         <div 
           className="flex items-center cursor-pointer"

@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, Share2, Facebook, Twitter, Linkedin, Link as LinkIcon, MessageCircle, Instagram, Users, Send, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 
-export const BlogPostPage: React.FC = () => {
+export const BlogPostPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded = false }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost | null>(null);
@@ -118,7 +118,9 @@ export const BlogPostPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center space-y-4">
         <h1 className="text-2xl font-bold text-gray-900">Post não encontrado</h1>
-        <button onClick={() => navigate('/blog')} className="text-orange-600 font-bold hover:underline">Voltar para o Blog</button>
+        <button onClick={() => navigate(isEmbedded ? '/sistema-blog' : '/blog')} className="text-orange-600 font-bold hover:underline">
+          {isEmbedded ? 'Voltar para o Blog' : 'Voltar para o Blog'}
+        </button>
       </div>
     );
   }
@@ -166,7 +168,7 @@ export const BlogPostPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans relative">
-      <Navbar /> 
+      {!isEmbedded && <Navbar />} 
 
       {/* Share/Notification Modal */}
       {shareModal.isOpen && (
@@ -195,9 +197,9 @@ export const BlogPostPage: React.FC = () => {
         </div>
       )}
       
-      <div className="pt-32 pb-20 container mx-auto px-4 lg:px-8">
+      <div className={`${isEmbedded ? 'pt-8' : 'pt-28'} pb-20 container mx-auto px-4 lg:px-8`}>
         <button 
-          onClick={() => navigate('/blog')}
+          onClick={() => navigate(isEmbedded ? '/sistema-blog' : '/blog')}
           className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-orange-600 transition-colors uppercase tracking-wider"
         >
           <ChevronLeft size={16} /> Voltar para o Blog

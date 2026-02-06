@@ -7,7 +7,7 @@ import Navbar from './landing/components/Navbar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export const BlogPage: React.FC = () => {
+export const BlogPage: React.FC<{ isEmbedded?: boolean }> = ({ isEmbedded = false }) => {
   const [searchParams] = useSearchParams();
   const categorySlug = searchParams.get('category');
   const searchQuery = searchParams.get('search');
@@ -60,18 +60,20 @@ export const BlogPage: React.FC = () => {
   }, [categorySlug, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      <Navbar /> 
+    <div className={`min-h-screen bg-gray-50 font-sans ${isEmbedded ? '' : 'pt-28'}`}>
+      {!isEmbedded && <Navbar />} 
       
-      <div className="pt-32 pb-20 container mx-auto px-4 lg:px-8">
-        <div className="mb-8">
-           <button 
-             onClick={() => window.location.href = '/'} 
-             className="flex items-center gap-2 text-orange-600 font-bold hover:underline"
-           >
-              ← Voltar para Home
-           </button>
-        </div>
+      <div className={`${isEmbedded ? 'pt-8' : 'pb-20'} container mx-auto px-4 lg:px-8`}>
+        {!isEmbedded && (
+          <div className="mb-8">
+             <button 
+               onClick={() => window.location.href = '/'} 
+               className="flex items-center gap-2 text-orange-600 font-bold hover:underline"
+             >
+                ← Voltar para Home
+             </button>
+          </div>
+        )}
 
         {/* Default Orange Banner */}
         <div className="text-center mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-6 md:p-10 text-white shadow-xl group">
@@ -128,9 +130,10 @@ export const BlogPage: React.FC = () => {
               ) : posts.length > 0 ? (
                 posts.map(post => {
                   const categoryName = categories.find(c => c.id === post.category)?.name || 'Geral';
+                  const postLink = isEmbedded ? `/sistema-blog/${post.slug}` : `/blog/${post.slug}`;
                   return (
                     <article key={post.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col">
-                      <Link to={`/blog/${post.slug}`} className="block aspect-video overflow-hidden bg-gray-100 relative">
+                      <Link to={postLink} className="block aspect-video overflow-hidden bg-gray-100 relative">
                          {post.coverImage && (
                            <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                          )}
@@ -146,7 +149,7 @@ export const BlogPage: React.FC = () => {
                             <span>•</span>
                             <span>{post.author || 'Equipe ConectAxé'}</span>
                          </div>
-                         <Link to={`/blog/${post.slug}`} className="block">
+                         <Link to={postLink} className="block">
                            <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
                              {post.title}
                            </h2>
@@ -154,7 +157,7 @@ export const BlogPage: React.FC = () => {
                          <p className="text-gray-600 leading-relaxed mb-2 line-clamp-3">
                            {post.excerpt}
                          </p>
-                         <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-2 font-black text-orange-600 uppercase tracking-widest text-xs hover:gap-4 transition-all mt-4 py-2">
+                         <Link to={postLink} className="inline-flex items-center gap-2 font-black text-orange-600 uppercase tracking-widest text-xs hover:gap-4 transition-all mt-4 py-2">
                            Ler Artigo Completo <span className="text-lg">→</span>
                          </Link>
                       </div>

@@ -673,6 +673,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           <Dashboard members={members} config={systemConfig} events={events} terreiroEvents={terreiroEvents} roadmap={roadmap || []} broadcasts={broadcasts} />
         } />
 
+        <Route path="/sistema-blog" element={<BlogPage isEmbedded={true} />} />
+        <Route path="/sistema-blog/:slug" element={<BlogPostPage isEmbedded={true} />} />
+
         {/* Agenda */}
         {hasModule('agenda') && (
           <Route path="/agenda" element={

@@ -28,7 +28,8 @@ import {
   AlertCircle,
   Lock,
   User as UserIcon,
-  LifeBuoy
+  LifeBuoy,
+  Newspaper
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
@@ -640,6 +641,14 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
           {!isAtDeveloperPortal && activeTab === 'dashboard' && (
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('sistema-blog')}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-orange-700 transition-colors"
+              >
+                <Newspaper size={16} />
+                <span>Blog</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('support-client')}
