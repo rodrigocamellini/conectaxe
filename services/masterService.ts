@@ -57,6 +57,19 @@ export const MasterService = {
       return [];
     }
   },
+  getClient: async (clientId: string): Promise<SaaSClient | null> => {
+    try {
+      const docRef = doc(db, CLIENTS_COLLECTION, clientId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return snap.data() as SaaSClient;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching client:", error);
+      return null;
+    }
+  },
   saveClient: async (client: SaaSClient): Promise<void> => {
     try {
       await setDoc(doc(db, CLIENTS_COLLECTION, client.id), client);

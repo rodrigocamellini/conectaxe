@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Member, SystemConfig, CalendarEvent, ReleaseNote, GlobalBroadcast, TerreiroEvent } from '../types';
 import { format, differenceInYears } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { 
   UserCheck, 
   UserMinus, 
@@ -40,11 +40,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { UpcomingEventsWidget } from './UpcomingEventsWidget';
 
 interface DashboardProps {
   members: Member[];
   config: SystemConfig;
   events: CalendarEvent[];
+  terreiroEvents?: TerreiroEvent[];
   roadmap?: ReleaseNote[];
   broadcasts?: GlobalBroadcast[];
 }
@@ -170,8 +172,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
     .slice(0, 5);
 
   const todayEvents = [
-    ...events.filter(e => e.date === todayStr),
-    ...terreiroEvents
+    ...(events || []).filter(e => e.date === todayStr),
+    ...(terreiroEvents || [])
       .filter(e => e.date.split('T')[0] === todayStr && e.status !== 'cancelado')
       .map(e => ({
         id: e.id,
@@ -338,7 +340,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+        {/* WIDGET: PRÓXIMAS GIRAS E EVENTOS */}
+        <UpcomingEventsWidget events={terreiroEvents || []} config={config} />
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2 text-indigo-600" style={{ color: config.primaryColor }}>

@@ -158,8 +158,17 @@ export function EventList({ events, onEdit, onDelete, onNewEvent, onViewCheckin,
                       title="Copiar Link de Inscrição"
                       className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors relative"
                     >
-                      {copiedId === event.id ? <CheckCircle size={18} className="text-green-500" /> : <Link size={18} />}
+                      {copiedId === event.id ? <CheckCircle size={18} className="text-green-500" /> : <Copy size={18} />}
                     </button>
+                    <a
+                      href={`/eventos/${event.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir Página de Inscrição"
+                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors"
+                    >
+                      <Link size={18} />
+                    </a>
                     {(event.status === 'agendado' || event.status === 'acontecendo') && (
                       <button
                         onClick={() => onStatusChange(event.id, 'encerrado')}

@@ -95,7 +95,48 @@ export interface User {
   photo?: string;
   linkedEntityId?: string;
   profileType?: 'membro' | 'consulente';
+  active?: boolean;
+  clientId?: string;
+  createdAt?: string;
 }
+
+export interface EmailAccount {
+  id: string;
+  email: string;
+  name: string;
+  imapHost: string;
+  imapPort: number;
+  imapSecure: boolean;
+  popHost: string;
+  popPort: number;
+  popSecure: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  password?: string;
+  isDefault: boolean;
+  signature?: string;
+}
+
+export interface EmailMessage {
+  id: string;
+  accountId: string;
+  folder: 'inbox' | 'sent' | 'drafts' | 'trash' | 'spam';
+  from: string;
+  fromName?: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  snippet: string;
+  date: string;
+  isRead: boolean;
+  isStarred: boolean;
+  hasAttachments: boolean;
+  attachments?: { name: string; url: string; size: string }[];
+}
+
 
 export interface AuthState {
   user: User | null;

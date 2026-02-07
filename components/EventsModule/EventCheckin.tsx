@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, QrCode, UserCheck, X, Check, Filter, Users, UserX, Clock, Ticket } from 'lucide-react';
 import { TerreiroEvent, EventTicket, SystemConfig } from '../../types';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface EventCheckinProps {
   event: TerreiroEvent;
@@ -14,6 +15,41 @@ interface EventCheckinProps {
 export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }: EventCheckinProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'presente' | 'faltou' | 'pendente'>('todos');
+  const [showScanner, setShowScanner] = useState(false);
+
+  useEffect(() => {
+    if (showScanner) {
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
+      
+      scanner.render((decodedText) => {
+        // Try to find ticket by ID or Ticket Number
+        const ticket = tickets.find(t => t.id === decodedText || t.ticketNumber.toString() === decodedText);
+        
+        if (ticket) {
+          if (ticket.attendance === 'presente') {
+            alert(`Participante ${ticket.guestName || 'Anônimo'} já fez check-in!`);
+          } else {
+            onUpdateTicket(ticket.id, { attendance: 'presente' });
+            alert(`Check-in confirmado para ${ticket.guestName || 'Participante'}!`);
+          }
+          scanner.clear().catch(console.error);
+          setShowScanner(false);
+        } else {
+          alert('Ticket não encontrado ou inválido!');
+        }
+      }, (error) => {
+        // console.warn(error);
+      });
+
+      return () => {
+        scanner.clear().catch(console.error);
+      };
+    }
+  }, [showScanner, tickets, onUpdateTicket]);
 
   const filteredTickets = tickets.filter(t => {
     const matchesSearch = 
@@ -61,7 +97,21 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        {showScanner && (
+          <div className="col-span-2 md:col-span-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Leitor de QR Code</h3>
+              <button onClick={() => setShowScanner(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div id="reader" className="w-full max-w-sm mx-auto"></div>
+          </div>
+        )}
+        
+        {!showScanner && (
+          <>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Inscritos</p>
             <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -100,6 +150,8 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
           </div>
           <p className="text-2xl font-black text-gray-800">{stats.faltou}</p>
         </div>
+          </>
+        )}
       </div>
 
       {/* Search & Actions */}
@@ -116,8 +168,11 @@ export function EventCheckin({ event, tickets, onBack, onUpdateTicket, config }:
         </div>
         
         <div className="flex gap-2">
-           {/* Mobile Scanner Button Placeholder */}
-           <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm shadow-indigo-200">
+           {/* Mobile Scanner Button */}
+           <button 
+             onClick={() => setShowScanner(true)}
+             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm shadow-indigo-200"
+           >
              <QrCode size={18} />
              <span className="hidden md:inline">Ler QR Code</span>
            </button>

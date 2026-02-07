@@ -66,7 +66,7 @@ import {
   Camera
 } from 'lucide-react';
 import { format, addDays, isAfter } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { MasterTicketManager } from './MasterTicketManager';
 import { MasterCouponsManager } from './MasterCouponsManager';
 import { MasterPlansManager } from './MasterPlansManager';
@@ -195,6 +195,22 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
   
   // Estado para Confirmação de Bloqueio
   const [blockConfirm, setBlockConfirm] = useState<{ id: string; status: 'blocked' | 'active'; name: string } | null>(null);
+
+  // Estado para Modal de Sucesso de Configurações Master
+  const [showMasterSettingsSuccess, setShowMasterSettingsSuccess] = useState(false);
+  
+  // Estado para Notificações Gerais (Erro/Aviso)
+  const [notificationModal, setNotificationModal] = useState<{
+    isOpen: boolean;
+    type: 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
 
   const getLatestVersion = () => {
     if (!roadmap || roadmap.length === 0) return '0.0.0';
@@ -450,17 +466,24 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
 
       // Check if values match
       if (freshCreds.email !== masterCreds.email || freshCreds.password !== masterCreds.password || freshCreds.masterName !== masterCreds.masterName) {
-        alert('AVISO: Os dados salvos parecem diferir do que foi lido do servidor. Pode haver um atraso na propagação. Por favor, aguarde alguns segundos e recarregue a página.');
+        setNotificationModal({
+          isOpen: true,
+          type: 'warning',
+          title: 'Aviso de Sincronização',
+          message: 'Os dados salvos parecem diferir do que foi lido do servidor. Pode haver um atraso na propagação. Por favor, aguarde alguns segundos e recarregue a página.'
+        });
       } else {
-        alert('Configurações salvas com sucesso! O sistema será recarregado para aplicar as mudanças.');
+        setShowMasterSettingsSuccess(true);
       }
-
-      // 4. Reload to force AuthScreens to pick up new creds
-      window.location.reload();
 
     } catch (error) {
       console.error("Error saving master credentials:", error);
-      alert('Erro crítico ao salvar configurações: ' + (error instanceof Error ? error.message : String(error)));
+      setNotificationModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Erro Crítico',
+        message: 'Erro crítico ao salvar configurações: ' + (error instanceof Error ? error.message : String(error))
+      });
     }
   };
 
@@ -2709,6 +2732,69 @@ export const DeveloperPortal: React.FC<DeveloperPortalProps> = ({
       {activeTab === 'blog' && (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
           <MasterBlogManager />
+        </div>
+      )}
+
+      {/* Modal de Sucesso de Configurações Master */}
+      {showMasterSettingsSuccess && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[130] p-4">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+              <div className="p-8 bg-emerald-600 text-white flex justify-between items-center">
+                 <div className="flex items-center gap-3">
+                    <CheckCircle2 size={24} />
+                    <h3 className="text-xl font-black uppercase tracking-tight">Sucesso</h3>
+                 </div>
+              </div>
+              <div className="p-8 space-y-6">
+                 <div className="text-center space-y-2">
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                       <Check size={32} className="text-emerald-600" />
+                    </div>
+                    <h4 className="text-lg font-black text-slate-800 uppercase">Configurações Atualizadas</h4>
+                    <p className="text-sm text-slate-500 font-medium">
+                       As credenciais e configurações master foram salvas com sucesso. O sistema precisa ser recarregado para aplicar as mudanças.
+                    </p>
+                 </div>
+                 <button 
+                   onClick={() => window.location.reload()}
+                   className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-800 transition-all shadow-xl"
+                 >
+                   Recarregar Sistema
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Modal de Notificação Geral */}
+      {notificationModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[140] p-4">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+              <div className={`p-8 text-white flex justify-between items-center ${
+                notificationModal.type === 'error' ? 'bg-red-600' : 
+                notificationModal.type === 'warning' ? 'bg-amber-500' : 'bg-indigo-600'
+              }`}>
+                 <div className="flex items-center gap-3">
+                    {notificationModal.type === 'error' ? <ShieldAlert size={24} /> : 
+                     notificationModal.type === 'warning' ? <AlertTriangle size={24} /> : <CheckCircle2 size={24} />}
+                    <h3 className="text-xl font-black uppercase tracking-tight">{notificationModal.title}</h3>
+                 </div>
+                 <button onClick={() => setNotificationModal({ ...notificationModal, isOpen: false })} className="p-2 hover:bg-white/10 rounded-full transition-all">
+                    <X size={24} />
+                 </button>
+              </div>
+              <div className="p-8 space-y-6">
+                 <p className="text-sm text-slate-600 font-medium text-center leading-relaxed">
+                    {notificationModal.message}
+                 </p>
+                 <button 
+                   onClick={() => setNotificationModal({ ...notificationModal, isOpen: false })}
+                   className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+                 >
+                   Entendi
+                 </button>
+              </div>
+           </div>
         </div>
       )}
 

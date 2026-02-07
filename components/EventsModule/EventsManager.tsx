@@ -12,9 +12,10 @@ interface EventsManagerProps {
   config: SystemConfig;
   onUpdateEvents: (events: TerreiroEvent[]) => void;
   onUpdateTickets: (tickets: EventTicket[]) => void;
+  onTicketUpdate?: (ticket: EventTicket) => void;
 }
 
-export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdateTickets }: EventsManagerProps) {
+export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdateTickets, onTicketUpdate }: EventsManagerProps) {
   const [view, setView] = useState<'list' | 'checkin'>('list');
   const [showForm, setShowForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<TerreiroEvent | null>(null);
@@ -87,7 +88,14 @@ export function EventsManager({ events, tickets, config, onUpdateEvents, onUpdat
   };
 
   const handleUpdateTicket = (ticketId: string, updates: Partial<EventTicket>) => {
-    onUpdateTickets(tickets.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+    const updatedTicket = tickets.find(t => t.id === ticketId);
+    if (updatedTicket) {
+      const newTicket = { ...updatedTicket, ...updates };
+      if (onTicketUpdate) {
+        onTicketUpdate(newTicket);
+      }
+      onUpdateTickets(tickets.map(t => t.id === ticketId ? newTicket : t));
+    }
   };
 
   const handleStatusChange = (id: string, newStatus: 'agendado' | 'acontecendo' | 'encerrado' | 'cancelado') => {

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, ShieldAlert } from 'lucide-react';
+import { LogOut, ShieldAlert, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { 
@@ -13,47 +13,50 @@ import { UserService } from '../services/userService';
 import { EntityService } from '../services/entityService';
 import { CourseService } from '../services/courseService';
 
-// Components
-import { Dashboard } from './Dashboard';
-import { MemberManagement } from './MemberManagement';
-import { EntityManagement } from './EntityManagement';
-import { MediumManagement } from './MediumManagement';
-import { AttendanceManagement } from './AttendanceManagement';
-import { InventoryManagement } from './InventoryManagement';
-import { InventoryEntry } from './InventoryEntry';
-import { InventoryDashboard } from './InventoryDashboard';
-import { SystemConfigManagement } from './SystemConfigManagement';
-import { UserManagement } from './UserManagement';
-import { FinancialManagement } from './FinancialManagement';
-import { FinancialLedger } from './FinancialLedger';
-import { FinancialConfigComponent } from './FinancialConfig';
-import { FinancialReports } from './FinancialReports';
-import { PermissionManagement } from './PermissionManagement';
-import { EntityImageManagement } from './EntityImageManagement';
-import { AgendaManagement } from './AgendaManagement';
-import { CourseManagement } from './CourseManagement';
-import { EadPlatform } from './EadPlatform';
-import { SaaSManager } from './SaaSManager';
-import { DeveloperPortal } from './DeveloperPortal';
-import { RestoreSystem } from './RestoreSystem';
-import { BackupSystem } from './BackupSystem';
-import { DonationManagement } from './DonationManagement';
-import { TicketSystem } from './TicketSystem';
-import { IDCardManagement } from './IDCardManagement';
-import { CanteenManagement } from './CanteenManagement';
-import { EventsManager } from './EventsModule/EventsManager';
-import { HelpCenter } from './HelpCenter';
-import { SafeMasterPortal } from './SafeMasterPortal';
-import { MediaPontos } from './MediaPontos';
-import { MediaRezas } from './MediaRezas';
-import { MediaErvasBanhos } from './MediaErvasBanhos';
-import { AffiliateSystem } from './AffiliateSystem';
-import { BlogPage } from './BlogPage';
-import { BlogPostPage } from './BlogPostPage';
-import { RoadmapHistory } from './RoadmapHistory';
+// Components - Lazy Loaded
+const Dashboard = React.lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
+const MemberManagement = React.lazy(() => import('./MemberManagement').then(m => ({ default: m.MemberManagement })));
+const EntityManagement = React.lazy(() => import('./EntityManagement').then(m => ({ default: m.EntityManagement })));
+const MediumManagement = React.lazy(() => import('./MediumManagement').then(m => ({ default: m.MediumManagement })));
+const AttendanceManagement = React.lazy(() => import('./AttendanceManagement').then(m => ({ default: m.AttendanceManagement })));
+const InventoryManagement = React.lazy(() => import('./InventoryManagement').then(m => ({ default: m.InventoryManagement })));
+const InventoryEntry = React.lazy(() => import('./InventoryEntry').then(m => ({ default: m.InventoryEntry })));
+const InventoryDashboard = React.lazy(() => import('./InventoryDashboard').then(m => ({ default: m.InventoryDashboard })));
+const SystemConfigManagement = React.lazy(() => import('./SystemConfigManagement').then(m => ({ default: m.SystemConfigManagement })));
+const UserManagement = React.lazy(() => import('./UserManagement').then(m => ({ default: m.UserManagement })));
+const FinancialManagement = React.lazy(() => import('./FinancialManagement').then(m => ({ default: m.FinancialManagement })));
+const FinancialLedger = React.lazy(() => import('./FinancialLedger').then(m => ({ default: m.FinancialLedger })));
+const FinancialConfigComponent = React.lazy(() => import('./FinancialConfig').then(m => ({ default: m.FinancialConfigComponent })));
+const FinancialReports = React.lazy(() => import('./FinancialReports').then(m => ({ default: m.FinancialReports })));
+const PermissionManagement = React.lazy(() => import('./PermissionManagement').then(m => ({ default: m.PermissionManagement })));
+const EntityImageManagement = React.lazy(() => import('./EntityImageManagement').then(m => ({ default: m.EntityImageManagement })));
+const AgendaManagement = React.lazy(() => import('./AgendaManagement').then(m => ({ default: m.AgendaManagement })));
+const CourseManagement = React.lazy(() => import('./CourseManagement').then(m => ({ default: m.CourseManagement })));
+const EadPlatform = React.lazy(() => import('./EadPlatform').then(m => ({ default: m.EadPlatform })));
+const SaaSManager = React.lazy(() => import('./SaaSManager').then(m => ({ default: m.SaaSManager })));
+const DeveloperPortal = React.lazy(() => import('./DeveloperPortal').then(m => ({ default: m.DeveloperPortal })));
+const RestoreSystem = React.lazy(() => import('./RestoreSystem').then(m => ({ default: m.RestoreSystem })));
+const BackupSystem = React.lazy(() => import('./BackupSystem').then(m => ({ default: m.BackupSystem })));
+const DonationManagement = React.lazy(() => import('./DonationManagement').then(m => ({ default: m.DonationManagement })));
+const TicketSystem = React.lazy(() => import('./TicketSystem').then(m => ({ default: m.TicketSystem })));
+const IDCardManagement = React.lazy(() => import('./IDCardManagement').then(m => ({ default: m.IDCardManagement })));
+const CanteenManagement = React.lazy(() => import('./CanteenManagement').then(m => ({ default: m.CanteenManagement })));
+const EventsManager = React.lazy(() => import('./EventsModule/EventsManager').then(m => ({ default: m.EventsManager })));
+const EmailManager = React.lazy(() => import('./EmailModule/EmailManager').then(m => ({ default: m.EmailManager })));
+const PublicEventRegistration = React.lazy(() => import('./EventsModule/PublicEventRegistration').then(m => ({ default: m.PublicEventRegistration })));
+const HelpCenter = React.lazy(() => import('./HelpCenter').then(m => ({ default: m.HelpCenter })));
+const SafeMasterPortal = React.lazy(() => import('./SafeMasterPortal').then(m => ({ default: m.SafeMasterPortal })));
+const MediaPontos = React.lazy(() => import('./MediaPontos').then(m => ({ default: m.MediaPontos })));
+const MediaRezas = React.lazy(() => import('./MediaRezas').then(m => ({ default: m.MediaRezas })));
+const MediaErvasBanhos = React.lazy(() => import('./MediaErvasBanhos').then(m => ({ default: m.MediaErvasBanhos })));
+const AffiliateSystem = React.lazy(() => import('./AffiliateSystem').then(m => ({ default: m.AffiliateSystem })));
+const BlogPage = React.lazy(() => import('./BlogPage').then(m => ({ default: m.BlogPage })));
+const BlogPostPage = React.lazy(() => import('./BlogPostPage').then(m => ({ default: m.BlogPostPage })));
+const RoadmapHistory = React.lazy(() => import('./RoadmapHistory').then(m => ({ default: m.RoadmapHistory })));
 
 import { Layout } from './Layout';
 import { Outlet } from 'react-router-dom';
+import { Loading } from './Loading';
 
 const ProtectedLayout: React.FC = () => {
   const auth = useAuth();
@@ -61,6 +64,7 @@ const ProtectedLayout: React.FC = () => {
     systemConfig, setSystemConfig, 
     updateProfile,
     currentClient,
+    currentPlan,
     roadmap
   } = useData();
   const [isSimulation, setIsSimulation] = useState(false);
@@ -85,7 +89,7 @@ const ProtectedLayout: React.FC = () => {
                 : 'Esta conta encontra-se bloqueada.'}
             </p>
             <p className="text-slate-400">
-              Entre em contato com o suporte para regularizar sua situação.
+              Entre em contato com o suporte para regularizar sua situaÃ§Ã£o.
             </p>
             <button 
               onClick={() => auth.logout()}
@@ -183,6 +187,9 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     activeClientId
   } = useData();
 
+  // Helper for Client ID (supports both Admin and Secondary Users)
+  const clientId = currentClient?.id || activeClientId;
+
   // Helpers for Plan Limits
   const currentPlan = plans.find(p => p.name === (currentClient?.planName || systemConfig.license?.planName));
 
@@ -194,14 +201,14 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       if (!isConsulente && limits.maxMembers != null) {
         const currentCount = members.filter(mem => mem.status !== 'consulente' && !mem.isConsulente).length;
         if (currentCount >= limits.maxMembers) {
-          alert('Limite de cadastros de membros alcançado para o plano atual.');
+          alert('Limite de cadastros de membros alcanÃ§ado para o plano atual.');
           return;
         }
       }
       if (isConsulente && limits.maxConsulentes != null) {
         const currentCons = members.filter(mem => mem.status === 'consulente' || mem.isConsulente).length;
         if (currentCons >= limits.maxConsulentes) {
-          alert('Limite de cadastros de consulentes alcançado para o plano atual.');
+          alert('Limite de cadastros de consulentes alcanÃ§ado para o plano atual.');
           return;
         }
       }
@@ -209,7 +216,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     
     const newMember = await MemberService.createMember(m, members, false);
     setMembers([newMember, ...members]);
-    if (currentClient?.id) await MemberService.saveMember(currentClient.id, newMember).catch(console.error);
+    if (clientId) await MemberService.saveMember(clientId, newMember).catch(console.error);
   };
 
   const handleAddConsulente = async (m: Partial<Member>) => {
@@ -218,43 +225,43 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     if (!auth.isMasterMode && limits && limits.maxConsulentes != null) {
         const currentCons = members.filter(mem => mem.status === 'consulente' || mem.isConsulente).length;
         if (currentCons >= limits.maxConsulentes) {
-          alert('Limite de cadastros de consulentes alcançado para o plano atual.');
+          alert('Limite de cadastros de consulentes alcanÃ§ado para o plano atual.');
           return;
         }
     }
     
     const newConsulente = await MemberService.createMember(m, members, true);
     setMembers([newConsulente, ...members]);
-    if (currentClient?.id) await MemberService.saveMember(currentClient.id, newConsulente).catch(console.error);
+    if (clientId) await MemberService.saveMember(clientId, newConsulente).catch(console.error);
   };
 
   const handleUpdateMember = async (id: string, data: Partial<Member>) => {
     const updated = members.map(m => m.id === id ? { ...m, ...data } : m);
     setMembers(updated);
     const member = updated.find(m => m.id === id);
-    if (currentClient?.id && member) await MemberService.saveMember(currentClient.id, member).catch(console.error);
+    if (clientId && member) await MemberService.saveMember(clientId, member).catch(console.error);
   };
 
   const handleDeleteMember = async (id: string) => {
     setMembers(members.filter(m => m.id !== id));
-    if (currentClient?.id) await MemberService.deleteMember(currentClient.id, id).catch(console.error);
+    if (clientId) await MemberService.deleteMember(clientId, id).catch(console.error);
   };
 
   // Course Handlers
   const handleAddCourse = async (c: Partial<Course>) => {
     const newCourse = { ...c, id: generateUUID(), createdAt: new Date().toISOString() } as Course;
     setCourses([newCourse, ...courses]);
-    if (currentClient?.id) await CourseService.saveCourse(currentClient.id, newCourse).catch(console.error);
+    if (clientId) await CourseService.saveCourse(clientId, newCourse).catch(console.error);
   };
   const handleUpdateCourse = async (id: string, data: Partial<Course>) => {
     const updated = courses.map(c => c.id === id ? { ...c, ...data } : c);
     setCourses(updated);
     const item = updated.find(c => c.id === id);
-    if (currentClient?.id && item) await CourseService.saveCourse(currentClient.id, item).catch(console.error);
+    if (clientId && item) await CourseService.saveCourse(clientId, item).catch(console.error);
   };
   const handleDeleteCourse = async (id: string) => {
     setCourses(courses.filter(c => c.id !== id));
-    if (currentClient?.id) await CourseService.deleteCourse(currentClient.id, id).catch(console.error);
+    if (clientId) await CourseService.deleteCourse(clientId, id).catch(console.error);
   };
   
   // Enrollment Handlers
@@ -267,13 +274,13 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           progress: [] 
       };
       setEnrollments([...enrollments, newEnrollment]);
-      if (currentClient?.id) await CourseService.saveEnrollment(currentClient.id, newEnrollment).catch(console.error);
+      if (clientId) await CourseService.saveEnrollment(clientId, newEnrollment).catch(console.error);
   };
   const handleUpdateEnrollment = async (id: string, data: Partial<Enrollment>) => {
       const updated = enrollments.map(e => e.id === id ? { ...e, ...data } : e);
       setEnrollments(updated);
       const item = updated.find(e => e.id === id);
-      if (currentClient?.id && item) await CourseService.saveEnrollment(currentClient.id, item).catch(console.error);
+      if (clientId && item) await CourseService.saveEnrollment(clientId, item).catch(console.error);
   };
   
   const handleUpdateProgress = async (enrollmentId: string, lessonId: string) => {
@@ -295,17 +302,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   const handleAddUser = async (u: Partial<User>) => {
     const newUser = { ...u, id: generateUUID() } as User;
     setSystemUsers([...systemUsers, newUser]);
-    if (currentClient?.id) await UserService.saveUser(currentClient.id, newUser).catch(console.error);
+    if (clientId) await UserService.saveUser(clientId, newUser).catch(console.error);
   };
   const handleUpdateUser = async (id: string, data: Partial<User>) => {
     const updated = systemUsers.map(u => u.id === id ? { ...u, ...data } : u);
     setSystemUsers(updated);
     const user = updated.find(u => u.id === id);
-    if (currentClient?.id && user) await UserService.saveUser(currentClient.id, user).catch(console.error);
+    if (clientId && user) await UserService.saveUser(clientId, user).catch(console.error);
   };
   const handleDeleteUser = async (id: string) => {
     setSystemUsers(systemUsers.filter(u => u.id !== id));
-    if (currentClient?.id) await UserService.deleteUser(currentClient.id, id).catch(console.error);
+    if (clientId) await UserService.deleteUser(clientId, id).catch(console.error);
   };
 
   // Entity Handlers
@@ -317,14 +324,14 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       imageUrl: entity.imageUrl
     };
     setEntities(prev => [...prev, newEntity]);
-    if (currentClient?.id) await EntityService.saveEntity(currentClient.id, newEntity).catch(console.error);
+    if (clientId) await EntityService.saveEntity(clientId, newEntity).catch(console.error);
   };
   const handleUpdateEntity = async (id: string, data: Partial<SpiritualEntity>) => { 
       const updated = entities.map(e => e.id === id ? { ...e, ...data } : e);
       setEntities(updated);
       const entity = updated.find(e => e.id === id);
-      if (currentClient?.id && entity) {
-        await EntityService.saveEntity(currentClient.id, entity).catch(err => {
+      if (clientId && entity) {
+        await EntityService.saveEntity(clientId, entity).catch(err => {
           console.error("Erro ao salvar entidade:", err);
           alert("Erro ao salvar a imagem. Tente novamente ou use uma imagem menor.");
         });
@@ -332,24 +339,24 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   };
   const handleDeleteEntity = async (id: string) => {
     setEntities(entities.filter(e => e.id !== id));
-    if (currentClient?.id) await EntityService.deleteEntity(currentClient.id, id).catch(console.error);
+    if (clientId) await EntityService.deleteEntity(clientId, id).catch(console.error);
   };
 
   // Canteen Handlers
   const handleAddCanteenItem = async (item: Partial<CanteenItem>) => {
     const newItem = { ...item, id: generateUUID() } as CanteenItem;
     setCanteenItems([newItem, ...canteenItems]);
-    if (currentClient?.id) await CanteenService.saveItem(currentClient.id, newItem).catch(console.error);
+    if (clientId) await CanteenService.saveItem(clientId, newItem).catch(console.error);
   };
   const handleUpdateCanteenItem = async (id: string, data: Partial<CanteenItem>) => {
     const updated = canteenItems.map(i => i.id === id ? { ...i, ...data } : i);
     setCanteenItems(updated);
     const item = updated.find(i => i.id === id);
-    if (currentClient?.id && item) await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+    if (clientId && item) await CanteenService.saveItem(clientId, item).catch(console.error);
   };
   const handleDeleteCanteenItem = async (id: string) => {
     setCanteenItems(canteenItems.filter(i => i.id !== id));
-    if (currentClient?.id) await CanteenService.deleteItem(currentClient.id, id).catch(console.error);
+    if (clientId) await CanteenService.deleteItem(clientId, id).catch(console.error);
   };
 
   const handleAddCanteenOrder = async (order: CanteenOrder) => {
@@ -361,11 +368,11 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     });
     setCanteenItems(updatedItems);
     
-    if (currentClient?.id) {
-        await CanteenService.saveOrder(currentClient.id, order).catch(console.error);
+    if (clientId) {
+        await CanteenService.saveOrder(clientId, order).catch(console.error);
         const soldItems = updatedItems.filter(item => order.items.some(si => si.itemId === item.id));
         for (const item of soldItems) {
-            await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+            await CanteenService.saveItem(clientId, item).catch(console.error);
         }
     }
   };
@@ -383,11 +390,11 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     setCanteenItems(updatedItems);
     setCanteenOrders(canteenOrders.filter(o => o.id !== id));
 
-    if (currentClient?.id) {
-        await CanteenService.deleteOrder(currentClient.id, id).catch(console.error);
+    if (clientId) {
+        await CanteenService.deleteOrder(clientId, id).catch(console.error);
         const restoredItems = updatedItems.filter(item => order.items.some(si => si.itemId === item.id));
         for (const item of restoredItems) {
-            await CanteenService.saveItem(currentClient.id, item).catch(console.error);
+            await CanteenService.saveItem(clientId, item).catch(console.error);
         }
     }
   };
@@ -408,86 +415,119 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   const handleAddPonto = async (p: Partial<Ponto>) => {
     const newPonto = { ...p, id: generateUUID() } as Ponto;
     setPontos([newPonto, ...pontos]);
-    if (currentClient?.id) await MediaService.savePonto(currentClient.id, newPonto).catch(console.error);
+    if (clientId) await MediaService.savePonto(clientId, newPonto).catch(console.error);
   };
   const handleUpdatePonto = async (id: string, data: Partial<Ponto>) => {
     const updated = pontos.map(p => p.id === id ? { ...p, ...data } : p);
     setPontos(updated);
     const item = updated.find(p => p.id === id);
-    if (currentClient?.id && item) await MediaService.savePonto(currentClient.id, item).catch(console.error);
+    if (clientId && item) await MediaService.savePonto(clientId, item).catch(console.error);
   };
   const handleDeletePonto = async (id: string) => {
     setPontos(pontos.filter(p => p.id !== id));
-    if (currentClient?.id) await MediaService.deletePonto(currentClient.id, id).catch(console.error);
+    if (clientId) await MediaService.deletePonto(clientId, id).catch(console.error);
   };
 
   const handleAddReza = async (r: Partial<Reza>) => {
     const newReza = { ...r, id: generateUUID() } as Reza;
     setRezas([newReza, ...rezas]);
-    if (currentClient?.id) await MediaService.saveReza(currentClient.id, newReza).catch(console.error);
+    if (clientId) await MediaService.saveReza(clientId, newReza).catch(console.error);
   };
   const handleUpdateReza = async (id: string, data: Partial<Reza>) => {
     const updated = rezas.map(r => r.id === id ? { ...r, ...data } : r);
     setRezas(updated);
     const item = updated.find(r => r.id === id);
-    if (currentClient?.id && item) await MediaService.saveReza(currentClient.id, item).catch(console.error);
+    if (clientId && item) await MediaService.saveReza(clientId, item).catch(console.error);
   };
   const handleDeleteReza = async (id: string) => {
     setRezas(rezas.filter(r => r.id !== id));
-    if (currentClient?.id) await MediaService.deleteReza(currentClient.id, id).catch(console.error);
+    if (clientId) await MediaService.deleteReza(clientId, id).catch(console.error);
   };
 
   const handleAddErva = async (e: Partial<Erva>) => {
     const newErva = { ...e, id: generateUUID() } as Erva;
     setErvas([newErva, ...ervas]);
-    if (currentClient?.id) await MediaService.saveErva(currentClient.id, newErva).catch(console.error);
+    if (clientId) await MediaService.saveErva(clientId, newErva).catch(console.error);
   };
   const handleUpdateErva = async (id: string, data: Partial<Erva>) => {
     const updated = ervas.map(e => e.id === id ? { ...e, ...data } : e);
     setErvas(updated);
     const item = updated.find(e => e.id === id);
-    if (currentClient?.id && item) await MediaService.saveErva(currentClient.id, item).catch(console.error);
+    if (clientId && item) await MediaService.saveErva(clientId, item).catch(console.error);
   };
   const handleDeleteErva = async (id: string) => {
     setErvas(ervas.filter(e => e.id !== id));
-    if (currentClient?.id) await MediaService.deleteErva(currentClient.id, id).catch(console.error);
+    if (clientId) await MediaService.deleteErva(clientId, id).catch(console.error);
   };
 
   const handleAddBanho = async (b: Partial<Banho>) => {
     const newBanho = { ...b, id: generateUUID() } as Banho;
     setBanhos([newBanho, ...banhos]);
-    if (currentClient?.id) await MediaService.saveBanho(currentClient.id, newBanho).catch(console.error);
+    if (clientId) await MediaService.saveBanho(clientId, newBanho).catch(console.error);
   };
   const handleUpdateBanho = async (id: string, data: Partial<Banho>) => {
     const updated = banhos.map(b => b.id === id ? { ...b, ...data } : b);
     setBanhos(updated);
     const item = updated.find(b => b.id === id);
-    if (currentClient?.id && item) await MediaService.saveBanho(currentClient.id, item).catch(console.error);
+    if (clientId && item) await MediaService.saveBanho(clientId, item).catch(console.error);
   };
   const handleDeleteBanho = async (id: string) => {
     setBanhos(banhos.filter(b => b.id !== id));
-    if (currentClient?.id) await MediaService.deleteBanho(currentClient.id, id).catch(console.error);
+    if (clientId) await MediaService.deleteBanho(clientId, id).catch(console.error);
   };
 
   const handleAddEvent = async (e: CalendarEvent | Partial<CalendarEvent>) => {
     // Ensure id exists
     const newEvent = { ...e, id: e.id || generateUUID() } as CalendarEvent;
     setEvents(prev => [newEvent, ...prev]);
-    if (currentClient?.id) await EventService.saveCalendarEvent(currentClient.id, newEvent).catch(console.error);
+    if (clientId) await EventService.saveCalendarEvent(clientId, newEvent).catch(console.error);
   };
   const handleUpdateEvent = async (id: string, data: Partial<CalendarEvent>) => {
     setEvents(prev => {
         const updated = prev.map(e => e.id === id ? { ...e, ...data } : e);
         const event = updated.find(e => e.id === id);
-        if (currentClient?.id && event) {
-             EventService.saveCalendarEvent(currentClient.id, event).catch(console.error);
+        if (clientId && event) {
+             EventService.saveCalendarEvent(clientId, event).catch(console.error);
         }
         return updated;
     });
   };
+
+  const handleRegisterTicket = async (ticketData: Omit<EventTicket, 'id' | 'createdAt' | 'attendance'>) => {
+    const newTicket: EventTicket = {
+      ...ticketData,
+      id: generateUUID(),
+      createdAt: new Date().toISOString(),
+      attendance: 'nao_marcado'
+    };
+    
+    setEventTickets(prev => [...prev, newTicket]);
+    
+    // Increment ticketsIssued for the event
+    const event = terreiroEvents.find(e => e.id === ticketData.eventId);
+    if (event) {
+       const updatedEvent = { ...event, ticketsIssued: (event.ticketsIssued || 0) + 1 };
+       setTerreiroEvents(prev => prev.map(e => e.id === event.id ? updatedEvent : e));
+       if (clientId) {
+          await EventService.saveCalendarEvent(clientId, updatedEvent).catch(console.error);
+       }
+    }
+
+    if (clientId) {
+      await EventService.saveTicket(clientId, newTicket).catch(console.error);
+    }
+    
+    return newTicket;
+  };
+
+  const handleUpdateTicket = async (ticket: EventTicket) => {
+    setEventTickets(prev => prev.map(t => t.id === ticket.id ? ticket : t));
+    if (clientId) await EventService.saveTicket(clientId, ticket).catch(console.error);
+  };
+
   const handleDeleteEvent = async (id: string) => {
     setEvents(prev => prev.filter(e => e.id !== id));
-    if (currentClient?.id) await EventService.deleteCalendarEvent(currentClient.id, id).catch(console.error);
+    if (clientId) await EventService.deleteCalendarEvent(clientId, id).catch(console.error);
   };
 
   // Attendance Handlers
@@ -502,15 +542,15 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         return [...prev, record];
     });
     
-    if (currentClient?.id) {
-        await AttendanceService.saveRecord(currentClient.id, record).catch(console.error);
+    if (clientId) {
+        await AttendanceService.saveRecord(clientId, record).catch(console.error);
     }
   };
 
   const handleDeleteAttendanceRecord = async (recordId: string) => {
     setAttendanceRecords(prev => prev.filter(r => r.id !== recordId));
-    if (currentClient?.id) {
-        await AttendanceService.deleteRecord(currentClient.id, recordId).catch(console.error);
+    if (clientId) {
+        await AttendanceService.deleteRecord(clientId, recordId).catch(console.error);
     }
   };
   
@@ -525,31 +565,36 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           return newPrev;
       });
 
-      if (currentClient?.id) {
-          await Promise.all(records.map(r => AttendanceService.saveRecord(currentClient!.id, r)));
+      if (clientId) {
+          await Promise.all(records.map(r => AttendanceService.saveRecord(clientId, r)));
       }
   };
 
   // ID Card Handlers
   const handleSaveIDCardLog = async (log: IDCardLog) => {
       setIdCardLogs(prev => [log, ...prev]);
-      if (currentClient?.id) {
-          await IdCardService.saveLog(currentClient.id, log).catch(console.error);
+      if (clientId) {
+          await IdCardService.saveLog(clientId, log).catch(console.error);
       }
   };
 
   const handleBatchSaveIDCardLogs = async (logs: IDCardLog[]) => {
       setIdCardLogs(prev => [...logs, ...prev]);
-      if (currentClient?.id) {
-          await Promise.all(logs.map(l => IdCardService.saveLog(currentClient!.id, l)));
+      if (clientId) {
+          await Promise.all(logs.map(l => IdCardService.saveLog(clientId, l)));
       }
   };
 
   // Config Handler
   const handleUpdateSystemConfig = async (newConfig: SystemConfig) => {
       setSystemConfig(newConfig);
-      if (currentClient?.id) {
-          await SystemConfigService.saveConfig(currentClient.id, newConfig).catch(console.error);
+      if (clientId) {
+          console.log('[SystemConfig] Saving config for client:', clientId);
+          await SystemConfigService.saveConfig(newConfig, clientId).catch(error => {
+            console.error('[SystemConfig] Error saving config:', error);
+          });
+      } else {
+          console.warn('[SystemConfig] Cannot save config: No Client ID');
       }
   };
 
@@ -557,20 +602,20 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   const handleAddInventoryItem = async (partial: Partial<InventoryItem>) => {
     const newItem = InventoryService.createItem(partial);
     setInventoryItems([newItem, ...inventoryItems]);
-    if (currentClient?.id) await InventoryService.saveItem(currentClient.id, newItem).catch(console.error);
+    if (clientId) await InventoryService.saveItem(clientId, newItem).catch(console.error);
   };
   const handleDeleteInventoryItem = async (id: string) => {
     setInventoryItems(inventoryItems.filter(i => i.id !== id));
-    if (currentClient?.id) await InventoryService.deleteItem(currentClient.id, id).catch(console.error);
+    if (clientId) await InventoryService.deleteItem(clientId, id).catch(console.error);
   };
   const handleAddInventoryCategory = async (name: string) => {
     const newCategory = InventoryService.createCategory(name);
     setInventoryCategories([...inventoryCategories, newCategory]);
-    if (currentClient?.id) await InventoryService.saveCategory(currentClient.id, newCategory).catch(console.error);
+    if (clientId) await InventoryService.saveCategory(clientId, newCategory).catch(console.error);
   };
   const handleDeleteInventoryCategory = async (id: string) => {
     setInventoryCategories(inventoryCategories.filter(c => c.id !== id));
-    if (currentClient?.id) await InventoryService.deleteCategory(currentClient.id, id).catch(console.error);
+    if (clientId) await InventoryService.deleteCategory(clientId, id).catch(console.error);
   };
   const processInventoryEntry = async (updates: StockUpdate[]) => {
     if (!auth.user?.name) return;
@@ -579,17 +624,17 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
     setInventoryItems(updatedItems);
     setStockLogs([...newLogs, ...stockLogs]);
 
-    if (currentClient?.id) {
+    if (clientId) {
         // Save updated items
         for (const item of updatedItems) {
             const original = inventoryItems.find(i => i.id === item.id);
             if (original && original.currentStock !== item.currentStock) {
-                await InventoryService.saveItem(currentClient.id, item).catch(console.error);
+                await InventoryService.saveItem(clientId, item).catch(console.error);
             }
         }
         // Save logs
         for (const log of newLogs) {
-            await InventoryService.saveLog(currentClient.id, log).catch(console.error);
+            await InventoryService.saveLog(clientId, log).catch(console.error);
         }
     }
   };
@@ -599,8 +644,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       setMembers(prev => {
           const updated = prev.map(m => m.id === memberId ? { ...m, monthlyPayments: { ...(m.monthlyPayments || {}), [monthKey]: status } } : m);
           const member = updated.find(m => m.id === memberId);
-          if (currentClient?.id && member) {
-              MemberService.saveMember(currentClient.id, member).catch(console.error);
+          if (clientId && member) {
+              MemberService.saveMember(clientId, member).catch(console.error);
           }
           return updated;
       });
@@ -611,29 +656,29 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
       // context addTransaction might be just a state setter wrapper
       if (addTransaction) addTransaction(newTransaction); 
       // Also persist
-      if (currentClient?.id) await FinancialService.saveTransaction(currentClient.id, newTransaction).catch(console.error);
+      if (clientId) await FinancialService.saveTransaction(clientId, newTransaction).catch(console.error);
   };
   const handleUpdateTransactionWrapper = async (id: string, data: Partial<FinancialTransaction>) => {
       if (updateTransaction) updateTransaction(id, data);
       // Persist
       // We need the full object to save. 
       const existing = transactions.find(t => t.id === id);
-      if (existing && currentClient?.id) {
-          await FinancialService.saveTransaction(currentClient.id, { ...existing, ...data }).catch(console.error);
+      if (existing && clientId) {
+          await FinancialService.saveTransaction(clientId, { ...existing, ...data }).catch(console.error);
       }
   };
   const handleDeleteTransactionWrapper = async (id: string) => {
       if (deleteTransaction) deleteTransaction(id);
-      if (currentClient?.id) await FinancialService.deleteTransaction(currentClient.id, id).catch(console.error);
+      if (clientId) await FinancialService.deleteTransaction(clientId, id).catch(console.error);
   };
 
   const handleAddDonation = async (d: Donation) => {
       setDonations([...donations, d]);
-      if (currentClient?.id) await FinancialService.saveDonation(currentClient.id, d).catch(console.error);
+      if (clientId) await FinancialService.saveDonation(clientId, d).catch(console.error);
   };
   const handleDeleteDonation = async (id: string) => {
       setDonations(donations.filter(d => d.id !== id));
-      if (currentClient?.id) await FinancialService.deleteDonation(currentClient.id, id).catch(console.error);
+      if (clientId) await FinancialService.deleteDonation(clientId, id).catch(console.error);
   };
 
   const fullSystemData = {
@@ -663,15 +708,27 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
   };
 
   return (
-    <Routes>
-      <Route path="/blog" element={<BlogPage />} />
-      <Route path="/blog/:slug" element={<BlogPostPage />} />
-      <Route element={<ProtectedLayout />}>
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/eventos/:id" element={
+          <PublicEventRegistration 
+            events={terreiroEvents} 
+            config={systemConfig} 
+            existingTickets={eventTickets}
+            onRegister={handleRegisterTicket}
+          />
+        } />
+        <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         
         <Route path="/dashboard" element={
           <Dashboard members={members} config={systemConfig} events={events} terreiroEvents={terreiroEvents} roadmap={roadmap || []} broadcasts={broadcasts} />
         } />
+
+        {/* Email Manager */}
+        <Route path="/email-manager" element={<EmailManager />} />
 
         <Route path="/sistema-blog" element={<BlogPage isEmbedded={true} />} />
         <Route path="/sistema-blog/:slug" element={<BlogPostPage isEmbedded={true} />} />
@@ -691,11 +748,11 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           } />
         )}
 
-        {/* Gestão de Eventos */}
+        {/* GestÃ£o de Eventos */}
         {hasModule('gestao_eventos') && (
           <>
-            <Route path="/events-list" element={<EventsManager events={terreiroEvents} tickets={eventTickets} config={systemConfig} onUpdateEvents={setTerreiroEvents} onUpdateTickets={setEventTickets} />} />
-            <Route path="/events-checkin" element={<EventsManager events={terreiroEvents} tickets={eventTickets} config={systemConfig} onUpdateEvents={setTerreiroEvents} onUpdateTickets={setEventTickets} />} />
+            <Route path="/events-list" element={<EventsManager events={terreiroEvents} tickets={eventTickets} config={systemConfig} onUpdateEvents={setTerreiroEvents} onUpdateTickets={setEventTickets} onTicketUpdate={handleUpdateTicket} />} />
+            <Route path="/events-checkin" element={<EventsManager events={terreiroEvents} tickets={eventTickets} config={systemConfig} onUpdateEvents={setTerreiroEvents} onUpdateTickets={setEventTickets} onTicketUpdate={handleUpdateTicket} />} />
           </>
         )}
 
@@ -820,7 +877,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             </>
         )}
 
-        {/* Mídia */}
+        {/* MÃ­dia */}
         {hasModule('midia') && (
           <>
             {hasModule('midia_pontos') && (
@@ -876,27 +933,27 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
           />
         } />
 
-        {/* Configurações e Admin */}
-        <Route path="/layout" element={<SystemConfigManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} onUpdateConfig={setSystemConfig} />} />
-        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={setSystemConfig} onAddEntity={handleAddEntity} onDeleteEntity={handleDeleteEntity} />} />
+        {/* ConfiguraÃ§Ãµes e Admin */}
+        <Route path="/layout" element={<SystemConfigManagement config={systemConfig} onUpdateConfig={handleUpdateSystemConfig} />} />
+        <Route path="/users" element={<UserManagement users={systemUsers} config={systemConfig} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} onUpdateConfig={handleUpdateSystemConfig} />} />
+        <Route path="/entities" element={<EntityManagement entities={entities} permissions={userPermissions?.entities || { view: true, add: true, edit: true, delete: true }} config={systemConfig} onUpdateConfig={handleUpdateSystemConfig} onAddEntity={handleAddEntity} onDeleteEntity={handleDeleteEntity} />} />
         <Route path="/entity-images" element={<EntityImageManagement entities={entities} config={systemConfig} onUpdateEntity={handleUpdateEntity} onAddEntity={handleAddEntity} />} />
-        <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={setSystemConfig} />} />
+        <Route path="/permissions" element={<PermissionManagement config={systemConfig} onUpdateConfig={handleUpdateSystemConfig} />} />
         
         <Route path="/backup" element={
           <BackupSystem 
             user={auth.user!} 
             config={systemConfig} 
             currentData={fullSystemData} 
-            onRestoreFromBackup={d => alert("Restauração desativada na versão Nuvem.")} 
+            onRestoreFromBackup={d => alert("RestauraÃ§Ã£o desativada na versÃ£o Nuvem.")} 
             allowAutoBackup={hasModule('mod_backup_auto')} 
-            onUpdateConfig={setSystemConfig}
+            onUpdateConfig={handleUpdateSystemConfig}
             clientId={activeClientId || systemConfig.license?.clientId}
             planName={currentClient?.planName || currentPlan?.name || systemConfig.license?.planName}
           />
         } />
-        <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fábrica desativado na versão Nuvem.")} />} />
-        <Route path="/saas-manager" element={<SaaSManager config={systemConfig} onUpdateConfig={setSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />} />
+        <Route path="/restore-system" element={<RestoreSystem user={auth.user!} config={systemConfig} onRestore={() => alert("Reset de fÃ¡brica desativado na versÃ£o Nuvem.")} />} />
+        <Route path="/saas-manager" element={<SaaSManager config={systemConfig} onUpdateConfig={handleUpdateSystemConfig} isMasterMode={auth.isMasterMode} clientData={currentClient} />} />
         
         {/* Ajuda */}
         <Route path="/help-center" element={<HelpCenter onStartTour={onStartTour || (() => {})} />} />
@@ -997,5 +1054,8 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
         } />
       </Route>
     </Routes>
+    </Suspense>
   );
 };
+
+

@@ -72,12 +72,12 @@ export default defineConfig(({ mode }) => {
                   return 'genai';
                 }
                 if (id.includes('date-fns')) {
-                  return 'date-fns';
-                }
-                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-                  return 'react-vendor';
-                }
-                return 'vendor';
+                return 'date-fns';
+              }
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('@remix-run') || id.includes('scheduler')) {
+                return 'react-vendor';
+              }
+              return 'vendor';
               }
             }
           }

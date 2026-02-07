@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { InventoryItem, InventoryCategory, StockLog, SystemConfig } from '../types';
 import { Plus, Trash2, ChevronDown, AlertCircle, AlertTriangle, Camera, Upload, ImageIcon, History, Package, Search, Eye, Printer, X, ClipboardCheck, UserCircle } from 'lucide-react';
 import { differenceInDays, format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { DEFAULT_LOGO_URL } from '../constants';
 
 interface InventoryManagementProps {

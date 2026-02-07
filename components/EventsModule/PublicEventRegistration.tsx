@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { TerreiroEvent, EventTicket, SystemConfig } from '../../types';
-import { Calendar, Clock, MapPin, Ticket, User, Phone, CheckCircle, AlertCircle, Copy, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, Ticket, User, Phone, CheckCircle, AlertCircle, Copy, CreditCard, ArrowLeft } from 'lucide-react';
 
 interface PublicEventRegistrationProps {
-  event: TerreiroEvent;
-  config: SystemConfig;
-  onRegister: (ticketData: Omit<EventTicket, 'id' | 'createdAt' | 'attendance'>) => Promise<EventTicket>;
-  existingTickets: EventTicket[];
+  events?: TerreiroEvent[];
+  config?: SystemConfig;
+  onRegister?: (ticketData: Omit<EventTicket, 'id' | 'createdAt' | 'attendance'>) => Promise<EventTicket>;
+  existingTickets?: EventTicket[];
 }
 
-export function PublicEventRegistration({ event, config, onRegister, existingTickets }: PublicEventRegistrationProps) {
+export function PublicEventRegistration({ events = [], config, onRegister, existingTickets = [] }: PublicEventRegistrationProps) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<TerreiroEvent | null>(null);
+  
+  useEffect(() => {
+    if (events.length > 0 && id) {
+      const found = events.find(e => e.id === id);
+      setEvent(found || null);
+    }
+  }, [events, id]);
+
   const [step, setStep] = useState<'details' | 'form' | 'success'>('details');
   const [formData, setFormData] = useState({
     guestName: '',
@@ -19,6 +31,18 @@ export function PublicEventRegistration({ event, config, onRegister, existingTic
   const [generatedTicket, setGeneratedTicket] = useState<EventTicket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800">Evento não encontrado</h2>
+          <p className="text-slate-500 mt-2">O evento que você procura não existe ou foi removido.</p>
+        </div>
+      </div>
+    );
+  }
 
   const isSoldOut = event.ticketsIssued >= event.capacity;
   const isWaitlist = isSoldOut && event.waitingListEnabled;
@@ -42,18 +66,23 @@ export function PublicEventRegistration({ event, config, onRegister, existingTic
       // Generate ticket number
       const nextTicketNumber = existingTickets.filter(t => t.eventId === event.id).length + 1;
 
-      const ticket = await onRegister({
-        eventId: event.id,
-        guestName: formData.guestName,
-        guestPhone: formData.guestPhone,
-        ticketNumber: nextTicketNumber,
-        type: formData.type,
-        paymentStatus: event.isPaid ? 'pendente' : 'gratuito',
-        status: isWaitlist ? 'lista_espera' : 'confirmado'
-      });
+      if (onRegister) {
+          const ticket = await onRegister({
+            eventId: event.id,
+            guestName: formData.guestName,
+            guestPhone: formData.guestPhone,
+            ticketNumber: nextTicketNumber,
+            type: formData.type,
+            paymentStatus: event.isPaid ? 'pendente' : 'gratuito',
+            status: isWaitlist ? 'lista_espera' : 'confirmado'
+          });
+          setGeneratedTicket(ticket);
+          setStep('success');
+      } else {
+          // Fallback simulation if onRegister not provided (should not happen in prod)
+          throw new Error('Sistema de registro indisponível no momento.');
+      }
 
-      setGeneratedTicket(ticket);
-      setStep('success');
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar inscrição');
     } finally {
@@ -145,7 +174,19 @@ export function PublicEventRegistration({ event, config, onRegister, existingTic
             >
               Nova Inscrição
             </button>
+            <button 
+              onClick={() => setStep('details')}
+              className="w-full bg-slate-100 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-200 transition-all mt-2"
+            >
+              Voltar aos Detalhes do Evento
+            </button>
           </div>
+          <button 
+            onClick={() => setStep('details')}
+            className="w-full bg-slate-100 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-200 transition-all mt-2"
+          >
+            Voltar aos Detalhes do Evento
+          </button>
         </div>
       </div>
     );

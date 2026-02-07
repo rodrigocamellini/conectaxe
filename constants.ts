@@ -104,6 +104,7 @@ export const AVAILABLE_MODULES = [
     description: 'Controle de mensalidades, doações e fluxo de caixa',
     subModules: [
       { id: 'financeiro_mensalidades', label: 'Mensalidades' },
+      { id: 'financeiro_fluxo', label: 'Fluxo de Caixa' },
       { id: 'financeiro_doacoes', label: 'Doações' },
       { id: 'financeiro_relatorios', label: 'Relatórios' },
       { id: 'financeiro_config', label: 'Configurações' }
@@ -221,6 +222,7 @@ export const INITIAL_MENU_CONFIG: MenuItemConfig[] = [
 export const INITIAL_MASTER_MENU_CONFIG: MenuItemConfig[] = [
   { id: 'developer-portal', label: 'Terreiros Ativos', icon: 'LayoutGrid', color: '#3d77ff' },
   { id: 'tickets', label: 'Tickets Suporte', icon: 'Ticket', color: '#3Bbeff' },
+  { id: 'email-manager', label: 'Email', icon: 'Mail', color: '#ffcc00' },
   { id: 'master-menu', label: 'Config. Menu', icon: 'Menu', color: '#3dffe8' },
   { id: 'master-broadcast', label: 'Broadcast', icon: 'Zap',  color: '#00ff88' },
   { id: 'master-affiliates', label: 'Afiliados', icon: 'Crown', color: '#ADFF2F' },

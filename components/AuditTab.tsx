@@ -18,7 +18,7 @@ import {
   Lock
 } from 'lucide-react';
 import { format, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 
 // Helper to safely format dates
 const formatSafe = (dateStr: string, formatStr: string, options?: any) => {

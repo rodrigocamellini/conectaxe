@@ -34,7 +34,7 @@ import {
 import * as LucideIcons from 'lucide-react';
 import { User, SystemConfig, SupportTicket, GlobalBroadcast, ReleaseNote, MenuItemConfig, MasterCredentials } from '../types';
 import { DEFAULT_LOGO_URL, MASTER_LOGO_URL, INITIAL_MASTER_MENU_CONFIG, INITIAL_MENU_CONFIG } from '../constants';
-import { RoleIconComponent } from './UserManagement';
+import { RoleIconComponent } from './RoleIcon';
 import { useData } from '../contexts/DataContext';
 import { MasterService } from '../services/masterService';
 

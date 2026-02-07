@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { StaffPermissions, SystemConfig, ModulePermission, RoleDefinition } from '../types';
-import { ShieldCheck, Eye, Plus, Pencil, Trash2, Save, Info, Key, Minus, Users, Archive, RefreshCw, Wallet2 } from 'lucide-react';
-import { RoleIconComponent } from './UserManagement';
+import { ShieldCheck, Eye, Plus, Pencil, Trash2, Save, Info, Key, Minus, Users, Archive, RefreshCw, Wallet2, CheckCircle, X } from 'lucide-react';
+import { RoleIconComponent } from './RoleIcon';
 
 interface PermissionManagementProps {
   config: SystemConfig;
@@ -48,6 +48,8 @@ const MODULES = [
 
 export const PermissionManagement: React.FC<PermissionManagementProps> = ({ config, onUpdateConfig }) => {
   const [selectedRole, setSelectedRole] = useState<string>(config.userRoles[1]?.id || 'staff');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
   const [localPermissionsByRole, setLocalPermissionsByRole] = useState<Record<string, StaffPermissions>>(() => {
     const perms = { ...(config.rolePermissions || {}) };
     config.userRoles.forEach(role => {
@@ -61,6 +63,25 @@ export const PermissionManagement: React.FC<PermissionManagementProps> = ({ conf
     });
     return perms;
   });
+
+  // Sync state with config prop when it changes (e.g. after async load)
+  React.useEffect(() => {
+    if (config.rolePermissions) {
+      setLocalPermissionsByRole(prev => {
+        const perms = { ...prev, ...config.rolePermissions };
+        config.userRoles.forEach(role => {
+          if (!perms[role.id]) {
+            const defaultPerms: StaffPermissions = {};
+            MODULES.forEach(mod => {
+              defaultPerms[mod.id] = { view: false, add: false, edit: false, delete: false };
+            });
+            perms[role.id] = defaultPerms;
+          }
+        });
+        return perms;
+      });
+    }
+  }, [config.rolePermissions, config.userRoles]);
 
   const togglePermission = (roleId: string, moduleId: string, field: keyof ModulePermission) => {
     if (roleId === 'admin') return; 
@@ -87,13 +108,48 @@ export const PermissionManagement: React.FC<PermissionManagementProps> = ({ conf
       ...config,
       rolePermissions: localPermissionsByRole
     });
-    alert(`As permissões para o perfil selecionado foram salvas e aplicadas em tempo real!`);
+    setShowSuccessModal(true);
   };
 
   const currentRole = config.userRoles.find(r => r.id === selectedRole);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex flex-col items-center text-center space-y-4 py-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-2">
+                <CheckCircle size={32} strokeWidth={3} />
+              </div>
+              
+              <div>
+                <h3 className="text-xl font-black text-gray-900">Permissões Salvas!</h3>
+                <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                  As configurações de acesso para o perfil <strong>{currentRole?.label}</strong> foram atualizadas e já estão valendo para todos os usuários deste grupo.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-emerald-200 mt-4"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-8 bg-indigo-600 text-white flex items-center justify-between" style={{ backgroundColor: config.primaryColor }}>
           <div className="flex items-center gap-4">

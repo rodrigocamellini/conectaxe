@@ -34,7 +34,7 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { DEFAULT_LOGO_URL, DEFAULT_SYSTEM_CONFIG } from '../constants';
 
 interface CourseManagementProps {

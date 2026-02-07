@@ -32,7 +32,7 @@ import {
   Eye
 } from 'lucide-react';
 import { format, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { DEFAULT_LOGO_URL, DEFAULT_IDCARD_CONFIG } from '../constants';
 
 interface IDCardManagementProps {

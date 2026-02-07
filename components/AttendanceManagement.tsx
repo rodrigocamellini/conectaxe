@@ -26,7 +26,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { format, addDays, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 
 interface AttendanceManagementProps {
   members: Member[];

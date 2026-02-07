@@ -46,7 +46,7 @@ import {
   addDays,
   differenceInYears
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { DEFAULT_LOGO_URL } from '../constants';
 
 interface AgendaManagementProps {

@@ -226,12 +226,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // --- DERIVED STATE ---
   // ORDER IS CRITICAL: currentClient -> activeClientId -> others
   
-  // 1. Determine Current Client (from Email)
+  // 1. Determine Current Client (from Email or ID)
   const currentClient = useMemo(() => {
     if (!isAuthenticated || isMasterMode) return null;
+    
+    // 1. Try to match by Admin Email (Owner)
     const userEmail = user?.email || '';
-    if (!userEmail) return null;
-    return clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
+    if (userEmail) {
+      const byEmail = clients.find(c => c && (c.adminEmail || '').toLowerCase() === userEmail.toLowerCase());
+      if (byEmail) return byEmail;
+    }
+
+    // 2. Try to match by user.clientId (Staff/Secondary User)
+    if (user?.clientId) {
+      return clients.find(c => c.id === user.clientId) || null;
+    }
+
+    return null;
   }, [clients, user, isAuthenticated, isMasterMode]);
 
   // 2. Determine Active Client ID (Depends on currentClient)
@@ -274,6 +285,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadClientData = useCallback(async (clientId: string) => {
     try {
+      // Load Client Info (Plan, Status, etc) - Critical for secondary users to resolve currentClient
+      const clientDoc = await MasterService.getClient(clientId);
+      if (clientDoc) {
+          setClients(prev => {
+              if (prev.some(c => c.id === clientDoc.id)) return prev.map(c => c.id === clientDoc.id ? clientDoc : c);
+              return [...prev, clientDoc];
+          });
+      }
+
       const config = await SystemConfigService.getConfig(clientId);
       const configWithId = { 
         ...config, 
@@ -342,9 +362,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Derived user permissions
   const userPermissions = useMemo(() => {
-    // This is a placeholder logic as I don't have the original logic
+    if (!user || !systemConfig) return undefined;
+
+    // If role permissions exist for the user's role, return them
+    // Note: 'admin' role usually doesn't have entries in rolePermissions (implicit full access),
+    // so it falls through to undefined, triggering the default full access in components.
+    if (systemConfig.rolePermissions && systemConfig.rolePermissions[user.role]) {
+      return systemConfig.rolePermissions[user.role];
+    }
+
     return undefined; 
-  }, []);
+  }, [user, systemConfig]);
 
   // --- MASTER DATA LOADING ---
   useEffect(() => {

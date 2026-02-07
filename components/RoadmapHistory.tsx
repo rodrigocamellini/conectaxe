@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReleaseNote, GlobalBroadcast } from '../types';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { Sparkles, Calendar, CheckCircle2, Zap, Bell, Info, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';

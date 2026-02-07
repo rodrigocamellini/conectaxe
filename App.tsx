@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { AppRoutes } from './components/AppRoutes';
-import { LoginScreen, MaintenanceScreen, FrozenScreen } from './components/AuthScreens';
 import { TourGuide } from './components/TourGuide';
-import LandingPage from './components/landing/LandingPage';
-import { BlogPage } from './components/BlogPage';
-import { BlogPostPage } from './components/BlogPostPage';
+import { Loading } from './components/Loading';
+
+// Lazy Components
+const LoginScreen = React.lazy(() => import('./components/AuthScreens').then(m => ({ default: m.LoginScreen })));
+const MaintenanceScreen = React.lazy(() => import('./components/AuthScreens').then(m => ({ default: m.MaintenanceScreen })));
+const FrozenScreen = React.lazy(() => import('./components/AuthScreens').then(m => ({ default: m.FrozenScreen })));
+const LandingPage = React.lazy(() => import('./components/landing/LandingPage'));
+const BlogPage = React.lazy(() => import('./components/BlogPage').then(m => ({ default: m.BlogPage })));
+const BlogPostPage = React.lazy(() => import('./components/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
 
 const AppContent: React.FC = () => {
   const auth = useAuth();
@@ -18,17 +23,23 @@ const AppContent: React.FC = () => {
   if (!auth.isAuthenticated) {
     if (globalMaintenance.active) {
       // Maintenance Screen allows Master Bypass
-      return <MaintenanceScreen />;
+      return (
+        <Suspense fallback={<Loading />}>
+          <MaintenanceScreen />
+        </Suspense>
+      );
     }
     return (
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/blog" element={<BlogPage />} />
-        <Route path="/blog/:slug" element={<BlogPostPage />} />
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/register" element={<LoginScreen />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/register" element={<LoginScreen />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -37,7 +48,11 @@ const AppContent: React.FC = () => {
   // 1. Frozen State (License Expired/Blocked)
   // Master users can bypass frozen state to fix issues
   if (licenseState.status === 'frozen' && !auth.isMasterMode) {
-     return <FrozenScreen />;
+     return (
+       <Suspense fallback={<Loading />}>
+         <FrozenScreen />
+       </Suspense>
+     );
   }
 
   // 2. Normal App Usage

@@ -37,7 +37,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 import { MasterService } from '../services/masterService';
 
 interface MasterTicketManagerProps {

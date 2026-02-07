@@ -22,7 +22,7 @@ import {
   Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+import { ptBR } from 'date-fns/locale';
 // Fix: Import DEFAULT_LOGO_URL from constants to resolve undefined reference error
 import { DEFAULT_LOGO_URL } from '../constants';
 
