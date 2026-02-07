@@ -7,11 +7,18 @@ import { ptBR } from 'date-fns/locale';
 interface UpcomingEventsWidgetProps {
   events: TerreiroEvent[];
   config: SystemConfig;
+  onEventClick?: (event: TerreiroEvent) => void;
 }
 
-export function UpcomingEventsWidget({ events, config }: UpcomingEventsWidgetProps) {
+export function UpcomingEventsWidget({ events, config, onEventClick }: UpcomingEventsWidgetProps) {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
   const upcomingEvents = (events || [])
-    .filter(event => event.status === 'agendado' && new Date(event.date) >= new Date(new Date().setHours(0,0,0,0)))
+    .filter(event => {
+      // Compara apenas a parte da data (YYYY-MM-DD) para evitar problemas de fuso horário
+      const eventDateStr = event.date.split('T')[0];
+      return event.status === 'agendado' && eventDateStr >= todayStr;
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 5);
 
@@ -36,7 +43,11 @@ export function UpcomingEventsWidget({ events, config }: UpcomingEventsWidgetPro
         {upcomingEvents.length > 0 ? (
           <div className="divide-y divide-gray-50">
             {upcomingEvents.map((event) => (
-              <div key={event.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors group cursor-pointer">
+              <div 
+                key={event.id} 
+                className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors group cursor-pointer"
+                onClick={() => onEventClick && onEventClick(event)}
+              >
                 <div className="flex-shrink-0 w-12 h-12 bg-indigo-50 rounded-xl flex flex-col items-center justify-center text-indigo-600 border border-indigo-100">
                   <span className="text-[10px] font-black uppercase">{format(new Date(event.date), 'MMM', { locale: ptBR })}</span>
                   <span className="text-lg font-black leading-none">{format(new Date(event.date), 'dd')}</span>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { EmailAccount, EmailMessage } from '../../types';
 import { EmailService } from '../../services/EmailService';
-import { X, Paperclip, Send } from 'lucide-react';
+import { X, Paperclip } from 'lucide-react';
+import { RichTextEditor } from './RichTextEditor';
 
 interface EmailComposeProps {
   account: EmailAccount;
@@ -74,19 +75,18 @@ export const EmailCompose: React.FC<EmailComposeProps> = ({ account, initialData
           />
         </div>
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-[300px]">
           <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem:</label>
-          <textarea
+          <RichTextEditor
             value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="flex-1 w-full p-4 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 resize-none font-sans"
+            onChange={setBody}
             placeholder="Digite sua mensagem aqui..."
           />
         </div>
       </div>
 
       <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-        <button className="text-gray-500 hover:text-gray-700 p-2">
+        <button className="text-gray-500 hover:text-gray-700 p-2" title="Anexar arquivo (em breve)">
           <Paperclip size={20} />
         </button>
         <div className="flex space-x-3">

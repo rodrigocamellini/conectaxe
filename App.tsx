@@ -13,6 +13,7 @@ const FrozenScreen = React.lazy(() => import('./components/AuthScreens').then(m 
 const LandingPage = React.lazy(() => import('./components/landing/LandingPage'));
 const BlogPage = React.lazy(() => import('./components/BlogPage').then(m => ({ default: m.BlogPage })));
 const BlogPostPage = React.lazy(() => import('./components/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
+const PublicEventRegistration = React.lazy(() => import('./components/EventsModule/PublicEventRegistration').then(m => ({ default: m.PublicEventRegistration })));
 
 const AppContent: React.FC = () => {
   const auth = useAuth();
@@ -35,6 +36,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/eventos/:id" element={<PublicEventRegistration />} />
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<LoginScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -570,7 +570,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!activeClientId) throw new Error("No active client");
       const newMember = await MemberService.createMember(m, members, isConsulente);
       await MemberService.saveMember(activeClientId, newMember);
-      setMembers(prev => [newMember, ...prev]);
+      
+      if (isConsulente || newMember.isConsulente || newMember.status === 'consulente') {
+        setConsulentes(prev => [newMember, ...prev]);
+      } else {
+        setMembers(prev => [newMember, ...prev]);
+      }
     } catch (error) {
       console.error("Erro ao adicionar membro:", error);
       alert("Erro ao salvar no banco de dados.");

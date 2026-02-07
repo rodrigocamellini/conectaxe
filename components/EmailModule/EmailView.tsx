@@ -1,15 +1,16 @@
 import React from 'react';
 import { EmailMessage } from '../../types';
-import { ArrowLeft, Trash, Reply, Star, Download, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Trash, Reply, Star, Download, MoreVertical, Forward } from 'lucide-react';
 
 interface EmailViewProps {
   message: EmailMessage;
   onBack: () => void;
   onDelete: () => void;
   onReply: () => void;
+  onForward: () => void;
 }
 
-export const EmailView: React.FC<EmailViewProps> = ({ message, onBack, onDelete, onReply }) => {
+export const EmailView: React.FC<EmailViewProps> = ({ message, onBack, onDelete, onReply, onForward }) => {
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -23,6 +24,9 @@ export const EmailView: React.FC<EmailViewProps> = ({ message, onBack, onDelete,
             </button>
             <button onClick={onReply} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-blue-600" title="Responder">
               <Reply size={20} />
+            </button>
+            <button onClick={onForward} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-blue-600" title="Encaminhar">
+              <Forward size={20} />
             </button>
           </div>
         </div>
@@ -45,9 +49,10 @@ export const EmailView: React.FC<EmailViewProps> = ({ message, onBack, onDelete,
           </div>
         </div>
 
-        <div className="prose max-w-none text-gray-800 whitespace-pre-wrap font-sans">
-          {message.body}
-        </div>
+        <div 
+          className="prose max-w-none text-gray-800 font-sans"
+          dangerouslySetInnerHTML={{ __html: message.body }}
+        />
 
         {message.hasAttachments && message.attachments && (
           <div className="mt-8 border-t border-gray-200 pt-4">

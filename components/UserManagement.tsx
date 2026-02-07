@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { User, SystemConfig, RoleDefinition } from '../types';
+import { RoleIconComponent, SELECTABLE_ICONS } from './RoleIcon';
 import { 
   Plus, 
   Trash2, 

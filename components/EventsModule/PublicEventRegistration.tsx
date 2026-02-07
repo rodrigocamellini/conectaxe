@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TerreiroEvent, EventTicket, SystemConfig } from '../../types';
 import { Calendar, Clock, MapPin, Ticket, User, Phone, CheckCircle, AlertCircle, Copy, CreditCard, ArrowLeft } from 'lucide-react';
+import { EventService } from '../../services/EventService';
+import { SystemConfigService } from '../../services/systemConfigService';
+import { DEFAULT_SYSTEM_CONFIG } from '../../constants';
+import { generateUUID } from '../../utils/ids';
 
 interface PublicEventRegistrationProps {
   events?: TerreiroEvent[];
@@ -10,17 +14,57 @@ interface PublicEventRegistrationProps {
   existingTickets?: EventTicket[];
 }
 
-export function PublicEventRegistration({ events = [], config, onRegister, existingTickets = [] }: PublicEventRegistrationProps) {
+export function PublicEventRegistration({ events = [], config: propConfig, onRegister, existingTickets: propTickets = [] }: PublicEventRegistrationProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<TerreiroEvent | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [config, setConfig] = useState<SystemConfig>(propConfig || DEFAULT_SYSTEM_CONFIG);
+  const [existingTickets, setExistingTickets] = useState<EventTicket[]>(propTickets);
+  const [loadingEvent, setLoadingEvent] = useState(true);
   
   useEffect(() => {
-    if (events.length > 0 && id) {
-      const found = events.find(e => e.id === id);
-      setEvent(found || null);
-    }
-  }, [events, id]);
+    const loadEventData = async () => {
+      if (!id) return;
+      
+      // 1. Try to find in props first
+      if (events.length > 0) {
+        const found = events.find(e => e.id === id);
+        if (found) {
+          setEvent(found);
+          setConfig(propConfig || DEFAULT_SYSTEM_CONFIG);
+          setExistingTickets(propTickets);
+          setLoadingEvent(false);
+          return;
+        }
+      }
+
+      // 2. Fetch from server if not found in props (Public Link Mode)
+      try {
+        setLoadingEvent(true);
+        const result = await EventService.findEventAndClient(id);
+        
+        if (result) {
+          setEvent(result.event);
+          setClientId(result.clientId);
+          
+          // Load Config for this client (for branding/Pix)
+          const clientConfig = await SystemConfigService.getConfig(result.clientId);
+          setConfig(clientConfig);
+          
+          // Load existing tickets to calculate ticket number
+          const tickets = await EventService.getAllTickets(result.clientId);
+          setExistingTickets(tickets);
+        }
+      } catch (err) {
+        console.error("Error loading event:", err);
+      } finally {
+        setLoadingEvent(false);
+      }
+    };
+
+    loadEventData();
+  }, [id, events, propConfig, propTickets]);
 
   const [step, setStep] = useState<'details' | 'form' | 'success'>('details');
   const [formData, setFormData] = useState({
@@ -31,6 +75,14 @@ export function PublicEventRegistration({ events = [], config, onRegister, exist
   const [generatedTicket, setGeneratedTicket] = useState<EventTicket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  if (loadingEvent) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -77,6 +129,31 @@ export function PublicEventRegistration({ events = [], config, onRegister, exist
             status: isWaitlist ? 'lista_espera' : 'confirmado'
           });
           setGeneratedTicket(ticket);
+          setStep('success');
+      } else if (clientId) {
+          // Internal Registration Logic (Public Mode)
+          const newTicket: EventTicket = {
+            id: generateUUID(),
+            eventId: event.id,
+            guestName: formData.guestName,
+            guestPhone: formData.guestPhone,
+            ticketNumber: nextTicketNumber,
+            type: formData.type,
+            paymentStatus: event.isPaid ? 'pendente' : 'gratuito',
+            status: isWaitlist ? 'lista_espera' : 'confirmado',
+            createdAt: new Date().toISOString(),
+            attendance: 'nao_marcado'
+          };
+
+          // 1. Save Ticket
+          await EventService.saveTicket(clientId, newTicket);
+
+          // 2. Update Event Count
+          const updatedEvent = { ...event, ticketsIssued: (event.ticketsIssued || 0) + 1 };
+          await EventService.saveEvent(clientId, updatedEvent);
+          setEvent(updatedEvent); // Update local state
+          
+          setGeneratedTicket(newTicket);
           setStep('success');
       } else {
           // Fallback simulation if onRegister not provided (should not happen in prod)

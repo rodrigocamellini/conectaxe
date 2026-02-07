@@ -813,7 +813,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             <MemberManagement 
                 members={members} 
                 entities={entities} 
-                permissions={userPermissions?.members || { view: true, add: true, edit: true, delete: true }} 
+                permissions={auth.isMasterMode ? { view: true, add: true, edit: true, delete: true } : (userPermissions?.members || { view: true, add: true, edit: true, delete: true })} 
                 config={systemConfig} 
                 currentUser={auth.user!} 
                 onAddMember={handleAddMember} 
@@ -826,7 +826,7 @@ export const AppRoutes: React.FC<{ onStartTour?: () => void }> = ({ onStartTour 
             <MemberManagement 
                 members={members.filter(m => m.status === 'consulente' || m.isConsulente)} 
                 entities={entities} 
-                permissions={userPermissions?.members || { view: true, add: true, edit: true, delete: true }} 
+                permissions={auth.isMasterMode ? { view: true, add: true, edit: true, delete: true } : (userPermissions?.members || { view: true, add: true, edit: true, delete: true })} 
                 config={systemConfig} 
                 currentUser={auth.user!} 
                 onAddMember={handleAddConsulente} 

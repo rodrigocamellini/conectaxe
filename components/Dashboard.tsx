@@ -84,6 +84,7 @@ const RenderEventIcon = ({ name, size = 16, className = "" }: { name?: string, s
 
 export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, terreiroEvents, roadmap = [], broadcasts = [] }) => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | TerreiroEvent | null>(null);
   const { user } = useAuth();
   const { userPreferences, updateUserPreferences } = useData();
   
@@ -342,7 +343,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
         {/* WIDGET: PRÓXIMAS GIRAS E EVENTOS */}
-        <UpcomingEventsWidget events={terreiroEvents || []} config={config} />
+        <UpcomingEventsWidget events={terreiroEvents || []} config={config} onEventClick={setSelectedEvent} />
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
@@ -358,7 +359,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
             {todayEvents.length > 0 ? (
               <div className="divide-y divide-gray-50">
                 {todayEvents.map((event) => (
-                  <div key={event.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                  <div 
+                    key={event.id} 
+                    className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer group"
+                    onClick={() => setSelectedEvent(event)}
+                  >
                     <div 
                       className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0"
                       style={{ backgroundColor: event.color, color: event.color === '#ffffff' ? '#1f2937' : '#ffffff' }}
@@ -372,6 +377,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
                         <span className="text-[10px] font-black text-gray-400 uppercase">{event.time || '--:--'}</span>
                       </div>
                     </div>
+                    <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-400 transition-colors" />
                   </div>
                 ))}
               </div>
@@ -535,6 +541,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ members, config, events, t
           </div>
         </div>
       </div>
+
+      {selectedEvent && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-300">
+             <div className="relative h-24 bg-indigo-600 flex items-center justify-center" style={{ backgroundColor: config.primaryColor }}>
+                <button 
+                  onClick={() => setSelectedEvent(null)}
+                  className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors z-10"
+                >
+                  <X size={20} />
+                </button>
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                   <RenderEventIcon name={(selectedEvent as any).icon || ((selectedEvent as any).type === 'gira' ? 'sparkles' : 'calendar')} size={32} />
+                </div>
+             </div>
+             
+             <div className={`p-6 text-center ${fs.body}`}>
+                <h4 className={`${fs.title} font-black text-gray-800 mb-1 leading-tight`}>{selectedEvent.title}</h4>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                   <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                      {(selectedEvent as any).type || 'Evento'}
+                   </span>
+                   <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-wider">
+                      {format(new Date(selectedEvent.date), 'dd/MM/yyyy')}
+                   </span>
+                </div>
+
+                <div className="space-y-3 text-left bg-gray-50 rounded-2xl p-4 mb-6">
+                   <div className="flex gap-3">
+                      <Clock size={16} className="text-gray-400 shrink-0 mt-0.5" />
+                      <div>
+                         <p className="text-[10px] font-black uppercase text-gray-400">Horário</p>
+                         <p className="font-bold text-gray-700">{(selectedEvent as any).time || 'Não definido'}</p>
+                      </div>
+                   </div>
+                   {(selectedEvent as any).description && (
+                     <div className="flex gap-3 border-t border-gray-100 pt-3">
+                        <Info size={16} className="text-gray-400 shrink-0 mt-0.5" />
+                        <div>
+                           <p className="text-[10px] font-black uppercase text-gray-400">Descrição</p>
+                           <p className="text-sm text-gray-600 leading-relaxed">{(selectedEvent as any).description}</p>
+                        </div>
+                     </div>
+                   )}
+                </div>
+
+                <button 
+                  onClick={() => setSelectedEvent(null)}
+                  className="w-full py-3 text-white font-black rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                  style={{ backgroundColor: config.primaryColor }}
+                >
+                  Fechar
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
 
       {selectedMember && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">

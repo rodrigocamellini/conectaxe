@@ -206,6 +206,31 @@ export const MasterService = {
       return { enabled: false, days: 5 };
     }
   },
+
+  // --- Master Global Config ---
+  getMasterGlobalConfig: async (): Promise<MasterGlobalConfig | null> => {
+    try {
+      const docRef = doc(db, CONFIG_COLLECTION, 'global');
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return snap.data() as MasterGlobalConfig;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching master global config:", error);
+      return null;
+    }
+  },
+
+  saveMasterGlobalConfig: async (config: MasterGlobalConfig): Promise<void> => {
+    try {
+      await setDoc(doc(db, CONFIG_COLLECTION, 'global'), config);
+    } catch (error) {
+      console.error("Error saving master global config:", error);
+      throw error;
+    }
+  },
+
   saveAutoBlockConfig: async (config: {enabled: boolean, days: number}): Promise<void> => {
     try {
       await setDoc(doc(db, CONFIG_COLLECTION, 'auto_block'), config);

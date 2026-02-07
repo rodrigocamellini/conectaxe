@@ -100,7 +100,7 @@ export const EmailService = {
       accountId: account.id,
       folder: 'sent',
       date: new Date().toISOString(),
-      snippet: message.body.substring(0, 100),
+      snippet: message.body.replace(/<[^>]*>?/gm, '').substring(0, 100),
       isRead: true,
       isStarred: false,
       hasAttachments: !!message.attachments?.length
@@ -125,7 +125,13 @@ export const EmailService = {
         fromName: 'Sistema ConectAxé',
         to: [account.email],
         subject: 'Bem-vindo ao seu Email Master',
-        body: `Olá,\n\nEsta é uma mensagem de teste para confirmar que sua conta ${account.email} foi configurada corretamente.\n\nAtenciosamente,\nEquipe ConectAxé`,
+        body: `<div style="font-family: Arial, sans-serif; color: #333;">
+          <h2>Bem-vindo ao ConectAxé!</h2>
+          <p>Olá,</p>
+          <p>Esta é uma mensagem de teste para confirmar que sua conta <strong>${account.email}</strong> foi configurada corretamente.</p>
+          <hr>
+          <p>Atenciosamente,<br><em>Equipe ConectAxé</em></p>
+        </div>`,
         snippet: 'Esta é uma mensagem de teste para confirmar que sua conta...',
         date: new Date().toISOString(),
         isRead: false,

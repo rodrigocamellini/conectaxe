@@ -59,6 +59,7 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'Dinheiro' | 'Pix' | 'Cartão de Débito' | 'Cartão de Crédito'>('Pix');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<CanteenItem>>({ name: '', price: 0, stock: 0, category: 'Comida', image: '' });
@@ -128,7 +129,7 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
     onAddOrder(newOrder);
     setCart([]);
     setShowCheckoutModal(false);
-    alert("Venda finalizada com sucesso!");
+    setShowSuccessModal(true);
   };
 
   const handleDeleteOrderClick = (orderId: string) => {
@@ -461,6 +462,28 @@ export const CanteenManagement: React.FC<CanteenManagementProps> = ({
 
                  <button onClick={confirmOrder} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
                     <CheckCircle2 size={16} /> Confirmar Venda
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-8 text-center space-y-4">
+                 <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto text-green-500 animate-in zoom-in duration-300 delay-150">
+                    <CheckCircle2 size={40} />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Venda Finalizada!</h3>
+                    <p className="text-sm text-gray-500 mt-2 font-medium">A venda foi registrada com sucesso no sistema.</p>
+                 </div>
+                 <button 
+                    onClick={() => setShowSuccessModal(false)} 
+                    className="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-xl font-black uppercase text-xs shadow-lg shadow-green-200 transition-all active:scale-95 mt-4"
+                 >
+                    Fechar
                  </button>
               </div>
            </div>

@@ -40,7 +40,7 @@ const MONTHS_LIST = [
 export const MemberManagement: React.FC<MemberManagementProps> = ({ 
   members, 
   entities,
-  permissions,
+  permissions = { view: true, add: true, edit: true, delete: true },
   config,
   currentUser,
   onAddMember,
@@ -259,6 +259,17 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
           }
         });
         window.dispatchEvent(userEvent);
+        
+        // Exibir credenciais para o admin
+        alert(`
+✅ Cadastro realizado com sucesso!
+
+Credenciais de Acesso geradas:
+📧 Email: ${formData.email}
+🔑 Senha Provisória: mudar123
+
+Por favor, informe estes dados ao usuário.
+        `.trim());
       }
     }
     setShowEditModal(false);
@@ -365,7 +376,7 @@ export const MemberManagement: React.FC<MemberManagementProps> = ({
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        {permissions?.add && (
+        {(permissions?.add || currentUser?.role === 'admin' || currentUser?.role === 'master') && (
           <button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all">
             <Plus size={20} /> {mode === 'consulente' ? 'Novo Consulente' : 'Novo Membro'}
           </button>

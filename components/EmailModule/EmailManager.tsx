@@ -72,6 +72,7 @@ export const EmailManager: React.FC = () => {
   };
 
   const handleCompose = () => {
+    setComposeInitialData(undefined);
     setView('compose');
   };
 
@@ -131,7 +132,19 @@ export const EmailManager: React.FC = () => {
               setRefreshTrigger(prev => prev + 1);
             }}
             onReply={() => {
-              // Implement reply logic
+              setComposeInitialData({
+                to: [selectedMessage.from],
+                subject: `Re: ${selectedMessage.subject}`,
+                body: `<br><br><div class="gmail_quote">Em ${new Date(selectedMessage.date).toLocaleString()}, ${selectedMessage.from} escreveu:<br><blockquote class="gmail_quote" style="margin:0 0 0 .8ex;border-left:1px #ccc solid;padding-left:1ex">${selectedMessage.body}</blockquote></div>`
+              });
+              setView('compose');
+            }}
+            onForward={() => {
+              setComposeInitialData({
+                to: [],
+                subject: `Fwd: ${selectedMessage.subject}`,
+                body: `<br><br><div class="gmail_quote">---------- Forwarded message ---------<br>From: <strong>${selectedMessage.fromName || selectedMessage.from}</strong> <span dir="ltr">&lt;${selectedMessage.from}&gt;</span><br>Date: ${new Date(selectedMessage.date).toLocaleString()}<br>Subject: ${selectedMessage.subject}<br>To: ${selectedMessage.to.join(', ')}<br><br>${selectedMessage.body}</div>`
+              });
               setView('compose');
             }}
           />
@@ -140,11 +153,7 @@ export const EmailManager: React.FC = () => {
         return (
           <EmailCompose 
             account={currentAccount}
-            initialData={selectedMessage ? {
-              to: [selectedMessage.from],
-              subject: `Re: ${selectedMessage.subject}`,
-              body: `\n\nEm ${new Date(selectedMessage.date).toLocaleString()}, ${selectedMessage.from} escreveu:\n${selectedMessage.body}`
-            } : undefined}
+            initialData={composeInitialData}
             onCancel={handleBackToList}
             onSent={() => {
               handleBackToList();
